@@ -1,13 +1,29 @@
+context("Autoplot")
+
 library(testthat)
 library(dplyr)
 library(ggplot2)
 
-context("Autoplot")
+# As of R 3.6, cannot rely on old sample() results to be the same.
+# Pre R 3.6, they were generated like this, and we have saved them
+# as static values to be more reproducible
 
-set.seed(123)
+# set.seed(123)
+# resample_idx <- replicate(
+#   n = 10,
+#   expr = sample.int(
+#     n = nrow(two_class_example),
+#     size = 300,
+#     replace = TRUE
+#   ),
+#   simplify = FALSE
+# )
+
+# saveRDS(object = resample_idx, file = testthat::test_path("test_autoplot.rds"))
+resample_idx <- readRDS(testthat::test_path("test_autoplot.rds"))
 
 two_class_resamples <- bind_rows(
-  replicate(10, sample_n(two_class_example, 300, TRUE), simplify = FALSE),
+  lapply(resample_idx, function(idx) two_class_example[idx,]),
   .id = "Resample"
 ) %>%
   group_by(Resample)
@@ -303,3 +319,67 @@ test_that("Lift Curve - multi class, with resamples", {
   # 5 resamples
   expect_equal(length(unique(.plot_data$data[[1]]$colour)), 5)
 })
+
+# Confusion Matrix  ------------------------------------------------------------
+test_that("Confusion Matrix - type argument", {
+  res <- conf_mat(two_class_example, truth, predicted)
+
+  expect_error(.plot <- autoplot(res, type = "wrong"), "type")
+})
+
+test_that("Confusion Matrix - two class - heatmap", {
+  res <- conf_mat(two_class_example, truth, predicted)
+
+  expect_error(.plot <- autoplot(res, type = "heatmap"), NA)
+  expect_is(.plot, "gg")
+
+  .plot_data <- ggplot_build(.plot)
+
+
+  # 4 panes
+  expect_equal(nrow(.plot_data$data[[1]]), length(res$table))
+})
+
+test_that("Confusion Matrix - multi class - heatmap", {
+  res <- hpc_cv %>%
+    filter(Resample == "Fold01") %>%
+    conf_mat(obs, pred)
+
+  expect_error(.plot <- autoplot(res, type = "heatmap"), NA)
+  expect_is(.plot, "gg")
+
+  .plot_data <- ggplot_build(.plot)
+
+
+  # panes
+  expect_equal(nrow(.plot_data$data[[1]]), length(res$table))
+})
+
+test_that("Confusion Matrix - two class - mosaic", {
+  res <- conf_mat(two_class_example, truth, predicted)
+
+  expect_error(.plot <- autoplot(res, type = "mosaic"), NA)
+  expect_is(.plot, "gg")
+
+  .plot_data <- ggplot_build(.plot)
+
+
+  # 4 panes
+  expect_equal(nrow(.plot_data$data[[1]]), length(res$table))
+})
+
+test_that("Confusion Matrix - multi class - mosaic", {
+  res <- hpc_cv %>%
+    filter(Resample == "Fold01") %>%
+    conf_mat(obs, pred)
+
+  expect_error(.plot <- autoplot(res, type = "mosaic"), NA)
+  expect_is(.plot, "gg")
+
+  .plot_data <- ggplot_build(.plot)
+
+  # panes
+  expect_equal(nrow(.plot_data$data[[1]]), length(res$table))
+
+})
+

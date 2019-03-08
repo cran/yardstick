@@ -1,3 +1,37 @@
+# yardstick 0.0.3
+
+## New metrics and functionality
+
+* `mase()` is a numeric metric for the mean absolute scaled error. It is 
+generally useful when forecasting with time series (@alexhallam, #68).
+
+* `huber_loss()` is a numeric metric that is less sensitive to outliers than
+`rmse()`, but is more sensitive than `mae()` for small errors (@blairj09, #71).
+
+* `huber_loss_pseudo()` is a smoothed form of `huber_loss()` (@blairj09, #71).
+
+* `smape()` is a numeric metric that is based on percentage errors 
+(@riazhedayati, #67).
+
+* `conf_mat` objects now have two `ggplot2::autoplot()` methods for easy visualization
+of the confusion matrix as either a heat map or a mosaic plot (@EmilHvitfeldt, #10).
+
+## Other improvements
+
+* `metric_set()` now returns a classed function. If numeric metrics are used,
+a `"numeric_metric_set"` function is returned. If class or probability metrics
+are used, a `"class_prob_metric_set"` is returned.
+
+## Bug fixes
+
+* Tests related to the fixed R 3.6 `sample()` function have been fixed.
+
+* `f_meas()` propagates `NA` values from `precision()` and `recall()` correctly (#77).
+
+* All `"micro"` estimators now propagate `NA` values through correctly.
+
+* `roc_auc(estimator = "hand_till")` now correctly computes the metric when the column names of the probability matrix are not the exact same as the levels of `truth`. Note that the computation still assumes that the order of the supplied probability matrix columns still matches the order of `levels(truth)`, like other multiclass metrics (#86).
+
 # yardstick 0.0.2
 
 ## Breaking changes

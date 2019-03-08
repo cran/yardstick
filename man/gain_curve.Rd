@@ -10,7 +10,7 @@ gain_curve(data, ...)
 
 \method{gain_curve}{data.frame}(data, truth, ..., na_rm = TRUE)
 
-autoplot.gain_df(object, ...)
+\method{autoplot}{gain_df}(object, ...)
 }
 \arguments{
 \item{data}{A \code{data.frame} containing the \code{truth} and \code{estimate}
@@ -57,6 +57,9 @@ resamples). See the examples.
 
 The greater the area between the gain curve and the baseline, the better
 the model.
+
+Gain curves are identical to CAP curves (cumulative accuracy profile).
+See the Engelmann reference for more information on CAP curves.
 }
 \section{Gain and Lift Curves}{
 
@@ -129,6 +132,12 @@ hpc_cv \%>\%
   gain_curve(obs, VF:L) \%>\%
   autoplot()
 
+}
+\references{
+Engelmann, Bernd & Hayden, Evelyn & Tasche, Dirk (2003).
+"Measuring the Discriminative Power of Rating Systems,"
+Discussion Paper Series 2: Banking and Financial Studies 2003,01,
+Deutsche Bundesbank.
 }
 \seealso{
 Compute the relevant area under the gain curve with \code{\link[=gain_capture]{gain_capture()}}.
