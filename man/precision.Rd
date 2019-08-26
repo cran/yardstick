@@ -60,8 +60,15 @@ The precision is the percentage of predicted truly relevant results
 of the total number of predicted relevant results and
 characterizes the "purity in retrieval performance" (Buckland
 and Gey, 1994).
+
+When the denominator of the calculation is \code{0}, precision is undefined. This
+happens when both \code{# true_positive = 0} and \code{# false_positive = 0} are true,
+which mean that there were no predicted events. When computing binary
+precision, a \code{NA} value will be returned with a warning. When computing
+multiclass precision, the individual \code{NA} values will be removed, and the
+computation will procede, with a warning.
 }
-\section{Relevant level}{
+\section{Relevant Level}{
 
 
 There is no common convention on which factor level should
@@ -69,8 +76,9 @@ automatically be considered the "event" or "positive" result.
 In \code{yardstick}, the default is to use the \emph{first} level. To
 change this, a global option called \code{yardstick.event_first} is
 set to \code{TRUE} when the package is loaded. This can be changed
-to \code{FALSE} if the last level of the factor is considered the
-level of interest. For multiclass extensions involving one-vs-all
+to \code{FALSE} if the \emph{last} level of the factor is considered the
+level of interest by running: \code{options(yardstick.event_first = FALSE)}.
+For multiclass extensions involving one-vs-all
 comparisons (such as macro averaging), this option is ignored and
 the "one" level is always the relevant result.
 }

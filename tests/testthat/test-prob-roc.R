@@ -35,10 +35,10 @@ test_that('Two class', {
 
 test_that('ROC Curve', {
   library(pROC)
-  points <- coords(roc_curv, x = unique(c(-Inf, two_class_example$Class1, Inf)), input = "threshold")
-  points <- dplyr::as_tibble(t(points)) %>% dplyr::arrange(threshold) %>% dplyr::rename(.threshold = threshold)
-  s_points <- coords(smooth_curv, x = unique(c(0, smooth_curv$specificities, 1)), input = "specificity")
-  s_points <- dplyr::as_tibble(t(s_points)) %>% dplyr::arrange(specificity)
+  points <- coords(roc_curv, x = unique(c(-Inf, two_class_example$Class1, Inf)), input = "threshold", transpose = FALSE)
+  points <- dplyr::as_tibble(points) %>% dplyr::arrange(threshold) %>% dplyr::rename(.threshold = threshold)
+  s_points <- coords(smooth_curv, x = unique(c(0, smooth_curv$specificities, 1)), input = "specificity", transpose = FALSE)
+  s_points <- dplyr::as_tibble(s_points) %>% dplyr::arrange(specificity)
 
   expect_equal(
     as.data.frame(roc_curve(two_class_example, truth, Class1)),
@@ -61,6 +61,72 @@ test_that("Multiclass ROC Curve", {
 
   # structural tests
   expect_equal(colnames(res_g), c("Resample", ".level", ".threshold", "specificity", "sensitivity"))
+})
+
+# ------------------------------------------------------------------------------
+# Partial AUC tests
+# https://github.com/tidymodels/yardstick/issues/97
+
+test_that("pROC::auc() arguments are passed through", {
+
+  # levels = c(<control>, <event>)
+  curv <- pROC::roc(
+    response = two_class_example$truth,
+    predictor = two_class_example$Class1,
+    levels = c("Class2", "Class1")
+  )
+
+  proc_auc <- as.numeric(pROC::auc(curv, partial.auc = c(1, 0.75)))
+
+  ys_auc <- roc_auc(
+    two_class_example,
+    truth,
+    Class1,
+    options = list(partial.auc = c(1, 0.75))
+  )
+
+  expect_equal(
+    ys_auc[[".estimate"]],
+    proc_auc
+  )
+
+})
+
+test_that("pROC::auc() arguments are passed through - corrected and focused args", {
+
+  # From `?pROC::auc`
+  data("aSAH", package = "pROC")
+
+  curv <- roc(aSAH$outcome, aSAH$s100b)
+
+  proc_auc <- as.numeric(pROC::auc(
+    curv,
+    partial.auc = c(1, .8),
+    partial.auc.focus = "se",
+    partial.auc.correct = TRUE)
+  )
+
+  ys_auc <- rlang::with_options(
+    .expr = {
+      roc_auc(
+        aSAH,
+        outcome,
+        s100b,
+        options = list(
+          partial.auc = c(1, .8),
+          partial.auc.focus = "se",
+          partial.auc.correct = TRUE
+        )
+      )
+    },
+    yardstick.event_first = FALSE
+  )
+
+  expect_equal(
+    ys_auc[[".estimate"]],
+    proc_auc
+  )
+
 })
 
 # ------------------------------------------------------------------------------

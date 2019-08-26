@@ -37,7 +37,8 @@
 #'
 #' @author Max Kuhn
 #'
-#' @template examples-prob
+#' @template examples-binary-prob
+#' @template examples-multiclass-prob
 #'
 #' @export
 pr_auc <- function(data, ...) {
@@ -45,6 +46,7 @@ pr_auc <- function(data, ...) {
 }
 
 class(pr_auc) <- c("prob_metric", "function")
+attr(pr_auc, "direction") <- "maximize"
 
 #' @export
 #' @rdname pr_auc
@@ -106,9 +108,11 @@ pr_auc_estimator_impl <- function(truth, estimate, estimator) {
 
 }
 
+# Don't remove NA values so any errors propagate
+# (i.e. no if `truth` has no "events")
 pr_auc_binary <- function(truth, estimate) {
   pr_list <- pr_curve_vec(truth, estimate)
-  auc(pr_list[["recall"]], pr_list[["precision"]])
+  auc(pr_list[["recall"]], pr_list[["precision"]], na_rm = FALSE)
 }
 
 pr_auc_multiclass <- function(truth, estimate) {

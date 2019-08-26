@@ -12,13 +12,17 @@
 
 <meta name="author" content="Davis Vaughan" />
 
-<meta name="date" content="2019-03-08" />
+<meta name="date" content="2019-08-26" />
 
 <title>Metric types</title>
 
 <script>$(document).ready(function(){
-    $('[data-toggle="tooltip"]').tooltip();
-    $('[data-toggle="popover"]').popover();
+    if (typeof $('[data-toggle="tooltip"]').tooltip === 'function') {
+        $('[data-toggle="tooltip"]').tooltip();
+    }
+    if ($('[data-toggle="popover"]').popover === 'function') {
+        $('[data-toggle="popover"]').popover();
+    }
 });
 </script>
 
@@ -296,6 +300,9 @@ code > span.al { color: #ff0000; font-weight: bold; }
 code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61717; background-color: #e3d2d2; } 
 </style>
 
+
+
+
 </head>
 
 <body>
@@ -304,8 +311,8 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 
 
 <h1 class="title toc-ignore">Metric types</h1>
-<h4 class="author"><em>Davis Vaughan</em></h4>
-<h4 class="date"><em>2019-03-08</em></h4>
+<h4 class="author">Davis Vaughan</h4>
+<h4 class="date">2019-08-26</h4>
 
 
 
@@ -494,9 +501,14 @@ class
 </td>
 </tr>
 <tr>
-<td style="text-align:left;vertical-align: middle !important;" rowspan="4">
+<td style="text-align:left;vertical-align: middle !important;" rowspan="5">
 class prob
 </td>
+<td style="text-align:left;">
+<code>average_precision()</code>
+</td>
+</tr>
+<tr>
 <td style="text-align:left;">
 <code>gain_capture()</code>
 </td>
@@ -517,7 +529,7 @@ class prob
 </td>
 </tr>
 <tr>
-<td style="text-align:left;vertical-align: middle !important;" rowspan="12">
+<td style="text-align:left;vertical-align: middle !important;" rowspan="13">
 numeric
 </td>
 <td style="text-align:left;">
@@ -532,6 +544,11 @@ numeric
 <tr>
 <td style="text-align:left;">
 <code>huber_loss_pseudo()</code>
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+<code>iic()</code>
 </td>
 </tr>
 <tr>

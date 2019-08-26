@@ -38,6 +38,7 @@ mcc <- function(data, ...) {
 }
 
 class(mcc) <- c("class_metric", "function")
+attr(mcc, "direction") <- "maximize"
 
 #' @export
 #' @rdname mcc
@@ -120,8 +121,13 @@ mcc_binary <- function(data) {
   positive <- pos_val(data)
   negative <- neg_val(data)
 
-  # This and `prod` below to deal with integer overflow
   data <- as.matrix(data)
+
+  # Convert the matrix to double to avoid integer overflow
+  # using `storage.mode()<-` keeps dimensions (as opposed to as.double())
+  if (!is.double(data)) {
+    storage.mode(data) <- "double"
+  }
 
   tp <- data[positive, positive]
   tn <- data[negative, negative]
@@ -131,10 +137,12 @@ mcc_binary <- function(data) {
   d2 <- tp + fn
   d3 <- tn + fp
   d4 <- tn + fn
-  if (d1 == 0 | d2 == 0 | d3 == 0 | d4 == 0)
-    return(NA)
-  ((tp * tn) - (fp * fn)) / sqrt(prod(d1, d2, d3, d4))
 
+  if (d1 == 0 | d2 == 0 | d3 == 0 | d4 == 0) {
+    return(NA)
+  }
+
+  ((tp * tn) - (fp * fn)) / sqrt(prod(d1, d2, d3, d4))
 }
 
 mcc_multiclass <- function(data) {

@@ -16,6 +16,7 @@
 #'  resamples). See the examples.
 #'
 #' @family curve metrics
+#' @templateVar metric_fn roc_curve
 #' @template multiclass-curve
 #' @template event_first
 #'
@@ -33,15 +34,14 @@
 #' Compute the area under the ROC curve with [roc_auc()].
 #'
 #' @author Max Kuhn
-#'
+#' @template examples-binary-prob
 #' @examples
-#' library(ggplot2)
-#' library(dplyr)
-#'
-#' # Two class - a tibbble is returned
-#' roc_curve(two_class_example, truth, Class1)
+#' # ---------------------------------------------------------------------------
+#' # `autoplot()`
 #'
 #' # Visualize the curve using ggplot2 manually
+#' library(ggplot2)
+#' library(dplyr)
 #' roc_curve(two_class_example, truth, Class1) %>%
 #'   ggplot(aes(x = 1 - specificity, y = sensitivity)) +
 #'   geom_path() +
@@ -76,7 +76,7 @@ roc_curve <- function(data, ...)
 #' @export
 #' @rdname roc_curve
 #' @importFrom pROC coords
-#' @importFrom rlang invoke
+#' @importFrom rlang exec
 #' @importFrom dplyr arrange as_tibble %>%
 roc_curve.data.frame  <- function (data, truth, ...,
                                    options = list(),
@@ -159,25 +159,28 @@ roc_curve_binary <- function(truth, estimate, options) {
   options$response <- truth
   options$predictor <- estimate
   options$levels <- lvls
+  options$quiet <- TRUE
 
-  curv <- invoke(pROC::roc, options)
+  curv <- exec(pROC::roc, !!!options)
 
   if (!inherits(curv, "smooth.roc")) {
     res <- coords(
       curv,
       x = unique(c(-Inf, options$predictor, Inf)),
-      input = "threshold"
+      input = "threshold",
+      transpose = FALSE
     )
   }
   else {
     res <- coords(
       curv,
       x = unique(c(0, curv$specificities, 1)),
-      input = "specificity"
+      input = "specificity",
+      transpose = FALSE
     )
   }
 
-  res <- dplyr::as_tibble(t(res))
+  res <- dplyr::as_tibble(res)
 
   if (!inherits(curv, "smooth.roc")) {
     res <- dplyr::arrange(res, threshold)

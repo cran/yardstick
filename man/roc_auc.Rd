@@ -31,7 +31,7 @@ names). For \code{_vec()} functions, a \code{factor} vector.}
 
 \item{options}{A \code{list} of named options to pass to \code{\link[pROC:roc]{pROC::roc()}}
 such as \code{direction} or \code{smooth}. These options should not include \code{response},
-\code{predictor}, or \code{levels}.}
+\code{predictor}, \code{levels}, or \code{quiet}.}
 
 \item{estimator}{One of \code{"binary"}, \code{"hand_till"}, \code{"macro"}, or
 \code{"macro_weighted"} to specify the type of averaging to be done. \code{"binary"}
@@ -61,11 +61,14 @@ For \code{roc_auc_vec()}, a single \code{numeric} value (or \code{NA}).
 \code{\link[=roc_curve]{roc_curve()}} for the full curve.
 }
 \details{
-For most methods, \code{roc_auc()} makes no effort to ensure that the supplied
-class probabilities result in a AUC value above \code{0.5} (random guessing).
+For most methods, \code{roc_auc()} defaults to allowing \code{pROC::roc()} control
+the direction of the computation, but allows you to control this by passing
+\code{options = list(direction = "<")} or any other allowed direction value.
 However, the Hand, Till (2001) method assumes that the individual AUCs are
 all above \code{0.5}, so if an AUC value below \code{0.5} is computed, then \code{1} is
-subtracted from it to get the correct result.
+subtracted from it to get the correct result. When not using the Hand, Till
+method, pROC advises setting the \code{direction} when doing resampling so that
+the AUC values are not biased upwards.
 
 Generally, an ROC AUC value is between \code{0.5} and \code{1}, with \code{1} being a
 perfect prediction model. If your value is between \code{0} and \code{0.5}, then
@@ -73,7 +76,7 @@ this implies that you have meaningful information in your model, but it
 is being applied incorrectly because doing the opposite of what the model
 predicts would result in an AUC \code{>0.5}.
 }
-\section{Relevant level}{
+\section{Relevant Level}{
 
 
 There is no common convention on which factor level should
@@ -81,8 +84,9 @@ automatically be considered the "event" or "positive" result.
 In \code{yardstick}, the default is to use the \emph{first} level. To
 change this, a global option called \code{yardstick.event_first} is
 set to \code{TRUE} when the package is loaded. This can be changed
-to \code{FALSE} if the last level of the factor is considered the
-level of interest. For multiclass extensions involving one-vs-all
+to \code{FALSE} if the \emph{last} level of the factor is considered the
+level of interest by running: \code{options(yardstick.event_first = FALSE)}.
+For multiclass extensions involving one-vs-all
 comparisons (such as macro averaging), this option is ignored and
 the "one" level is always the relevant result.
 }
@@ -99,18 +103,41 @@ definition of multiclass AUC given by Provost and Domingos (2001).
 }
 
 \examples{
-# Two class
-data("two_class_example")
+# ---------------------------------------------------------------------------
+# Two class example
+
+# `truth` is a 2 level factor. The first level is `"Class1"`, which is the
+# "event of interest" by default in yardstick. See the Relevant Level
+# section above.
+data(two_class_example)
+
+# Binary metrics using class probabilities take a factor `truth` column,
+# and a single class probability column containing the probabilities of
+# the event of interest. Here, since `"Class1"` is the first level of
+# `"truth"`, it is the event of interest and we pass in probabilities for it.
 roc_auc(two_class_example, truth, Class1)
 
-# Multiclass
-library(dplyr)
+# ---------------------------------------------------------------------------
+# Multiclass example
+
+# `obs` is a 4 level factor. The first level is `"VF"`, which is the
+# "event of interest" by default in yardstick. See the Relevant Level
+# section above.
 data(hpc_cv)
 
 # You can use the col1:colN tidyselect syntax
+library(dplyr)
 hpc_cv \%>\%
   filter(Resample == "Fold01") \%>\%
   roc_auc(obs, VF:L)
+
+# Change the first level of `obs` from `"VF"` to `"M"` to alter the
+# event of interest. The class probability columns should be supplied
+# in the same order as the levels.
+hpc_cv \%>\%
+  filter(Resample == "Fold01") \%>\%
+  mutate(obs = relevel(obs, "M")) \%>\%
+  roc_auc(obs, M, VF:L)
 
 # Groups are respected
 hpc_cv \%>\%
@@ -135,9 +162,16 @@ roc_auc_vec(
    )
 )
 
-# passing options via a list and _not_ `...`
-roc_auc(two_class_example, truth = truth, Class1,
-        options = list(smooth = TRUE))
+# ---------------------------------------------------------------------------
+# Options for `pROC::roc()`
+
+# Pass options via a named list and not through `...`!
+roc_auc(
+  two_class_example,
+  truth = truth,
+  Class1,
+  options = list(smooth = TRUE)
+)
 
 }
 \references{
@@ -155,8 +189,9 @@ New York University, NY, NY 10012.
 \seealso{
 \code{\link[=roc_curve]{roc_curve()}} for computing the full ROC curve.
 
-Other class probability metrics: \code{\link{gain_capture}},
-  \code{\link{mn_log_loss}}, \code{\link{pr_auc}}
+Other class probability metrics: \code{\link{average_precision}},
+  \code{\link{gain_capture}}, \code{\link{mn_log_loss}},
+  \code{\link{pr_auc}}
 }
 \author{
 Max Kuhn

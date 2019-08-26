@@ -43,6 +43,7 @@ f_meas <- function(data, ...) {
 }
 
 class(f_meas) <- c("class_metric", "function")
+attr(f_meas, "direction") <- "maximize"
 
 #' @rdname f_meas
 #' @export
@@ -79,7 +80,7 @@ f_meas.table <- function (data, beta = 1, estimator = NULL, ...) {
 f_meas.matrix <- function(data, beta = 1, estimator = NULL, ...) {
 
   data <- as.table(data)
-  f_meas.table(data, estimator)
+  f_meas.table(data, beta, estimator)
 
 }
 
@@ -121,7 +122,7 @@ f_meas_table_impl <- function(data, estimator, beta = 1) {
   } else {
     w <- get_weights(data, estimator)
     out_vec <- f_meas_multiclass(data, estimator, beta)
-    weighted.mean(out_vec, w)
+    weighted.mean(out_vec, w, na.rm = TRUE)
   }
 
 }

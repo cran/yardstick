@@ -11,7 +11,7 @@ roc_curve(data, ...)
 \method{roc_curve}{data.frame}(data, truth, ..., options = list(),
   na_rm = TRUE)
 
-\method{autoplot}{roc_df}(object, ...)
+autoplot.roc_df(object, ...)
 }
 \arguments{
 \item{data}{A \code{data.frame} containing the \code{truth} and \code{estimate}
@@ -30,7 +30,7 @@ names). For \code{_vec()} functions, a \code{factor} vector.}
 
 \item{options}{A \code{list} of named options to pass to \code{\link[pROC:roc]{pROC::roc()}}
 such as \code{direction} or \code{smooth}. These options should not include \code{response},
-\code{predictor}, or \code{levels}.}
+\code{predictor}, \code{levels}, or \code{quiet}.}
 
 \item{na_rm}{A \code{logical} value indicating whether \code{NA}
 values should be stripped before the computation proceeds.}
@@ -70,7 +70,7 @@ In this case, there will be an additional column, \code{.level},
 identifying the "one" column in the one-vs-all calculation.
 }
 
-\section{Relevant level}{
+\section{Relevant Level}{
 
 
 There is no common convention on which factor level should
@@ -78,20 +78,34 @@ automatically be considered the "event" or "positive" result.
 In \code{yardstick}, the default is to use the \emph{first} level. To
 change this, a global option called \code{yardstick.event_first} is
 set to \code{TRUE} when the package is loaded. This can be changed
-to \code{FALSE} if the last level of the factor is considered the
-level of interest. For multiclass extensions involving one-vs-all
+to \code{FALSE} if the \emph{last} level of the factor is considered the
+level of interest by running: \code{options(yardstick.event_first = FALSE)}.
+For multiclass extensions involving one-vs-all
 comparisons (such as macro averaging), this option is ignored and
 the "one" level is always the relevant result.
 }
 
 \examples{
-library(ggplot2)
-library(dplyr)
+# ---------------------------------------------------------------------------
+# Two class example
 
-# Two class - a tibbble is returned
+# `truth` is a 2 level factor. The first level is `"Class1"`, which is the
+# "event of interest" by default in yardstick. See the Relevant Level
+# section above.
+data(two_class_example)
+
+# Binary metrics using class probabilities take a factor `truth` column,
+# and a single class probability column containing the probabilities of
+# the event of interest. Here, since `"Class1"` is the first level of
+# `"truth"`, it is the event of interest and we pass in probabilities for it.
 roc_curve(two_class_example, truth, Class1)
 
+# ---------------------------------------------------------------------------
+# `autoplot()`
+
 # Visualize the curve using ggplot2 manually
+library(ggplot2)
+library(dplyr)
 roc_curve(two_class_example, truth, Class1) \%>\%
   ggplot(aes(x = 1 - specificity, y = sensitivity)) +
   geom_path() +
