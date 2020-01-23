@@ -7,12 +7,13 @@
 <meta charset="utf-8" />
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <meta name="author" content="Davis Vaughan" />
 
-<meta name="date" content="2019-08-26" />
+<meta name="date" content="2020-01-23" />
 
 <title>Custom metrics</title>
 
@@ -96,7 +97,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
       if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") continue;
       var style = rule.style.cssText;
       // check if color or background-color is set
-      if (rule.style.color === '' || rule.style.backgroundColor === '') continue;
+      if (rule.style.color === '' && rule.style.backgroundColor === '') continue;
       // replace div.sourceCode by a pre.sourceCode rule
       sheets[i].deleteRule(j);
       sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
@@ -303,7 +304,7 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 
 <h1 class="title toc-ignore">Custom metrics</h1>
 <h4 class="author">Davis Vaughan</h4>
-<h4 class="date">2019-08-26</h4>
+<h4 class="date">2020-01-23</h4>
 
 
 
@@ -363,10 +364,10 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 <a class="sourceLine" id="cb3-7" data-line-number="7"><span class="co">#&gt; [1] 0.5214438</span></a></code></pre></div>
 <p>Intelligent error handling is immediately available.</p>
 <div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" data-line-number="1"><span class="kw">mse_vec</span>(<span class="dt">truth =</span> <span class="st">&quot;apple&quot;</span>, <span class="dt">estimate =</span> <span class="dv">1</span>)</a>
-<a class="sourceLine" id="cb4-2" data-line-number="2"><span class="co">#&gt; `truth` should be a numeric but a character was supplied.</span></a>
+<a class="sourceLine" id="cb4-2" data-line-number="2"><span class="co">#&gt; Error: `truth` should be a numeric but a character was supplied.</span></a>
 <a class="sourceLine" id="cb4-3" data-line-number="3"></a>
 <a class="sourceLine" id="cb4-4" data-line-number="4"><span class="kw">mse_vec</span>(<span class="dt">truth =</span> <span class="dv">1</span>, <span class="dt">estimate =</span> <span class="kw">factor</span>(<span class="st">&quot;xyz&quot;</span>))</a>
-<a class="sourceLine" id="cb4-5" data-line-number="5"><span class="co">#&gt; `estimate` should be a numeric but a factor was supplied.</span></a></code></pre></div>
+<a class="sourceLine" id="cb4-5" data-line-number="5"><span class="co">#&gt; Error: `estimate` should be a numeric but a factor was supplied.</span></a></code></pre></div>
 <p><code>NA</code> values are removed if <code>na_rm = TRUE</code> (the default). If <code>na_rm = FALSE</code> and any <code>NA</code> values are detected, then the metric automatically returns <code>NA</code>.</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" data-line-number="1"><span class="co"># NA values removed</span></a>
 <a class="sourceLine" id="cb5-2" data-line-number="2"><span class="kw">mse_vec</span>(<span class="dt">truth =</span> <span class="kw">c</span>(<span class="ot">NA</span>, <span class="fl">.5</span>, <span class="fl">.4</span>), <span class="dt">estimate =</span> <span class="kw">c</span>(<span class="dv">1</span>, <span class="fl">.6</span>, <span class="fl">.5</span>))</a>
@@ -407,7 +408,7 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 <a class="sourceLine" id="cb7-6" data-line-number="6"></a>
 <a class="sourceLine" id="cb7-7" data-line-number="7"><span class="co"># Error handling</span></a>
 <a class="sourceLine" id="cb7-8" data-line-number="8"><span class="kw">mse</span>(solubility_test, <span class="dt">truth =</span> solubility, <span class="dt">estimate =</span> <span class="kw">factor</span>(<span class="st">&quot;xyz&quot;</span>))</a>
-<a class="sourceLine" id="cb7-9" data-line-number="9"><span class="co">#&gt; `estimate` should be a numeric but a factor was supplied.</span></a></code></pre></div>
+<a class="sourceLine" id="cb7-9" data-line-number="9"><span class="co">#&gt; Error: `estimate` should be a numeric but a factor was supplied.</span></a></code></pre></div>
 <p>Let’s test it out on a grouped data frame.</p>
 <div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb8-1" data-line-number="1"><span class="kw">library</span>(dplyr)</a>
 <a class="sourceLine" id="cb8-2" data-line-number="2"></a>
@@ -555,7 +556,7 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 <a class="sourceLine" id="cb12-49" data-line-number="49"></a>
 <a class="sourceLine" id="cb12-50" data-line-number="50"><span class="co"># Error thrown by validate_estimator()</span></a>
 <a class="sourceLine" id="cb12-51" data-line-number="51"><span class="kw">miss_rate_vec</span>(fold1<span class="op">$</span>obs, fold1<span class="op">$</span>pred, <span class="dt">estimator =</span> <span class="st">&quot;macro&quot;</span>)</a>
-<a class="sourceLine" id="cb12-52" data-line-number="52"><span class="co">#&gt; `estimator` must be one of: &quot;binary&quot;. Not &quot;macro&quot;.</span></a></code></pre></div>
+<a class="sourceLine" id="cb12-52" data-line-number="52"><span class="co">#&gt; Error: `estimator` must be one of: &quot;binary&quot;. Not &quot;macro&quot;.</span></a></code></pre></div>
 </div>
 <div id="supporting-multiclass-miss-rate" class="section level3">
 <h3>Supporting multiclass miss rate</h3>
@@ -702,7 +703,7 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 <a class="sourceLine" id="cb17-34" data-line-number="34"></a>
 <a class="sourceLine" id="cb17-35" data-line-number="35"><span class="co"># Error handling</span></a>
 <a class="sourceLine" id="cb17-36" data-line-number="36"><span class="kw">miss_rate</span>(hpc_cv, obs, VF)</a>
-<a class="sourceLine" id="cb17-37" data-line-number="37"><span class="co">#&gt; `estimate` should be a factor but a numeric was supplied.</span></a></code></pre></div>
+<a class="sourceLine" id="cb17-37" data-line-number="37"><span class="co">#&gt; Error: `estimate` should be a factor but a numeric was supplied.</span></a></code></pre></div>
 </div>
 </div>
 <div id="using-custom-metrics-in-metric_set" class="section level2">
@@ -715,7 +716,7 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 </ul>
 <div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb18-1" data-line-number="1"><span class="co"># This errors because the class has not been set</span></a>
 <a class="sourceLine" id="cb18-2" data-line-number="2"><span class="kw">metric_set</span>(mse, rmse)</a>
-<a class="sourceLine" id="cb18-3" data-line-number="3"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb18-3" data-line-number="3"><span class="co">#&gt; Error: </span></a>
 <a class="sourceLine" id="cb18-4" data-line-number="4"><span class="co">#&gt; The combination of metric functions must be:</span></a>
 <a class="sourceLine" id="cb18-5" data-line-number="5"><span class="co">#&gt; - only numeric metrics</span></a>
 <a class="sourceLine" id="cb18-6" data-line-number="6"><span class="co">#&gt; - a mix of class metrics and class probability metrics</span></a>
@@ -735,6 +736,9 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 <a class="sourceLine" id="cb18-20" data-line-number="20"><span class="co">#&gt; 2 rmse    standard       0.722</span></a></code></pre></div>
 </div>
 
+
+
+<!-- code folding -->
 
 
 <!-- dynamically load mathjax for compatibility with self-contained -->

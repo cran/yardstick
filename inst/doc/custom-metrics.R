@@ -1,13 +1,13 @@
-## ----setup, include = FALSE----------------------------------------------
+## ----setup, include = FALSE---------------------------------------------------
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
 
-## ---- message=FALSE------------------------------------------------------
+## ---- message=FALSE-----------------------------------------------------------
 library(yardstick)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 mse_vec <- function(truth, estimate, na_rm = TRUE, ...) {
   
   mse_impl <- function(truth, estimate) {
@@ -25,7 +25,7 @@ mse_vec <- function(truth, estimate, na_rm = TRUE, ...) {
   
 }
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 data("solubility_test")
 
 mse_vec(
@@ -33,19 +33,19 @@ mse_vec(
   estimate = solubility_test$prediction
 )
 
-## ---- error = TRUE-------------------------------------------------------
+## ---- error = TRUE------------------------------------------------------------
 mse_vec(truth = "apple", estimate = 1)
 
 mse_vec(truth = 1, estimate = factor("xyz"))
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 # NA values removed
 mse_vec(truth = c(NA, .5, .4), estimate = c(1, .6, .5))
 
 # NA returned
 mse_vec(truth = c(NA, .5, .4), estimate = c(1, .6, .5), na_rm = FALSE)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 library(rlang)
 
 mse <- function(data, ...) {
@@ -66,13 +66,13 @@ mse.data.frame <- function(data, truth, estimate, na_rm = TRUE, ...) {
   
 }
 
-## ---- error = TRUE-------------------------------------------------------
+## ---- error = TRUE------------------------------------------------------------
 mse(solubility_test, truth = solubility, estimate = prediction)
 
 # Error handling
 mse(solubility_test, truth = solubility, estimate = factor("xyz"))
 
-## ---- message=FALSE------------------------------------------------------
+## ---- message=FALSE-----------------------------------------------------------
 library(dplyr)
 
 set.seed(1234)
@@ -93,7 +93,7 @@ solubility_resampled %>%
   group_by(resample) %>%
   mse(solubility, prediction)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 # So we can support the yardstick event_first option
 relevant_col <- function(xtab) {
   if (getOption("yardstick.event_first")) {
@@ -133,16 +133,16 @@ miss_rate_vec <- function(truth, estimate, estimator = NULL, na_rm = TRUE, ...) 
   
 }
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 data("two_class_example")
 miss_rate_vec(two_class_example$truth, two_class_example$predicted)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 data("hpc_cv")
 fold1 <- filter(hpc_cv, Resample == "Fold01")
 miss_rate_vec(fold1$obs, fold1$pred)
 
-## ---- error = TRUE-------------------------------------------------------
+## ---- error = TRUE------------------------------------------------------------
 finalize_estimator_internal.miss_rate <- function(metric_dispatcher, x, estimator) {
   
   validate_estimator(estimator, estimator_override = "binary")
@@ -194,10 +194,10 @@ miss_rate_vec(fold1$obs, fold1$pred)
 # Error thrown by validate_estimator()
 miss_rate_vec(fold1$obs, fold1$pred, estimator = "macro")
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 rm(finalize_estimator_internal.miss_rate)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 miss_rate_vec <- function(truth, estimate, estimator = NULL, na_rm = TRUE, ...) {
   
   # calls finalize_estimator_internal() internally
@@ -265,14 +265,14 @@ miss_rate_multiclass <- function(data, estimator) {
   tp / (tp + fn)
 }
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 # two class
 miss_rate_vec(two_class_example$truth, two_class_example$predicted)
 
 # multiclass
 miss_rate_vec(fold1$obs, fold1$pred)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 miss_rate <- function(data, truth, estimate, estimator = NULL, na_rm = TRUE, ...) {
   UseMethod("miss_rate")
 }
@@ -292,7 +292,7 @@ miss_rate.data.frame <- function(data, truth, estimate, estimator = NULL, na_rm 
   
 }
 
-## ---- error = TRUE-------------------------------------------------------
+## ---- error = TRUE------------------------------------------------------------
 # Macro weighted automatically selected
 fold1 %>%
   miss_rate(obs, pred)
@@ -309,7 +309,7 @@ hpc_cv %>%
 # Error handling
 miss_rate(hpc_cv, obs, VF)
 
-## ---- error=TRUE---------------------------------------------------------
+## ---- error=TRUE--------------------------------------------------------------
 # This errors because the class has not been set
 metric_set(mse, rmse)
 

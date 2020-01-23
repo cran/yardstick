@@ -7,8 +7,7 @@
 \usage{
 metrics(data, ...)
 
-\method{metrics}{data.frame}(data, truth, estimate, ...,
-  options = list(), na_rm = TRUE)
+\method{metrics}{data.frame}(data, truth, estimate, ..., options = list(), na_rm = TRUE)
 }
 \arguments{
 \item{data}{A \code{data.frame} containing the \code{truth} and \code{estimate}
@@ -38,7 +37,7 @@ such as \code{direction} or \code{smooth}. These options should not include \cod
 values should be stripped before the computation proceeds.}
 }
 \value{
-A two column tibble.
+A three column tibble.
 \itemize{
 \item When \code{truth} is a factor, there are rows for \code{\link[=accuracy]{accuracy()}} and the
 Kappa statistic (\code{\link[=kap]{kap()}}).

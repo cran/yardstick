@@ -1,10 +1,10 @@
-## ----setup, include = FALSE----------------------------------------------
+## ----setup, include = FALSE---------------------------------------------------
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
 
-## ---- warning = FALSE, message = FALSE-----------------------------------
+## ---- warning = FALSE, message = FALSE----------------------------------------
 library(yardstick)
 library(dplyr)
 data("hpc_cv")
@@ -13,25 +13,25 @@ hpc_cv %>%
   group_by(Resample) %>%
   slice(1:3)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 hpc_cv %>%
   filter(Resample == "Fold01") %>%
   accuracy(obs, pred)
 
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 hpc_cv %>%
   group_by(Resample) %>%
   accuracy(obs, pred)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 class_metrics <- metric_set(accuracy, kap)
 
 hpc_cv %>%
   group_by(Resample) %>%
   class_metrics(obs, estimate = pred)
 
-## ---- echo=FALSE, warning=FALSE, message=FALSE, results='asis'-----------
+## ---- echo=FALSE, warning=FALSE, message=FALSE, results='asis'----------------
 library(kableExtra)
 library(knitr)
 library(dplyr)

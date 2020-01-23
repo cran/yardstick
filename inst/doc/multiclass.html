@@ -7,12 +7,13 @@
 <meta charset="utf-8" />
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <meta name="author" content="Davis Vaughan" />
 
-<meta name="date" content="2019-08-26" />
+<meta name="date" content="2020-01-23" />
 
 <title>Multiclass averaging</title>
 
@@ -217,7 +218,7 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 
 <h1 class="title toc-ignore">Multiclass averaging</h1>
 <h4 class="author">Davis Vaughan</h4>
-<h4 class="date">2019-08-26</h4>
+<h4 class="date">2020-01-23</h4>
 
 
 
@@ -258,6 +259,9 @@ Pr_{micro} = \frac{TP_1 + TP_2 + \ldots + TP_k}{(TP_1 + TP_2 + \ldots + TP_k) + 
 <p>ROC AUC is an interesting metric in that it intuitively makes sense to perform macro averaging, which computes a multiclass AUC as the average of the area under multiple binary ROC curves. However, this loses an important property of the ROC AUC statistic in that its binary case is insensitive to class distribution. To combat this, a multiclass metric was created that retains insensitivity to class distribution, but does not have an easy visual interpretation like macro averaging. This is implemented as the <code>&quot;hand_till&quot;</code> method, and is the default for this metric.</p>
 </div>
 
+
+
+<!-- code folding -->
 
 
 <!-- dynamically load mathjax for compatibility with self-contained -->
