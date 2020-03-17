@@ -1,3 +1,11 @@
+# yardstick 0.0.6
+
+* `roc_auc()` now warns when there are no events or controls in the provided `truth` column, and returns `NA` (@dpastling, #132).
+
+* Adds `sensitivity()` and `specificity()` as _aliases_ for `sens()` and `spec()` respectively, avoids conflict with other packages e.g. `readr::spec()`.
+
+* `roc_aunu()` and `roc_aunp()` are two new ROC AUC metrics for multiclass classifiers. These measure the AUC of each class against the rest, `roc_aunu()` using the uniform class distribution (#69) and `roc_aunp()` using the a priori class distribution (#70).
+
 # yardstick 0.0.5
 
 ## Other improvements
