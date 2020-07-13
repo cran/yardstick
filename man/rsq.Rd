@@ -21,7 +21,7 @@ columns.}
 \item{truth}{The column identifier for the true results
 (that is \code{numeric}). This should be an unquoted column name although
 this argument is passed by expression and supports
-\link[rlang:quasiquotation]{quasiquotation} (you can unquote column
+\link[rlang:nse-force]{quasiquotation} (you can unquote column
 names). For \verb{_vec()} functions, a \code{numeric} vector.}
 
 \item{estimate}{The column identifier for the predicted
@@ -54,6 +54,13 @@ non-informative (see the examples). Both are measures of
 consistency/correlation and not of accuracy.
 
 \code{rsq()} is simply the squared correlation between \code{truth} and \code{estimate}.
+
+Because \code{rsq()} internally computes a correlation, if either \code{truth} or
+\code{estimate} are constant it can result in a divide by zero error. In these
+cases, a warning is thrown and \code{NA} is returned. This can occur when a model
+predicts a single value for all samples. For example, a regularized model
+that eliminates all predictors except for the intercept would do this.
+Another example would be a CART model that contains no splits.
 }
 \examples{
 # Supply truth and predictions as bare column names
@@ -92,6 +99,12 @@ solubility_test$randomized <- sample(solubility_test$prediction)
 rsq(solubility_test, solubility, randomized)
 rsq_trad(solubility_test, solubility, randomized)
 
+# A constant `truth` or `estimate` vector results in a warning from
+# a divide by zero error in the correlation calculation.
+# `NA` will be returned in these cases.
+truth <- c(1, 2)
+estimate <- c(1, 1)
+rsq_vec(truth, estimate)
 }
 \references{
 Kvalseth. Cautionary note about \eqn{R^2}.
@@ -106,6 +119,7 @@ Other numeric metrics:
 \code{\link{mae}()},
 \code{\link{mape}()},
 \code{\link{mase}()},
+\code{\link{mpe}()},
 \code{\link{rmse}()},
 \code{\link{rpd}()},
 \code{\link{rpiq}()},

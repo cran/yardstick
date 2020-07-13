@@ -12,7 +12,7 @@
 
 <meta name="author" content="Davis Vaughan" />
 
-<meta name="date" content="2020-03-17" />
+<meta name="date" content="2020-07-13" />
 
 <title>Custom metrics</title>
 
@@ -26,6 +26,22 @@ document.addEventListener('DOMContentLoaded', function(e) {
     if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
     a = h.attributes;
     while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+<script>// Hide empty <a> tag within highlighted CodeBlock for screen reader accessibility (see https://github.com/jgm/pandoc/issues/6352#issuecomment-626106786) -->
+// v0.0.1
+// Written by JooYoung Seo (jooyoung@psu.edu) and Atsushi Yasumoto on June 1st, 2020.
+
+document.addEventListener('DOMContentLoaded', function() {
+  const codeList = document.getElementsByClassName("sourceCode");
+  for (var i = 0; i < codeList.length; i++) {
+    var linkList = codeList[i].getElementsByTagName('a');
+    for (var j = 0; j < linkList.length; j++) {
+      if (linkList[j].innerHTML === "") {
+        linkList[j].setAttribute('aria-hidden', 'true');
+      }
+    }
   }
 });
 </script>
@@ -315,7 +331,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 
 <h1 class="title toc-ignore">Custom metrics</h1>
 <h4 class="author">Davis Vaughan</h4>
-<h4 class="date">2020-03-17</h4>
+<h4 class="date">2020-07-13</h4>
 
 
 
@@ -390,26 +406,28 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 </div>
 <div id="data-frame-implementation" class="section level3">
 <h3>Data frame implementation</h3>
-<p>The data frame version of the metric should be fairly simple. It is a generic function with a <code>data.frame</code> method that calls the <code>yardstick</code> helper, <code>metric_summarizer()</code>, and passes along the <code>mse_vec()</code> function to it along with versions of <code>truth</code> and <code>estimate</code> that have been wrapped in <code>rlang::enquo()</code> and then unquoted with <code>!!</code> so that non-standard evaluation can be supported.</p>
+<p>The data frame version of the metric should be fairly simple. It is a generic function with a <code>data.frame</code> method that calls the <code>yardstick</code> helper, <code>metric_summarizer()</code>, and passes along the <code>mse_vec()</code> function to it along with versions of <code>truth</code> and <code>estimate</code> that have been wrapped in <code>rlang::enquo()</code> and then unquoted with <code>!!</code> so that non-standard evaluation can be supported. Additionally, the generic itself has been wrapped in <code>new_numeric_metric()</code> to formalize it as a numeric metric function. This allows the metric to work with <code>metric_set()</code> and the tune package.</p>
 <div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1"></a><span class="kw">library</span>(rlang)</span>
 <span id="cb6-2"><a href="#cb6-2"></a></span>
 <span id="cb6-3"><a href="#cb6-3"></a>mse &lt;-<span class="st"> </span><span class="cf">function</span>(data, ...) {</span>
 <span id="cb6-4"><a href="#cb6-4"></a>  <span class="kw">UseMethod</span>(<span class="st">&quot;mse&quot;</span>)</span>
 <span id="cb6-5"><a href="#cb6-5"></a>}</span>
 <span id="cb6-6"><a href="#cb6-6"></a></span>
-<span id="cb6-7"><a href="#cb6-7"></a>mse.data.frame &lt;-<span class="st"> </span><span class="cf">function</span>(data, truth, estimate, <span class="dt">na_rm =</span> <span class="ot">TRUE</span>, ...) {</span>
-<span id="cb6-8"><a href="#cb6-8"></a>  </span>
-<span id="cb6-9"><a href="#cb6-9"></a>  <span class="kw">metric_summarizer</span>(</span>
-<span id="cb6-10"><a href="#cb6-10"></a>    <span class="dt">metric_nm =</span> <span class="st">&quot;mse&quot;</span>,</span>
-<span id="cb6-11"><a href="#cb6-11"></a>    <span class="dt">metric_fn =</span> mse_vec,</span>
-<span id="cb6-12"><a href="#cb6-12"></a>    <span class="dt">data =</span> data,</span>
-<span id="cb6-13"><a href="#cb6-13"></a>    <span class="dt">truth =</span> <span class="op">!!</span><span class="st"> </span><span class="kw">enquo</span>(truth),</span>
-<span id="cb6-14"><a href="#cb6-14"></a>    <span class="dt">estimate =</span> <span class="op">!!</span><span class="st"> </span><span class="kw">enquo</span>(estimate), </span>
-<span id="cb6-15"><a href="#cb6-15"></a>    <span class="dt">na_rm =</span> na_rm,</span>
-<span id="cb6-16"><a href="#cb6-16"></a>    ...</span>
-<span id="cb6-17"><a href="#cb6-17"></a>  )</span>
-<span id="cb6-18"><a href="#cb6-18"></a>  </span>
-<span id="cb6-19"><a href="#cb6-19"></a>}</span></code></pre></div>
+<span id="cb6-7"><a href="#cb6-7"></a>mse &lt;-<span class="st"> </span><span class="kw">new_numeric_metric</span>(mse, <span class="dt">direction =</span> <span class="st">&quot;minimize&quot;</span>)</span>
+<span id="cb6-8"><a href="#cb6-8"></a></span>
+<span id="cb6-9"><a href="#cb6-9"></a>mse.data.frame &lt;-<span class="st"> </span><span class="cf">function</span>(data, truth, estimate, <span class="dt">na_rm =</span> <span class="ot">TRUE</span>, ...) {</span>
+<span id="cb6-10"><a href="#cb6-10"></a>  </span>
+<span id="cb6-11"><a href="#cb6-11"></a>  <span class="kw">metric_summarizer</span>(</span>
+<span id="cb6-12"><a href="#cb6-12"></a>    <span class="dt">metric_nm =</span> <span class="st">&quot;mse&quot;</span>,</span>
+<span id="cb6-13"><a href="#cb6-13"></a>    <span class="dt">metric_fn =</span> mse_vec,</span>
+<span id="cb6-14"><a href="#cb6-14"></a>    <span class="dt">data =</span> data,</span>
+<span id="cb6-15"><a href="#cb6-15"></a>    <span class="dt">truth =</span> <span class="op">!!</span><span class="st"> </span><span class="kw">enquo</span>(truth),</span>
+<span id="cb6-16"><a href="#cb6-16"></a>    <span class="dt">estimate =</span> <span class="op">!!</span><span class="st"> </span><span class="kw">enquo</span>(estimate), </span>
+<span id="cb6-17"><a href="#cb6-17"></a>    <span class="dt">na_rm =</span> na_rm,</span>
+<span id="cb6-18"><a href="#cb6-18"></a>    ...</span>
+<span id="cb6-19"><a href="#cb6-19"></a>  )</span>
+<span id="cb6-20"><a href="#cb6-20"></a>  </span>
+<span id="cb6-21"><a href="#cb6-21"></a>}</span></code></pre></div>
 <p>And that’s it. <code>yardstick</code> handles the rest with an internal call to <code>summarise()</code>.</p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1"></a><span class="kw">mse</span>(solubility_test, <span class="dt">truth =</span> solubility, <span class="dt">estimate =</span> prediction)</span>
 <span id="cb7-2"><a href="#cb7-2"></a><span class="co">#&gt; # A tibble: 1 x 3</span></span>
@@ -419,7 +437,9 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <span id="cb7-6"><a href="#cb7-6"></a></span>
 <span id="cb7-7"><a href="#cb7-7"></a><span class="co"># Error handling</span></span>
 <span id="cb7-8"><a href="#cb7-8"></a><span class="kw">mse</span>(solubility_test, <span class="dt">truth =</span> solubility, <span class="dt">estimate =</span> <span class="kw">factor</span>(<span class="st">&quot;xyz&quot;</span>))</span>
-<span id="cb7-9"><a href="#cb7-9"></a><span class="co">#&gt; Error: `estimate` should be a numeric but a factor was supplied.</span></span></code></pre></div>
+<span id="cb7-9"><a href="#cb7-9"></a><span class="co">#&gt; Error: Problem with `summarise()` input `.estimate`.</span></span>
+<span id="cb7-10"><a href="#cb7-10"></a><span class="co">#&gt; x `estimate` should be a numeric but a factor was supplied.</span></span>
+<span id="cb7-11"><a href="#cb7-11"></a><span class="co">#&gt; ℹ Input `.estimate` is `metric_fn(truth = solubility, estimate = factor(&quot;xyz&quot;), na_rm = na_rm)`.</span></span></code></pre></div>
 <p>Let’s test it out on a grouped data frame.</p>
 <div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1"></a><span class="kw">library</span>(dplyr)</span>
 <span id="cb8-2"><a href="#cb8-2"></a></span>
@@ -463,45 +483,48 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <p>Classification metrics are more complicated than numeric ones because you have to think about extensions to the multiclass case. For now, let’s start with the binary case.</p>
 <div id="vector-implementation-1" class="section level3">
 <h3>Vector implementation</h3>
-<p>The vector implementation for classification metrics initially has the same setup as numeric metrics, but has an additional argument, <code>estimator</code> that determines the type of estimator to use (binary or some kind of multiclass implementation or averaging). This argument is auto-selected for the user, so default it to <code>NULL</code>. Additionally, pass it along to <code>metric_vec_template()</code> so that it can check the provided <code>estimator</code> against the classes of <code>truth</code> and <code>estimate</code> to see if they are allowed.</p>
-<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1"></a><span class="co"># So we can support the yardstick event_first option</span></span>
-<span id="cb9-2"><a href="#cb9-2"></a>relevant_col &lt;-<span class="st"> </span><span class="cf">function</span>(xtab) {</span>
-<span id="cb9-3"><a href="#cb9-3"></a>  <span class="cf">if</span> (<span class="kw">getOption</span>(<span class="st">&quot;yardstick.event_first&quot;</span>)) {</span>
-<span id="cb9-4"><a href="#cb9-4"></a>      <span class="kw">colnames</span>(xtab)[<span class="dv">1</span>]</span>
-<span id="cb9-5"><a href="#cb9-5"></a>    } <span class="cf">else</span> {</span>
-<span id="cb9-6"><a href="#cb9-6"></a>      <span class="kw">colnames</span>(xtab)[<span class="dv">2</span>]</span>
-<span id="cb9-7"><a href="#cb9-7"></a>    }</span>
+<p>The vector implementation for classification metrics initially has the same setup as numeric metrics, but has two additional arguments.</p>
+<p><code>estimator</code> determines the type of estimator to use (binary or some kind of multiclass implementation or averaging). This argument is auto-selected for the user, so default it to <code>NULL</code>. Additionally, pass it along to <code>metric_vec_template()</code> so that it can check the provided <code>estimator</code> against the classes of <code>truth</code> and <code>estimate</code> to see if they are allowed.</p>
+<p><code>event_level</code> determines which level of <code>truth</code> should be considered the “event” when <code>truth</code> is a binary factor. The two options are <code>&quot;first&quot;</code>, and <code>&quot;second&quot;</code>, but you should default it to <code>&quot;first&quot;</code>.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1"></a><span class="co"># Logic for `event_level`</span></span>
+<span id="cb9-2"><a href="#cb9-2"></a>event_col &lt;-<span class="st"> </span><span class="cf">function</span>(xtab, event_level) {</span>
+<span id="cb9-3"><a href="#cb9-3"></a>  <span class="cf">if</span> (<span class="kw">identical</span>(event_level, <span class="st">&quot;first&quot;</span>)) {</span>
+<span id="cb9-4"><a href="#cb9-4"></a>    <span class="kw">colnames</span>(xtab)[[<span class="dv">1</span>]]</span>
+<span id="cb9-5"><a href="#cb9-5"></a>  } <span class="cf">else</span> {</span>
+<span id="cb9-6"><a href="#cb9-6"></a>    <span class="kw">colnames</span>(xtab)[[<span class="dv">2</span>]]</span>
+<span id="cb9-7"><a href="#cb9-7"></a>  }</span>
 <span id="cb9-8"><a href="#cb9-8"></a>}</span>
 <span id="cb9-9"><a href="#cb9-9"></a></span>
-<span id="cb9-10"><a href="#cb9-10"></a>miss_rate_vec &lt;-<span class="st"> </span><span class="cf">function</span>(truth, estimate, <span class="dt">estimator =</span> <span class="ot">NULL</span>, <span class="dt">na_rm =</span> <span class="ot">TRUE</span>, ...) {</span>
-<span id="cb9-11"><a href="#cb9-11"></a>  </span>
-<span id="cb9-12"><a href="#cb9-12"></a>  estimator &lt;-<span class="st"> </span><span class="kw">finalize_estimator</span>(truth, estimator)</span>
-<span id="cb9-13"><a href="#cb9-13"></a>  </span>
-<span id="cb9-14"><a href="#cb9-14"></a>  miss_rate_impl &lt;-<span class="st"> </span><span class="cf">function</span>(truth, estimate) {</span>
-<span id="cb9-15"><a href="#cb9-15"></a>    </span>
-<span id="cb9-16"><a href="#cb9-16"></a>    <span class="co"># Create </span></span>
-<span id="cb9-17"><a href="#cb9-17"></a>    xtab &lt;-<span class="st"> </span><span class="kw">table</span>(estimate, truth)</span>
-<span id="cb9-18"><a href="#cb9-18"></a>    col &lt;-<span class="st"> </span><span class="kw">relevant_col</span>(xtab)</span>
-<span id="cb9-19"><a href="#cb9-19"></a>    col2 &lt;-<span class="st"> </span><span class="kw">setdiff</span>(<span class="kw">colnames</span>(xtab), col)</span>
-<span id="cb9-20"><a href="#cb9-20"></a>    </span>
-<span id="cb9-21"><a href="#cb9-21"></a>    tp &lt;-<span class="st"> </span>xtab[col, col]</span>
-<span id="cb9-22"><a href="#cb9-22"></a>    fn &lt;-<span class="st"> </span>xtab[col2, col]</span>
+<span id="cb9-10"><a href="#cb9-10"></a>miss_rate_vec &lt;-<span class="st"> </span><span class="cf">function</span>(truth, </span>
+<span id="cb9-11"><a href="#cb9-11"></a>                          estimate, </span>
+<span id="cb9-12"><a href="#cb9-12"></a>                          <span class="dt">estimator =</span> <span class="ot">NULL</span>, </span>
+<span id="cb9-13"><a href="#cb9-13"></a>                          <span class="dt">na_rm =</span> <span class="ot">TRUE</span>, </span>
+<span id="cb9-14"><a href="#cb9-14"></a>                          <span class="dt">event_level =</span> <span class="st">&quot;first&quot;</span>,</span>
+<span id="cb9-15"><a href="#cb9-15"></a>                          ...) {</span>
+<span id="cb9-16"><a href="#cb9-16"></a>  estimator &lt;-<span class="st"> </span><span class="kw">finalize_estimator</span>(truth, estimator)</span>
+<span id="cb9-17"><a href="#cb9-17"></a>  </span>
+<span id="cb9-18"><a href="#cb9-18"></a>  miss_rate_impl &lt;-<span class="st"> </span><span class="cf">function</span>(truth, estimate) {</span>
+<span id="cb9-19"><a href="#cb9-19"></a>    <span class="co"># Create </span></span>
+<span id="cb9-20"><a href="#cb9-20"></a>    xtab &lt;-<span class="st"> </span><span class="kw">table</span>(estimate, truth)</span>
+<span id="cb9-21"><a href="#cb9-21"></a>    col &lt;-<span class="st"> </span><span class="kw">event_col</span>(xtab, event_level)</span>
+<span id="cb9-22"><a href="#cb9-22"></a>    col2 &lt;-<span class="st"> </span><span class="kw">setdiff</span>(<span class="kw">colnames</span>(xtab), col)</span>
 <span id="cb9-23"><a href="#cb9-23"></a>    </span>
-<span id="cb9-24"><a href="#cb9-24"></a>    fn <span class="op">/</span><span class="st"> </span>(fn <span class="op">+</span><span class="st"> </span>tp)</span>
-<span id="cb9-25"><a href="#cb9-25"></a>    </span>
-<span id="cb9-26"><a href="#cb9-26"></a>  }</span>
-<span id="cb9-27"><a href="#cb9-27"></a>  </span>
-<span id="cb9-28"><a href="#cb9-28"></a>  <span class="kw">metric_vec_template</span>(</span>
-<span id="cb9-29"><a href="#cb9-29"></a>    <span class="dt">metric_impl =</span> miss_rate_impl,</span>
-<span id="cb9-30"><a href="#cb9-30"></a>    <span class="dt">truth =</span> truth,</span>
-<span id="cb9-31"><a href="#cb9-31"></a>    <span class="dt">estimate =</span> estimate,</span>
-<span id="cb9-32"><a href="#cb9-32"></a>    <span class="dt">na_rm =</span> na_rm,</span>
-<span id="cb9-33"><a href="#cb9-33"></a>    <span class="dt">cls =</span> <span class="st">&quot;factor&quot;</span>,</span>
-<span id="cb9-34"><a href="#cb9-34"></a>    <span class="dt">estimator =</span> estimator,</span>
-<span id="cb9-35"><a href="#cb9-35"></a>    ...</span>
-<span id="cb9-36"><a href="#cb9-36"></a>  )</span>
-<span id="cb9-37"><a href="#cb9-37"></a>  </span>
-<span id="cb9-38"><a href="#cb9-38"></a>}</span></code></pre></div>
+<span id="cb9-24"><a href="#cb9-24"></a>    tp &lt;-<span class="st"> </span>xtab[col, col]</span>
+<span id="cb9-25"><a href="#cb9-25"></a>    fn &lt;-<span class="st"> </span>xtab[col2, col]</span>
+<span id="cb9-26"><a href="#cb9-26"></a>    </span>
+<span id="cb9-27"><a href="#cb9-27"></a>    fn <span class="op">/</span><span class="st"> </span>(fn <span class="op">+</span><span class="st"> </span>tp)</span>
+<span id="cb9-28"><a href="#cb9-28"></a>  }</span>
+<span id="cb9-29"><a href="#cb9-29"></a>  </span>
+<span id="cb9-30"><a href="#cb9-30"></a>  <span class="kw">metric_vec_template</span>(</span>
+<span id="cb9-31"><a href="#cb9-31"></a>    <span class="dt">metric_impl =</span> miss_rate_impl,</span>
+<span id="cb9-32"><a href="#cb9-32"></a>    <span class="dt">truth =</span> truth,</span>
+<span id="cb9-33"><a href="#cb9-33"></a>    <span class="dt">estimate =</span> estimate,</span>
+<span id="cb9-34"><a href="#cb9-34"></a>    <span class="dt">na_rm =</span> na_rm,</span>
+<span id="cb9-35"><a href="#cb9-35"></a>    <span class="dt">cls =</span> <span class="st">&quot;factor&quot;</span>,</span>
+<span id="cb9-36"><a href="#cb9-36"></a>    <span class="dt">estimator =</span> estimator,</span>
+<span id="cb9-37"><a href="#cb9-37"></a>    ...</span>
+<span id="cb9-38"><a href="#cb9-38"></a>  )</span>
+<span id="cb9-39"><a href="#cb9-39"></a>}</span></code></pre></div>
 <p>Another change from the numeric metric is that a call to <code>finalize_estimator()</code> is made. This is the infrastructure that auto-selects the type of estimator to use.</p>
 <div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1"></a><span class="kw">data</span>(<span class="st">&quot;two_class_example&quot;</span>)</span>
 <span id="cb10-2"><a href="#cb10-2"></a><span class="kw">miss_rate_vec</span>(two_class_example<span class="op">$</span>truth, two_class_example<span class="op">$</span>predicted)</span>
@@ -517,57 +540,61 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <p>Don’t worry about the <code>metric_dispatcher</code> argument. This is handled for you and just exists as a dummy argument to dispatch off of.</p>
 <p>It is also good practice to call <code>validate_estimator()</code> which handles the case where a user passed in the estimator themselves. This validates that the supplied <code>estimator</code> is one of the allowed types and error otherwise.</p>
 <div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1"></a>finalize_estimator_internal.miss_rate &lt;-<span class="st"> </span><span class="cf">function</span>(metric_dispatcher, x, estimator) {</span>
-<span id="cb12-2"><a href="#cb12-2"></a>  </span>
-<span id="cb12-3"><a href="#cb12-3"></a>  <span class="kw">validate_estimator</span>(estimator, <span class="dt">estimator_override =</span> <span class="st">&quot;binary&quot;</span>)</span>
+<span id="cb12-2"><a href="#cb12-2"></a>  <span class="kw">validate_estimator</span>(estimator, <span class="dt">estimator_override =</span> <span class="st">&quot;binary&quot;</span>)</span>
+<span id="cb12-3"><a href="#cb12-3"></a>  </span>
 <span id="cb12-4"><a href="#cb12-4"></a>  <span class="cf">if</span>(<span class="op">!</span><span class="kw">is.null</span>(estimator)) {</span>
 <span id="cb12-5"><a href="#cb12-5"></a>    <span class="kw">return</span>(estimator)</span>
 <span id="cb12-6"><a href="#cb12-6"></a>  }</span>
 <span id="cb12-7"><a href="#cb12-7"></a>  </span>
 <span id="cb12-8"><a href="#cb12-8"></a>  lvls &lt;-<span class="st"> </span><span class="kw">levels</span>(x)</span>
-<span id="cb12-9"><a href="#cb12-9"></a>  <span class="cf">if</span>(<span class="kw">length</span>(lvls) <span class="op">&gt;</span><span class="st"> </span><span class="dv">2</span>) {</span>
-<span id="cb12-10"><a href="#cb12-10"></a>    <span class="kw">stop</span>(<span class="st">&quot;A multiclass `truth` input was provided, but only `binary` is supported.&quot;</span>)</span>
-<span id="cb12-11"><a href="#cb12-11"></a>  } </span>
-<span id="cb12-12"><a href="#cb12-12"></a>  <span class="st">&quot;binary&quot;</span></span>
-<span id="cb12-13"><a href="#cb12-13"></a>}</span>
-<span id="cb12-14"><a href="#cb12-14"></a></span>
-<span id="cb12-15"><a href="#cb12-15"></a>miss_rate_vec &lt;-<span class="st"> </span><span class="cf">function</span>(truth, estimate, <span class="dt">estimator =</span> <span class="ot">NULL</span>, <span class="dt">na_rm =</span> <span class="ot">TRUE</span>, ...) {</span>
-<span id="cb12-16"><a href="#cb12-16"></a>  </span>
-<span id="cb12-17"><a href="#cb12-17"></a>  <span class="co"># calls finalize_estimator_internal() internally</span></span>
-<span id="cb12-18"><a href="#cb12-18"></a>  estimator &lt;-<span class="st"> </span><span class="kw">finalize_estimator</span>(truth, estimator, <span class="dt">metric_class =</span> <span class="st">&quot;miss_rate&quot;</span>)</span>
-<span id="cb12-19"><a href="#cb12-19"></a>  </span>
-<span id="cb12-20"><a href="#cb12-20"></a>  miss_rate_impl &lt;-<span class="st"> </span><span class="cf">function</span>(truth, estimate) {</span>
-<span id="cb12-21"><a href="#cb12-21"></a>    </span>
-<span id="cb12-22"><a href="#cb12-22"></a>    <span class="co"># Create </span></span>
-<span id="cb12-23"><a href="#cb12-23"></a>    xtab &lt;-<span class="st"> </span><span class="kw">table</span>(estimate, truth)</span>
-<span id="cb12-24"><a href="#cb12-24"></a>    col &lt;-<span class="st"> </span><span class="kw">relevant_col</span>(xtab)</span>
-<span id="cb12-25"><a href="#cb12-25"></a>    col2 &lt;-<span class="st"> </span><span class="kw">setdiff</span>(<span class="kw">colnames</span>(xtab), col)</span>
-<span id="cb12-26"><a href="#cb12-26"></a>    </span>
-<span id="cb12-27"><a href="#cb12-27"></a>    tp &lt;-<span class="st"> </span>xtab[col, col]</span>
-<span id="cb12-28"><a href="#cb12-28"></a>    fn &lt;-<span class="st"> </span>xtab[col2, col]</span>
-<span id="cb12-29"><a href="#cb12-29"></a>    </span>
-<span id="cb12-30"><a href="#cb12-30"></a>    fn <span class="op">/</span><span class="st"> </span>(fn <span class="op">+</span><span class="st"> </span>tp)</span>
+<span id="cb12-9"><a href="#cb12-9"></a>  </span>
+<span id="cb12-10"><a href="#cb12-10"></a>  <span class="cf">if</span>(<span class="kw">length</span>(lvls) <span class="op">&gt;</span><span class="st"> </span><span class="dv">2</span>) {</span>
+<span id="cb12-11"><a href="#cb12-11"></a>    <span class="kw">stop</span>(<span class="st">&quot;A multiclass `truth` input was provided, but only `binary` is supported.&quot;</span>)</span>
+<span id="cb12-12"><a href="#cb12-12"></a>  } </span>
+<span id="cb12-13"><a href="#cb12-13"></a>  </span>
+<span id="cb12-14"><a href="#cb12-14"></a>  <span class="st">&quot;binary&quot;</span></span>
+<span id="cb12-15"><a href="#cb12-15"></a>}</span>
+<span id="cb12-16"><a href="#cb12-16"></a></span>
+<span id="cb12-17"><a href="#cb12-17"></a>miss_rate_vec &lt;-<span class="st"> </span><span class="cf">function</span>(truth, </span>
+<span id="cb12-18"><a href="#cb12-18"></a>                          estimate, </span>
+<span id="cb12-19"><a href="#cb12-19"></a>                          <span class="dt">estimator =</span> <span class="ot">NULL</span>, </span>
+<span id="cb12-20"><a href="#cb12-20"></a>                          <span class="dt">na_rm =</span> <span class="ot">TRUE</span>, </span>
+<span id="cb12-21"><a href="#cb12-21"></a>                          <span class="dt">event_level =</span> <span class="st">&quot;first&quot;</span>,</span>
+<span id="cb12-22"><a href="#cb12-22"></a>                          ...) {</span>
+<span id="cb12-23"><a href="#cb12-23"></a>  <span class="co"># calls finalize_estimator_internal() internally</span></span>
+<span id="cb12-24"><a href="#cb12-24"></a>  estimator &lt;-<span class="st"> </span><span class="kw">finalize_estimator</span>(truth, estimator, <span class="dt">metric_class =</span> <span class="st">&quot;miss_rate&quot;</span>)</span>
+<span id="cb12-25"><a href="#cb12-25"></a>  </span>
+<span id="cb12-26"><a href="#cb12-26"></a>  miss_rate_impl &lt;-<span class="st"> </span><span class="cf">function</span>(truth, estimate) {</span>
+<span id="cb12-27"><a href="#cb12-27"></a>    <span class="co"># Create </span></span>
+<span id="cb12-28"><a href="#cb12-28"></a>    xtab &lt;-<span class="st"> </span><span class="kw">table</span>(estimate, truth)</span>
+<span id="cb12-29"><a href="#cb12-29"></a>    col &lt;-<span class="st"> </span><span class="kw">event_col</span>(xtab, event_level)</span>
+<span id="cb12-30"><a href="#cb12-30"></a>    col2 &lt;-<span class="st"> </span><span class="kw">setdiff</span>(<span class="kw">colnames</span>(xtab), col)</span>
 <span id="cb12-31"><a href="#cb12-31"></a>    </span>
-<span id="cb12-32"><a href="#cb12-32"></a>  }</span>
-<span id="cb12-33"><a href="#cb12-33"></a>  </span>
-<span id="cb12-34"><a href="#cb12-34"></a>  <span class="kw">metric_vec_template</span>(</span>
-<span id="cb12-35"><a href="#cb12-35"></a>    <span class="dt">metric_impl =</span> miss_rate_impl,</span>
-<span id="cb12-36"><a href="#cb12-36"></a>    <span class="dt">truth =</span> truth,</span>
-<span id="cb12-37"><a href="#cb12-37"></a>    <span class="dt">estimate =</span> estimate,</span>
-<span id="cb12-38"><a href="#cb12-38"></a>    <span class="dt">na_rm =</span> na_rm,</span>
-<span id="cb12-39"><a href="#cb12-39"></a>    <span class="dt">cls =</span> <span class="st">&quot;factor&quot;</span>,</span>
-<span id="cb12-40"><a href="#cb12-40"></a>    <span class="dt">estimator =</span> estimator,</span>
-<span id="cb12-41"><a href="#cb12-41"></a>    ...</span>
-<span id="cb12-42"><a href="#cb12-42"></a>  )</span>
-<span id="cb12-43"><a href="#cb12-43"></a>  </span>
-<span id="cb12-44"><a href="#cb12-44"></a>}</span>
-<span id="cb12-45"><a href="#cb12-45"></a></span>
-<span id="cb12-46"><a href="#cb12-46"></a><span class="co"># Error thrown by our custom handler</span></span>
-<span id="cb12-47"><a href="#cb12-47"></a><span class="kw">miss_rate_vec</span>(fold1<span class="op">$</span>obs, fold1<span class="op">$</span>pred)</span>
-<span id="cb12-48"><a href="#cb12-48"></a><span class="co">#&gt; Error in finalize_estimator_internal.miss_rate(metric_dispatcher, x, estimator): A multiclass `truth` input was provided, but only `binary` is supported.</span></span>
+<span id="cb12-32"><a href="#cb12-32"></a>    tp &lt;-<span class="st"> </span>xtab[col, col]</span>
+<span id="cb12-33"><a href="#cb12-33"></a>    fn &lt;-<span class="st"> </span>xtab[col2, col]</span>
+<span id="cb12-34"><a href="#cb12-34"></a>    </span>
+<span id="cb12-35"><a href="#cb12-35"></a>    fn <span class="op">/</span><span class="st"> </span>(fn <span class="op">+</span><span class="st"> </span>tp)</span>
+<span id="cb12-36"><a href="#cb12-36"></a>    </span>
+<span id="cb12-37"><a href="#cb12-37"></a>  }</span>
+<span id="cb12-38"><a href="#cb12-38"></a>  </span>
+<span id="cb12-39"><a href="#cb12-39"></a>  <span class="kw">metric_vec_template</span>(</span>
+<span id="cb12-40"><a href="#cb12-40"></a>    <span class="dt">metric_impl =</span> miss_rate_impl,</span>
+<span id="cb12-41"><a href="#cb12-41"></a>    <span class="dt">truth =</span> truth,</span>
+<span id="cb12-42"><a href="#cb12-42"></a>    <span class="dt">estimate =</span> estimate,</span>
+<span id="cb12-43"><a href="#cb12-43"></a>    <span class="dt">na_rm =</span> na_rm,</span>
+<span id="cb12-44"><a href="#cb12-44"></a>    <span class="dt">cls =</span> <span class="st">&quot;factor&quot;</span>,</span>
+<span id="cb12-45"><a href="#cb12-45"></a>    <span class="dt">estimator =</span> estimator,</span>
+<span id="cb12-46"><a href="#cb12-46"></a>    ...</span>
+<span id="cb12-47"><a href="#cb12-47"></a>  )</span>
+<span id="cb12-48"><a href="#cb12-48"></a>}</span>
 <span id="cb12-49"><a href="#cb12-49"></a></span>
-<span id="cb12-50"><a href="#cb12-50"></a><span class="co"># Error thrown by validate_estimator()</span></span>
-<span id="cb12-51"><a href="#cb12-51"></a><span class="kw">miss_rate_vec</span>(fold1<span class="op">$</span>obs, fold1<span class="op">$</span>pred, <span class="dt">estimator =</span> <span class="st">&quot;macro&quot;</span>)</span>
-<span id="cb12-52"><a href="#cb12-52"></a><span class="co">#&gt; Error: `estimator` must be one of: &quot;binary&quot;. Not &quot;macro&quot;.</span></span></code></pre></div>
+<span id="cb12-50"><a href="#cb12-50"></a><span class="co"># Error thrown by our custom handler</span></span>
+<span id="cb12-51"><a href="#cb12-51"></a><span class="kw">miss_rate_vec</span>(fold1<span class="op">$</span>obs, fold1<span class="op">$</span>pred)</span>
+<span id="cb12-52"><a href="#cb12-52"></a><span class="co">#&gt; Error in finalize_estimator_internal.miss_rate(metric_dispatcher, x, estimator): A multiclass `truth` input was provided, but only `binary` is supported.</span></span>
+<span id="cb12-53"><a href="#cb12-53"></a></span>
+<span id="cb12-54"><a href="#cb12-54"></a><span class="co"># Error thrown by validate_estimator()</span></span>
+<span id="cb12-55"><a href="#cb12-55"></a><span class="kw">miss_rate_vec</span>(fold1<span class="op">$</span>obs, fold1<span class="op">$</span>pred, <span class="dt">estimator =</span> <span class="st">&quot;macro&quot;</span>)</span>
+<span id="cb12-56"><a href="#cb12-56"></a><span class="co">#&gt; Error: `estimator` must be one of: &quot;binary&quot;. Not &quot;macro&quot;.</span></span></code></pre></div>
 </div>
 <div id="supporting-multiclass-miss-rate" class="section level3">
 <h3>Supporting multiclass miss rate</h3>
@@ -581,72 +608,74 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <li><p><code>miss_rate_estimator_impl()</code> is a helper function for switching between binary and multiclass implementations. It also applies the weighting required for multiclass estimators. It is called from <code>miss_rate_impl()</code> and also accepts the <code>estimator</code> argument using R’s function scoping rules.</p></li>
 <li><p><code>miss_rate_multiclass()</code> provides the implementation for the multiclass case. It calculates the true positive and false negative values as vectors with one value per class. For the macro case, it returns a vector of miss rate calculations, and for micro, it first sums the individual pieces and returns a single miss rate calculation. In the macro case, the vector is then weighted appropriately in <code>miss_rate_estimator_impl()</code> depending on whether or not it was macro or weighted macro.</p></li>
 </ul>
-<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1"></a>miss_rate_vec &lt;-<span class="st"> </span><span class="cf">function</span>(truth, estimate, <span class="dt">estimator =</span> <span class="ot">NULL</span>, <span class="dt">na_rm =</span> <span class="ot">TRUE</span>, ...) {</span>
-<span id="cb14-2"><a href="#cb14-2"></a>  </span>
-<span id="cb14-3"><a href="#cb14-3"></a>  <span class="co"># calls finalize_estimator_internal() internally</span></span>
-<span id="cb14-4"><a href="#cb14-4"></a>  estimator &lt;-<span class="st"> </span><span class="kw">finalize_estimator</span>(truth, estimator, <span class="dt">metric_class =</span> <span class="st">&quot;miss_rate&quot;</span>)</span>
-<span id="cb14-5"><a href="#cb14-5"></a>  </span>
-<span id="cb14-6"><a href="#cb14-6"></a>  miss_rate_impl &lt;-<span class="st"> </span><span class="cf">function</span>(truth, estimate) {</span>
-<span id="cb14-7"><a href="#cb14-7"></a>    xtab &lt;-<span class="st"> </span><span class="kw">table</span>(estimate, truth)</span>
-<span id="cb14-8"><a href="#cb14-8"></a>    <span class="co"># Rather than implement the actual method here, we rely on</span></span>
-<span id="cb14-9"><a href="#cb14-9"></a>    <span class="co"># an *_estimator_impl() function that can handle binary</span></span>
-<span id="cb14-10"><a href="#cb14-10"></a>    <span class="co"># and multiclass cases</span></span>
-<span id="cb14-11"><a href="#cb14-11"></a>    <span class="kw">miss_rate_estimator_impl</span>(xtab, estimator)</span>
-<span id="cb14-12"><a href="#cb14-12"></a>  }</span>
-<span id="cb14-13"><a href="#cb14-13"></a>  </span>
-<span id="cb14-14"><a href="#cb14-14"></a>  <span class="kw">metric_vec_template</span>(</span>
-<span id="cb14-15"><a href="#cb14-15"></a>    <span class="dt">metric_impl =</span> miss_rate_impl,</span>
-<span id="cb14-16"><a href="#cb14-16"></a>    <span class="dt">truth =</span> truth,</span>
-<span id="cb14-17"><a href="#cb14-17"></a>    <span class="dt">estimate =</span> estimate,</span>
-<span id="cb14-18"><a href="#cb14-18"></a>    <span class="dt">na_rm =</span> na_rm,</span>
-<span id="cb14-19"><a href="#cb14-19"></a>    <span class="dt">cls =</span> <span class="st">&quot;factor&quot;</span>,</span>
-<span id="cb14-20"><a href="#cb14-20"></a>    <span class="dt">estimator =</span> estimator,</span>
-<span id="cb14-21"><a href="#cb14-21"></a>    ...</span>
-<span id="cb14-22"><a href="#cb14-22"></a>  )</span>
-<span id="cb14-23"><a href="#cb14-23"></a>  </span>
-<span id="cb14-24"><a href="#cb14-24"></a>}</span>
-<span id="cb14-25"><a href="#cb14-25"></a></span>
-<span id="cb14-26"><a href="#cb14-26"></a><span class="co"># This function switches between binary and multiclass implementations</span></span>
-<span id="cb14-27"><a href="#cb14-27"></a>miss_rate_estimator_impl &lt;-<span class="st"> </span><span class="cf">function</span>(data, estimator) {</span>
-<span id="cb14-28"><a href="#cb14-28"></a>  <span class="cf">if</span>(estimator <span class="op">==</span><span class="st"> &quot;binary&quot;</span>) {</span>
-<span id="cb14-29"><a href="#cb14-29"></a>    <span class="kw">miss_rate_binary</span>(data)</span>
-<span id="cb14-30"><a href="#cb14-30"></a>  } <span class="cf">else</span> {</span>
-<span id="cb14-31"><a href="#cb14-31"></a>    <span class="co"># Encapsulates the macro, macro weighted, and micro cases</span></span>
-<span id="cb14-32"><a href="#cb14-32"></a>    wt &lt;-<span class="st"> </span><span class="kw">get_weights</span>(data, estimator)</span>
-<span id="cb14-33"><a href="#cb14-33"></a>    res &lt;-<span class="st"> </span><span class="kw">miss_rate_multiclass</span>(data, estimator)</span>
-<span id="cb14-34"><a href="#cb14-34"></a>    <span class="kw">weighted.mean</span>(res, wt)</span>
-<span id="cb14-35"><a href="#cb14-35"></a>  }</span>
-<span id="cb14-36"><a href="#cb14-36"></a>}</span>
-<span id="cb14-37"><a href="#cb14-37"></a></span>
-<span id="cb14-38"><a href="#cb14-38"></a>miss_rate_binary &lt;-<span class="st"> </span><span class="cf">function</span>(data) {</span>
-<span id="cb14-39"><a href="#cb14-39"></a>  col &lt;-<span class="st"> </span><span class="kw">relevant_col</span>(data)</span>
-<span id="cb14-40"><a href="#cb14-40"></a>  col2 &lt;-<span class="st"> </span><span class="kw">setdiff</span>(<span class="kw">colnames</span>(data), col)</span>
-<span id="cb14-41"><a href="#cb14-41"></a>  </span>
-<span id="cb14-42"><a href="#cb14-42"></a>  tp &lt;-<span class="st"> </span>data[col, col]</span>
-<span id="cb14-43"><a href="#cb14-43"></a>  fn &lt;-<span class="st"> </span>data[col2, col]</span>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1"></a>miss_rate_vec &lt;-<span class="st"> </span><span class="cf">function</span>(truth, </span>
+<span id="cb14-2"><a href="#cb14-2"></a>                          estimate, </span>
+<span id="cb14-3"><a href="#cb14-3"></a>                          <span class="dt">estimator =</span> <span class="ot">NULL</span>, </span>
+<span id="cb14-4"><a href="#cb14-4"></a>                          <span class="dt">na_rm =</span> <span class="ot">TRUE</span>, </span>
+<span id="cb14-5"><a href="#cb14-5"></a>                          <span class="dt">event_level =</span> <span class="st">&quot;first&quot;</span>,</span>
+<span id="cb14-6"><a href="#cb14-6"></a>                          ...) {</span>
+<span id="cb14-7"><a href="#cb14-7"></a>  <span class="co"># calls finalize_estimator_internal() internally</span></span>
+<span id="cb14-8"><a href="#cb14-8"></a>  estimator &lt;-<span class="st"> </span><span class="kw">finalize_estimator</span>(truth, estimator, <span class="dt">metric_class =</span> <span class="st">&quot;miss_rate&quot;</span>)</span>
+<span id="cb14-9"><a href="#cb14-9"></a>  </span>
+<span id="cb14-10"><a href="#cb14-10"></a>  miss_rate_impl &lt;-<span class="st"> </span><span class="cf">function</span>(truth, estimate) {</span>
+<span id="cb14-11"><a href="#cb14-11"></a>    xtab &lt;-<span class="st"> </span><span class="kw">table</span>(estimate, truth)</span>
+<span id="cb14-12"><a href="#cb14-12"></a>    <span class="co"># Rather than implement the actual method here, we rely on</span></span>
+<span id="cb14-13"><a href="#cb14-13"></a>    <span class="co"># an *_estimator_impl() function that can handle binary</span></span>
+<span id="cb14-14"><a href="#cb14-14"></a>    <span class="co"># and multiclass cases</span></span>
+<span id="cb14-15"><a href="#cb14-15"></a>    <span class="kw">miss_rate_estimator_impl</span>(xtab, estimator, event_level)</span>
+<span id="cb14-16"><a href="#cb14-16"></a>  }</span>
+<span id="cb14-17"><a href="#cb14-17"></a>  </span>
+<span id="cb14-18"><a href="#cb14-18"></a>  <span class="kw">metric_vec_template</span>(</span>
+<span id="cb14-19"><a href="#cb14-19"></a>    <span class="dt">metric_impl =</span> miss_rate_impl,</span>
+<span id="cb14-20"><a href="#cb14-20"></a>    <span class="dt">truth =</span> truth,</span>
+<span id="cb14-21"><a href="#cb14-21"></a>    <span class="dt">estimate =</span> estimate,</span>
+<span id="cb14-22"><a href="#cb14-22"></a>    <span class="dt">na_rm =</span> na_rm,</span>
+<span id="cb14-23"><a href="#cb14-23"></a>    <span class="dt">cls =</span> <span class="st">&quot;factor&quot;</span>,</span>
+<span id="cb14-24"><a href="#cb14-24"></a>    <span class="dt">estimator =</span> estimator,</span>
+<span id="cb14-25"><a href="#cb14-25"></a>    ...</span>
+<span id="cb14-26"><a href="#cb14-26"></a>  )</span>
+<span id="cb14-27"><a href="#cb14-27"></a>}</span>
+<span id="cb14-28"><a href="#cb14-28"></a></span>
+<span id="cb14-29"><a href="#cb14-29"></a><span class="co"># This function switches between binary and multiclass implementations</span></span>
+<span id="cb14-30"><a href="#cb14-30"></a>miss_rate_estimator_impl &lt;-<span class="st"> </span><span class="cf">function</span>(data, estimator, event_level) {</span>
+<span id="cb14-31"><a href="#cb14-31"></a>  <span class="cf">if</span>(estimator <span class="op">==</span><span class="st"> &quot;binary&quot;</span>) {</span>
+<span id="cb14-32"><a href="#cb14-32"></a>    <span class="kw">miss_rate_binary</span>(data, event_level)</span>
+<span id="cb14-33"><a href="#cb14-33"></a>  } <span class="cf">else</span> {</span>
+<span id="cb14-34"><a href="#cb14-34"></a>    <span class="co"># Encapsulates the macro, macro weighted, and micro cases</span></span>
+<span id="cb14-35"><a href="#cb14-35"></a>    wt &lt;-<span class="st"> </span><span class="kw">get_weights</span>(data, estimator)</span>
+<span id="cb14-36"><a href="#cb14-36"></a>    res &lt;-<span class="st"> </span><span class="kw">miss_rate_multiclass</span>(data, estimator)</span>
+<span id="cb14-37"><a href="#cb14-37"></a>    <span class="kw">weighted.mean</span>(res, wt)</span>
+<span id="cb14-38"><a href="#cb14-38"></a>  }</span>
+<span id="cb14-39"><a href="#cb14-39"></a>}</span>
+<span id="cb14-40"><a href="#cb14-40"></a></span>
+<span id="cb14-41"><a href="#cb14-41"></a>miss_rate_binary &lt;-<span class="st"> </span><span class="cf">function</span>(data, event_level) {</span>
+<span id="cb14-42"><a href="#cb14-42"></a>  col &lt;-<span class="st"> </span><span class="kw">event_col</span>(data, event_level)</span>
+<span id="cb14-43"><a href="#cb14-43"></a>  col2 &lt;-<span class="st"> </span><span class="kw">setdiff</span>(<span class="kw">colnames</span>(data), col)</span>
 <span id="cb14-44"><a href="#cb14-44"></a>  </span>
-<span id="cb14-45"><a href="#cb14-45"></a>  fn <span class="op">/</span><span class="st"> </span>(fn <span class="op">+</span><span class="st"> </span>tp)</span>
-<span id="cb14-46"><a href="#cb14-46"></a>}</span>
-<span id="cb14-47"><a href="#cb14-47"></a></span>
-<span id="cb14-48"><a href="#cb14-48"></a>miss_rate_multiclass &lt;-<span class="st"> </span><span class="cf">function</span>(data, estimator) {</span>
-<span id="cb14-49"><a href="#cb14-49"></a>  </span>
-<span id="cb14-50"><a href="#cb14-50"></a>  <span class="co"># We need tp and fn for all classes individually</span></span>
-<span id="cb14-51"><a href="#cb14-51"></a>  <span class="co"># we can get this by taking advantage of the fact</span></span>
-<span id="cb14-52"><a href="#cb14-52"></a>  <span class="co"># that tp + fn = colSums(data)</span></span>
-<span id="cb14-53"><a href="#cb14-53"></a>  tp &lt;-<span class="st"> </span><span class="kw">diag</span>(data)</span>
-<span id="cb14-54"><a href="#cb14-54"></a>  tpfn &lt;-<span class="st"> </span><span class="kw">colSums</span>(data)</span>
-<span id="cb14-55"><a href="#cb14-55"></a>  fn &lt;-<span class="st"> </span>tpfn <span class="op">-</span><span class="st"> </span>tp</span>
-<span id="cb14-56"><a href="#cb14-56"></a>  </span>
-<span id="cb14-57"><a href="#cb14-57"></a>  <span class="co"># If using a micro estimator, we sum the individual</span></span>
-<span id="cb14-58"><a href="#cb14-58"></a>  <span class="co"># pieces before performing the miss rate calculation</span></span>
-<span id="cb14-59"><a href="#cb14-59"></a>  <span class="cf">if</span>(estimator <span class="op">==</span><span class="st"> &quot;micro&quot;</span>) {</span>
-<span id="cb14-60"><a href="#cb14-60"></a>    tp &lt;-<span class="st"> </span><span class="kw">sum</span>(tp)</span>
-<span id="cb14-61"><a href="#cb14-61"></a>    fn &lt;-<span class="st"> </span><span class="kw">sum</span>(fn)</span>
-<span id="cb14-62"><a href="#cb14-62"></a>  }</span>
-<span id="cb14-63"><a href="#cb14-63"></a>  </span>
-<span id="cb14-64"><a href="#cb14-64"></a>  <span class="co"># return the vector </span></span>
-<span id="cb14-65"><a href="#cb14-65"></a>  tp <span class="op">/</span><span class="st"> </span>(tp <span class="op">+</span><span class="st"> </span>fn)</span>
-<span id="cb14-66"><a href="#cb14-66"></a>}</span></code></pre></div>
+<span id="cb14-45"><a href="#cb14-45"></a>  tp &lt;-<span class="st"> </span>data[col, col]</span>
+<span id="cb14-46"><a href="#cb14-46"></a>  fn &lt;-<span class="st"> </span>data[col2, col]</span>
+<span id="cb14-47"><a href="#cb14-47"></a>  </span>
+<span id="cb14-48"><a href="#cb14-48"></a>  fn <span class="op">/</span><span class="st"> </span>(fn <span class="op">+</span><span class="st"> </span>tp)</span>
+<span id="cb14-49"><a href="#cb14-49"></a>}</span>
+<span id="cb14-50"><a href="#cb14-50"></a></span>
+<span id="cb14-51"><a href="#cb14-51"></a>miss_rate_multiclass &lt;-<span class="st"> </span><span class="cf">function</span>(data, estimator) {</span>
+<span id="cb14-52"><a href="#cb14-52"></a>  <span class="co"># We need tp and fn for all classes individually</span></span>
+<span id="cb14-53"><a href="#cb14-53"></a>  <span class="co"># we can get this by taking advantage of the fact</span></span>
+<span id="cb14-54"><a href="#cb14-54"></a>  <span class="co"># that tp + fn = colSums(data)</span></span>
+<span id="cb14-55"><a href="#cb14-55"></a>  tp &lt;-<span class="st"> </span><span class="kw">diag</span>(data)</span>
+<span id="cb14-56"><a href="#cb14-56"></a>  tpfn &lt;-<span class="st"> </span><span class="kw">colSums</span>(data)</span>
+<span id="cb14-57"><a href="#cb14-57"></a>  fn &lt;-<span class="st"> </span>tpfn <span class="op">-</span><span class="st"> </span>tp</span>
+<span id="cb14-58"><a href="#cb14-58"></a>  </span>
+<span id="cb14-59"><a href="#cb14-59"></a>  <span class="co"># If using a micro estimator, we sum the individual</span></span>
+<span id="cb14-60"><a href="#cb14-60"></a>  <span class="co"># pieces before performing the miss rate calculation</span></span>
+<span id="cb14-61"><a href="#cb14-61"></a>  <span class="cf">if</span>(estimator <span class="op">==</span><span class="st"> &quot;micro&quot;</span>) {</span>
+<span id="cb14-62"><a href="#cb14-62"></a>    tp &lt;-<span class="st"> </span><span class="kw">sum</span>(tp)</span>
+<span id="cb14-63"><a href="#cb14-63"></a>    fn &lt;-<span class="st"> </span><span class="kw">sum</span>(fn)</span>
+<span id="cb14-64"><a href="#cb14-64"></a>  }</span>
+<span id="cb14-65"><a href="#cb14-65"></a>  </span>
+<span id="cb14-66"><a href="#cb14-66"></a>  <span class="co"># return the vector </span></span>
+<span id="cb14-67"><a href="#cb14-67"></a>  tp <span class="op">/</span><span class="st"> </span>(tp <span class="op">+</span><span class="st"> </span>fn)</span>
+<span id="cb14-68"><a href="#cb14-68"></a>}</span></code></pre></div>
 <p>For the macro case, this separation of weighting from the core implementation might seem strange, but there is good reason for it. Some metrics are combinations of other metrics, and it is nice to be able to reuse code when calculating more complex metrics. For example, <code>f_meas()</code> is a combination of <code>recall()</code> and <code>precision()</code>. When calculating a macro averaged <code>f_meas()</code>, the weighting must be applied 1 time, at the very end of the calculation. <code>recall_multiclass()</code> and <code>precision_multiclass()</code> are defined similarly to how <code>miss_rate_multiclass()</code> is defined and returns the unweighted vector of calculations. This means we can directly use this in <code>f_meas()</code>, and then weight everything once at the end of that calculation.</p>
 <p>Let’s try it out now:</p>
 <div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1"></a><span class="co"># two class</span></span>
@@ -659,25 +688,32 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 </div>
 <div id="data-frame-implementation-1" class="section level3">
 <h3>Data frame implementation</h3>
-<p>Luckily, the data frame implementation is as simple as the numeric case, we just need to add an extra <code>estimator</code> argument and pass that through.</p>
-<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1"></a>miss_rate &lt;-<span class="st"> </span><span class="cf">function</span>(data, truth, estimate, <span class="dt">estimator =</span> <span class="ot">NULL</span>, <span class="dt">na_rm =</span> <span class="ot">TRUE</span>, ...) {</span>
+<p>Luckily, the data frame implementation is as simple as the numeric case, we just need to add an extra <code>estimator</code> argument and pass that through. We’ll also use <code>new_class_metric()</code> to formalize <code>miss_rate()</code> as a class metric.</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1"></a>miss_rate &lt;-<span class="st"> </span><span class="cf">function</span>(data, ...) {</span>
 <span id="cb16-2"><a href="#cb16-2"></a>  <span class="kw">UseMethod</span>(<span class="st">&quot;miss_rate&quot;</span>)</span>
 <span id="cb16-3"><a href="#cb16-3"></a>}</span>
 <span id="cb16-4"><a href="#cb16-4"></a></span>
-<span id="cb16-5"><a href="#cb16-5"></a>miss_rate.data.frame &lt;-<span class="st"> </span><span class="cf">function</span>(data, truth, estimate, <span class="dt">estimator =</span> <span class="ot">NULL</span>, <span class="dt">na_rm =</span> <span class="ot">TRUE</span>, ...) {</span>
-<span id="cb16-6"><a href="#cb16-6"></a>  </span>
-<span id="cb16-7"><a href="#cb16-7"></a>  <span class="kw">metric_summarizer</span>(</span>
-<span id="cb16-8"><a href="#cb16-8"></a>    <span class="dt">metric_nm =</span> <span class="st">&quot;miss_rate&quot;</span>,</span>
-<span id="cb16-9"><a href="#cb16-9"></a>    <span class="dt">metric_fn =</span> miss_rate_vec,</span>
-<span id="cb16-10"><a href="#cb16-10"></a>    <span class="dt">data =</span> data,</span>
-<span id="cb16-11"><a href="#cb16-11"></a>    <span class="dt">truth =</span> <span class="op">!!</span><span class="st"> </span><span class="kw">enquo</span>(truth),</span>
-<span id="cb16-12"><a href="#cb16-12"></a>    <span class="dt">estimate =</span> <span class="op">!!</span><span class="st"> </span><span class="kw">enquo</span>(estimate), </span>
-<span id="cb16-13"><a href="#cb16-13"></a>    <span class="dt">estimator =</span> estimator,</span>
-<span id="cb16-14"><a href="#cb16-14"></a>    <span class="dt">na_rm =</span> na_rm,</span>
-<span id="cb16-15"><a href="#cb16-15"></a>    ...</span>
-<span id="cb16-16"><a href="#cb16-16"></a>  )</span>
-<span id="cb16-17"><a href="#cb16-17"></a>  </span>
-<span id="cb16-18"><a href="#cb16-18"></a>}</span></code></pre></div>
+<span id="cb16-5"><a href="#cb16-5"></a>miss_rate &lt;-<span class="st"> </span><span class="kw">new_class_metric</span>(miss_rate, <span class="dt">direction =</span> <span class="st">&quot;minimize&quot;</span>)</span>
+<span id="cb16-6"><a href="#cb16-6"></a></span>
+<span id="cb16-7"><a href="#cb16-7"></a>miss_rate.data.frame &lt;-<span class="st"> </span><span class="cf">function</span>(data, </span>
+<span id="cb16-8"><a href="#cb16-8"></a>                                 truth, </span>
+<span id="cb16-9"><a href="#cb16-9"></a>                                 estimate, </span>
+<span id="cb16-10"><a href="#cb16-10"></a>                                 <span class="dt">estimator =</span> <span class="ot">NULL</span>, </span>
+<span id="cb16-11"><a href="#cb16-11"></a>                                 <span class="dt">na_rm =</span> <span class="ot">TRUE</span>, </span>
+<span id="cb16-12"><a href="#cb16-12"></a>                                 <span class="dt">event_level =</span> <span class="st">&quot;first&quot;</span>,</span>
+<span id="cb16-13"><a href="#cb16-13"></a>                                 ...) {</span>
+<span id="cb16-14"><a href="#cb16-14"></a>  <span class="kw">metric_summarizer</span>(</span>
+<span id="cb16-15"><a href="#cb16-15"></a>    <span class="dt">metric_nm =</span> <span class="st">&quot;miss_rate&quot;</span>,</span>
+<span id="cb16-16"><a href="#cb16-16"></a>    <span class="dt">metric_fn =</span> miss_rate_vec,</span>
+<span id="cb16-17"><a href="#cb16-17"></a>    <span class="dt">data =</span> data,</span>
+<span id="cb16-18"><a href="#cb16-18"></a>    <span class="dt">truth =</span> <span class="op">!!</span><span class="st"> </span><span class="kw">enquo</span>(truth),</span>
+<span id="cb16-19"><a href="#cb16-19"></a>    <span class="dt">estimate =</span> <span class="op">!!</span><span class="st"> </span><span class="kw">enquo</span>(estimate), </span>
+<span id="cb16-20"><a href="#cb16-20"></a>    <span class="dt">estimator =</span> estimator,</span>
+<span id="cb16-21"><a href="#cb16-21"></a>    <span class="dt">na_rm =</span> na_rm,</span>
+<span id="cb16-22"><a href="#cb16-22"></a>    <span class="dt">event_level =</span> event_level,</span>
+<span id="cb16-23"><a href="#cb16-23"></a>    ...</span>
+<span id="cb16-24"><a href="#cb16-24"></a>  )</span>
+<span id="cb16-25"><a href="#cb16-25"></a>}</span></code></pre></div>
 <div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1"></a><span class="co"># Macro weighted automatically selected</span></span>
 <span id="cb17-2"><a href="#cb17-2"></a>fold1 <span class="op">%&gt;%</span></span>
 <span id="cb17-3"><a href="#cb17-3"></a><span class="st">  </span><span class="kw">miss_rate</span>(obs, pred)</span>
@@ -714,37 +750,22 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <span id="cb17-34"><a href="#cb17-34"></a></span>
 <span id="cb17-35"><a href="#cb17-35"></a><span class="co"># Error handling</span></span>
 <span id="cb17-36"><a href="#cb17-36"></a><span class="kw">miss_rate</span>(hpc_cv, obs, VF)</span>
-<span id="cb17-37"><a href="#cb17-37"></a><span class="co">#&gt; Error: `estimate` should be a factor but a numeric was supplied.</span></span></code></pre></div>
+<span id="cb17-37"><a href="#cb17-37"></a><span class="co">#&gt; Error: Problem with `summarise()` input `.estimate`.</span></span>
+<span id="cb17-38"><a href="#cb17-38"></a><span class="co">#&gt; x `estimate` should be a factor but a numeric was supplied.</span></span>
+<span id="cb17-39"><a href="#cb17-39"></a><span class="co">#&gt; ℹ Input `.estimate` is `metric_fn(truth = obs, estimate = VF, na_rm = na_rm, event_level = &quot;first&quot;)`.</span></span></code></pre></div>
 </div>
 </div>
 <div id="using-custom-metrics-in-metric_set" class="section level2">
 <h2>Using custom metrics in <code>metric_set()</code></h2>
-<p><code>metric_set()</code> validates that all metric functions are of the same metric type by checking the class of the function. If any metrics are not of the right class, <code>metric_set()</code> fails. This means that to use your function with <code>metric_set()</code>, you need to add the correct class.</p>
-<ul>
-<li>Numeric metrics - <code>&quot;numeric_metric&quot;</code></li>
-<li>Class metrics - <code>&quot;class_metric&quot;</code></li>
-<li>Class probability metrics - <code>&quot;prob_metric&quot;</code></li>
-</ul>
-<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1"></a><span class="co"># This errors because the class has not been set</span></span>
-<span id="cb18-2"><a href="#cb18-2"></a><span class="kw">metric_set</span>(mse, rmse)</span>
-<span id="cb18-3"><a href="#cb18-3"></a><span class="co">#&gt; Error: </span></span>
-<span id="cb18-4"><a href="#cb18-4"></a><span class="co">#&gt; The combination of metric functions must be:</span></span>
-<span id="cb18-5"><a href="#cb18-5"></a><span class="co">#&gt; - only numeric metrics</span></span>
-<span id="cb18-6"><a href="#cb18-6"></a><span class="co">#&gt; - a mix of class metrics and class probability metrics</span></span>
-<span id="cb18-7"><a href="#cb18-7"></a><span class="co">#&gt; The following metric function types are being mixed:</span></span>
-<span id="cb18-8"><a href="#cb18-8"></a><span class="co">#&gt; - other (mse)</span></span>
-<span id="cb18-9"><a href="#cb18-9"></a><span class="co">#&gt; - numeric (rmse)</span></span>
-<span id="cb18-10"><a href="#cb18-10"></a></span>
-<span id="cb18-11"><a href="#cb18-11"></a><span class="kw">class</span>(mse) &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;numeric_metric&quot;</span>, <span class="kw">class</span>(mse))</span>
-<span id="cb18-12"><a href="#cb18-12"></a></span>
-<span id="cb18-13"><a href="#cb18-13"></a>numeric_mets &lt;-<span class="st"> </span><span class="kw">metric_set</span>(mse, rmse)</span>
-<span id="cb18-14"><a href="#cb18-14"></a></span>
-<span id="cb18-15"><a href="#cb18-15"></a><span class="kw">numeric_mets</span>(solubility_test, solubility, prediction)</span>
-<span id="cb18-16"><a href="#cb18-16"></a><span class="co">#&gt; # A tibble: 2 x 3</span></span>
-<span id="cb18-17"><a href="#cb18-17"></a><span class="co">#&gt;   .metric .estimator .estimate</span></span>
-<span id="cb18-18"><a href="#cb18-18"></a><span class="co">#&gt; * &lt;chr&gt;   &lt;chr&gt;          &lt;dbl&gt;</span></span>
-<span id="cb18-19"><a href="#cb18-19"></a><span class="co">#&gt; 1 mse     standard       0.521</span></span>
-<span id="cb18-20"><a href="#cb18-20"></a><span class="co">#&gt; 2 rmse    standard       0.722</span></span></code></pre></div>
+<p><code>metric_set()</code> validates that all metric functions are of the same metric type by checking the class of the function. If any metrics are not of the right class, <code>metric_set()</code> fails. By using <code>new_numeric_metric()</code> and <code>new_class_metric()</code> in the above custom metrics, they work out of the box without any additional adjustments.</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1"></a>numeric_mets &lt;-<span class="st"> </span><span class="kw">metric_set</span>(mse, rmse)</span>
+<span id="cb18-2"><a href="#cb18-2"></a></span>
+<span id="cb18-3"><a href="#cb18-3"></a><span class="kw">numeric_mets</span>(solubility_test, solubility, prediction)</span>
+<span id="cb18-4"><a href="#cb18-4"></a><span class="co">#&gt; # A tibble: 2 x 3</span></span>
+<span id="cb18-5"><a href="#cb18-5"></a><span class="co">#&gt;   .metric .estimator .estimate</span></span>
+<span id="cb18-6"><a href="#cb18-6"></a><span class="co">#&gt;   &lt;chr&gt;   &lt;chr&gt;          &lt;dbl&gt;</span></span>
+<span id="cb18-7"><a href="#cb18-7"></a><span class="co">#&gt; 1 mse     standard       0.521</span></span>
+<span id="cb18-8"><a href="#cb18-8"></a><span class="co">#&gt; 2 rmse    standard       0.722</span></span></code></pre></div>
 </div>
 
 

@@ -1,8 +1,8 @@
 
 # yardstick <img src="man/figures/logo.png" align="right"/>
 
-[![Build
-Status](https://travis-ci.org/tidymodels/yardstick.svg?branch=master)](https://travis-ci.org/tidymodels/yardstick)
+<!-- badges: start -->
+
 [![Coverage
 Status](https://img.shields.io/codecov/c/github/tidymodels/yardstick/master.svg)](https://codecov.io/github/tidymodels/yardstick?branch=master)
 [![CRAN\_Status\_Badge](http://www.r-pkg.org/badges/version/yardstick)](https://CRAN.R-project.org/package=yardstick)
@@ -10,13 +10,14 @@ Status](https://img.shields.io/codecov/c/github/tidymodels/yardstick/master.svg)
 [![lifecycle](https://img.shields.io/badge/lifecycle-maturing-blue.svg)](https://www.tidyverse.org/lifecycle/#maturing)
 [![R build
 status](https://github.com/tidymodels/yardstick/workflows/R-CMD-check/badge.svg)](https://github.com/tidymodels/yardstick/actions)
+<!-- badges: end -->
 
 ## Overview
 
 `yardstick` is a package to estimate how well models are working using
 [tidy data](https://www.jstatsoft.org/article/view/v059i10) principles.
-See the [package webpage](https://tidymodels.github.io/yardstick/) for
-more information.
+See the [package webpage](https://yardstick.tidymodels.org/) for more
+information.
 
 ## Installation
 
@@ -55,7 +56,7 @@ characteristics of the model and get them back in a data frame:
 metrics(two_class_example, truth, predicted)
 #> # A tibble: 2 x 3
 #>   .metric  .estimator .estimate
-#> * <chr>    <chr>          <dbl>
+#>   <chr>    <chr>          <dbl>
 #> 1 accuracy binary         0.838
 #> 2 kap      binary         0.675
 
@@ -125,7 +126,7 @@ hpc_cv %>%
 #> # A tibble: 10 x 4
 #>    Resample .metric .estimator .estimate
 #>    <chr>    <chr>   <chr>          <dbl>
-#>  1 Fold01   roc_auc hand_till      0.831
+#>  1 Fold01   roc_auc hand_till      0.813
 #>  2 Fold02   roc_auc hand_till      0.817
 #>  3 Fold03   roc_auc hand_till      0.869
 #>  4 Fold04   roc_auc hand_till      0.849
@@ -133,8 +134,8 @@ hpc_cv %>%
 #>  6 Fold06   roc_auc hand_till      0.836
 #>  7 Fold07   roc_auc hand_till      0.825
 #>  8 Fold08   roc_auc hand_till      0.846
-#>  9 Fold09   roc_auc hand_till      0.836
-#> 10 Fold10   roc_auc hand_till      0.820
+#>  9 Fold09   roc_auc hand_till      0.828
+#> 10 Fold10   roc_auc hand_till      0.812
 ```
 
 ## Autoplot methods for easy visualization
@@ -170,3 +171,24 @@ two_class_example %>%
 #>   <chr>       <chr>          <dbl>
 #> 1 mn_log_loss binary         0.328
 ```
+
+## Contributing
+
+This project is released with a [Contributor Code of
+Conduct](https://contributor-covenant.org/version/2/0/CODE_OF_CONDUCT.html).
+By contributing to this project, you agree to abide by its terms.
+
+  - For questions and discussions about tidymodels packages, modeling,
+    and machine learning, please [post on RStudio
+    Community](https://rstd.io/tidymodels-community).
+
+  - If you think you have encountered a bug, please [submit an
+    issue](https://github.com/tidymodels/yardstick/issues).
+
+  - Either way, learn how to create and share a
+    [reprex](https://rstd.io/reprex) (a minimal, reproducible example),
+    to clearly communicate about your code.
+
+  - Check out further details on [contributing guidelines for tidymodels
+    packages](https://www.tidymodels.org/contribute/) and [how to get
+    help](https://www.tidymodels.org/help/).

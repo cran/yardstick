@@ -8,9 +8,24 @@
 \usage{
 recall(data, ...)
 
-\method{recall}{data.frame}(data, truth, estimate, estimator = NULL, na_rm = TRUE, ...)
+\method{recall}{data.frame}(
+  data,
+  truth,
+  estimate,
+  estimator = NULL,
+  na_rm = TRUE,
+  event_level = yardstick_event_level(),
+  ...
+)
 
-recall_vec(truth, estimate, estimator = NULL, na_rm = TRUE, ...)
+recall_vec(
+  truth,
+  estimate,
+  estimator = NULL,
+  na_rm = TRUE,
+  event_level = yardstick_event_level(),
+  ...
+)
 }
 \arguments{
 \item{data}{Either a \code{data.frame} containing the \code{truth} and \code{estimate}
@@ -22,7 +37,7 @@ in the columns of the table.}
 \item{truth}{The column identifier for the true class results
 (that is a \code{factor}). This should be an unquoted column name although
 this argument is passed by expression and supports
-\link[rlang:quasiquotation]{quasiquotation} (you can unquote column
+\link[rlang:nse-force]{quasiquotation} (you can unquote column
 names). For \verb{_vec()} functions, a \code{factor} vector.}
 
 \item{estimate}{The column identifier for the predicted class
@@ -32,12 +47,19 @@ unquoted variable name. For \verb{_vec()} functions, a \code{factor} vector.}
 
 \item{estimator}{One of: \code{"binary"}, \code{"macro"}, \code{"macro_weighted"},
 or \code{"micro"} to specify the type of averaging to be done. \code{"binary"} is
-only relevant for the two class case. The other three are general methods for
-calculating multiclass metrics. The default will automatically choose \code{"binary"}
-or \code{"macro"} based on \code{estimate}.}
+only relevant for the two class case. The other three are general methods
+for calculating multiclass metrics. The default will automatically choose
+\code{"binary"} or \code{"macro"} based on \code{estimate}.}
 
 \item{na_rm}{A \code{logical} value indicating whether \code{NA}
 values should be stripped before the computation proceeds.}
+
+\item{event_level}{A single string. Either \code{"first"} or \code{"second"} to specify
+which level of \code{truth} to consider as the "event". This argument is only
+applicable when \code{estimator = "binary"}. The default uses an
+internal helper that generally defaults to \code{"first"}, however, if the
+deprecated global option \code{yardstick.event_first} is set, that will be
+used instead with a warning.}
 }
 \value{
 A \code{tibble} with columns \code{.metric}, \code{.estimator},
@@ -71,13 +93,11 @@ computation will procede, with a warning.
 
 
 There is no common convention on which factor level should
-automatically be considered the "event" or "positive" result.
-In \code{yardstick}, the default is to use the \emph{first} level. To
-change this, a global option called \code{yardstick.event_first} is
-set to \code{TRUE} when the package is loaded. This can be changed
-to \code{FALSE} if the \emph{last} level of the factor is considered the
-level of interest by running: \code{options(yardstick.event_first = FALSE)}.
-For multiclass extensions involving one-vs-all
+automatically be considered the "event" or "positive" result
+when computing binary classification metrics. In \code{yardstick}, the default
+is to use the \emph{first} level. To alter this, change the argument
+\code{event_level} to \code{"second"} to consider the \emph{last} level of the factor the
+level of interest. For multiclass extensions involving one-vs-all
 comparisons (such as macro averaging), this option is ignored and
 the "one" level is always the relevant result.
 }
@@ -103,7 +123,7 @@ The formulas used here are:
 
 \deqn{recall = A/(A+C)}
 \deqn{precision = A/(A+B)}
-\deqn{F_meas_\beta = (1+\beta^2) * precision * recall/((\beta^2 * precision)+recall)}
+\deqn{F_{meas} = (1+\beta^2) * precision * recall/((\beta^2 * precision)+recall)}
 
 See the references for discussions of the statistics.
 }
@@ -132,13 +152,17 @@ hpc_cv \%>\%
   recall(obs, pred, estimator = "macro_weighted")
 
 # Vector version
-recall_vec(two_class_example$truth, two_class_example$predicted)
+recall_vec(
+  two_class_example$truth,
+  two_class_example$predicted
+)
 
 # Making Class2 the "relevant" level
-options(yardstick.event_first = FALSE)
-recall_vec(two_class_example$truth, two_class_example$predicted)
-options(yardstick.event_first = TRUE)
-
+recall_vec(
+  two_class_example$truth,
+  two_class_example$predicted,
+  event_level = "second"
+)
 }
 \references{
 Buckland, M., & Gey, F. (1994). The relationship

@@ -12,7 +12,7 @@
 
 <meta name="author" content="Davis Vaughan" />
 
-<meta name="date" content="2020-03-17" />
+<meta name="date" content="2020-07-13" />
 
 <title>Metric types</title>
 
@@ -26,6 +26,22 @@ document.addEventListener('DOMContentLoaded', function(e) {
     if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
     a = h.attributes;
     while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+<script>// Hide empty <a> tag within highlighted CodeBlock for screen reader accessibility (see https://github.com/jgm/pandoc/issues/6352#issuecomment-626106786) -->
+// v0.0.1
+// Written by JooYoung Seo (jooyoung@psu.edu) and Atsushi Yasumoto on June 1st, 2020.
+
+document.addEventListener('DOMContentLoaded', function() {
+  const codeList = document.getElementsByClassName("sourceCode");
+  for (var i = 0; i < codeList.length; i++) {
+    var linkList = codeList[i].getElementsByTagName('a');
+    for (var j = 0; j < linkList.length; j++) {
+      if (linkList[j].innerHTML === "") {
+        linkList[j].setAttribute('aria-hidden', 'true');
+      }
+    }
   }
 });
 </script>
@@ -324,7 +340,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 
 <h1 class="title toc-ignore">Metric types</h1>
 <h4 class="author">Davis Vaughan</h4>
-<h4 class="date">2020-03-17</h4>
+<h4 class="date">2020-07-13</h4>
 
 
 
@@ -407,7 +423,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <span id="cb4-5"><a href="#cb4-5"></a><span class="st">  </span><span class="kw">class_metrics</span>(obs, <span class="dt">estimate =</span> pred)</span>
 <span id="cb4-6"><a href="#cb4-6"></a><span class="co">#&gt; # A tibble: 20 x 4</span></span>
 <span id="cb4-7"><a href="#cb4-7"></a><span class="co">#&gt;    Resample .metric  .estimator .estimate</span></span>
-<span id="cb4-8"><a href="#cb4-8"></a><span class="co">#&gt;  * &lt;chr&gt;    &lt;chr&gt;    &lt;chr&gt;          &lt;dbl&gt;</span></span>
+<span id="cb4-8"><a href="#cb4-8"></a><span class="co">#&gt;    &lt;chr&gt;    &lt;chr&gt;    &lt;chr&gt;          &lt;dbl&gt;</span></span>
 <span id="cb4-9"><a href="#cb4-9"></a><span class="co">#&gt;  1 Fold01   accuracy multiclass     0.726</span></span>
 <span id="cb4-10"><a href="#cb4-10"></a><span class="co">#&gt;  2 Fold02   accuracy multiclass     0.712</span></span>
 <span id="cb4-11"><a href="#cb4-11"></a><span class="co">#&gt;  3 Fold03   accuracy multiclass     0.758</span></span>
@@ -561,7 +577,7 @@ class prob
 </td>
 </tr>
 <tr>
-<td style="text-align:left;vertical-align: middle !important;" rowspan="13">
+<td style="text-align:left;vertical-align: middle !important;" rowspan="14">
 numeric
 </td>
 <td style="text-align:left;">
@@ -596,6 +612,11 @@ numeric
 <tr>
 <td style="text-align:left;">
 <code>mase()</code>
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+<code>mpe()</code>
 </td>
 </tr>
 <tr>

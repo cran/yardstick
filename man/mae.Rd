@@ -21,7 +21,7 @@ columns.}
 \item{truth}{The column identifier for the true results
 (that is \code{numeric}). This should be an unquoted column name although
 this argument is passed by expression and supports
-\link[rlang:quasiquotation]{quasiquotation} (you can unquote column
+\link[rlang:nse-force]{quasiquotation} (you can unquote column
 names). For \verb{_vec()} functions, a \code{numeric} vector.}
 
 \item{estimate}{The column identifier for the predicted
@@ -84,6 +84,7 @@ Other numeric metrics:
 \code{\link{iic}()},
 \code{\link{mape}()},
 \code{\link{mase}()},
+\code{\link{mpe}()},
 \code{\link{rmse}()},
 \code{\link{rpd}()},
 \code{\link{rpiq}()},
@@ -98,6 +99,7 @@ Other accuracy metrics:
 \code{\link{iic}()},
 \code{\link{mape}()},
 \code{\link{mase}()},
+\code{\link{mpe}()},
 \code{\link{rmse}()},
 \code{\link{smape}()}
 }

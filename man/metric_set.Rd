@@ -26,16 +26,31 @@ metric. But \code{accuracy()} can be used with \code{roc_auc()}.
 
 The returned metric function will have a different argument list
 depending on whether numeric metrics or a mix of class/prob metrics were
-passed in.
+passed in.\preformatted{# Numeric metric set signature:
+fn(
+  data,
+  truth,
+  estimate,
+  na_rm = TRUE,
+  ...
+)
 
-Numeric metrics will have a signature like:
-\code{fn(data, truth, estimate, na_rm = TRUE, ...)}.
+# Class / prob metric set signature:
+fn(
+  data,
+  truth,
+  ...,
+  estimate,
+  estimator =  NULL,
+  na_rm = TRUE,
+  event_level = yardstick_event_level()
+)
+}
 
-Class/prob metrics have a signature of
-\code{fn(data, truth, ..., estimate, na_rm = TRUE)}. When mixing class and
-class prob metrics, pass in the hard predictions (the factor column) as
-the named argument \code{estimate}, and the soft predictions (the class
-probability columns) as bare column names or \code{tidyselect} selectors to \code{...}.
+When mixing class and class prob metrics, pass in the hard predictions
+(the factor column) as the named argument \code{estimate}, and the soft
+predictions (the class probability columns) as bare column names or
+\code{tidyselect} selectors to \code{...}.
 }
 \examples{
 library(dplyr)
@@ -73,10 +88,8 @@ ccc_with_bias <- function(data, truth, estimate, na_rm = TRUE, ...) {
   )
 }
 
-# Add on the underlying function class (here, "numeric_metric"), and the
-# direction to optimize the metric
-class(ccc_with_bias) <- class(ccc)
-attr(ccc_with_bias, "direction") <- attr(ccc, "direction")
+# Use `new_numeric_metric()` to formalize this new metric function
+ccc_with_bias <- new_numeric_metric(ccc_with_bias, "maximize")
 
 multi_metric2 <- metric_set(rmse, rsq, ccc_with_bias)
 

@@ -8,7 +8,15 @@
 \usage{
 roc_auc(data, ...)
 
-\method{roc_auc}{data.frame}(data, truth, ..., options = list(), estimator = NULL, na_rm = TRUE)
+\method{roc_auc}{data.frame}(
+  data,
+  truth,
+  ...,
+  options = list(),
+  estimator = NULL,
+  na_rm = TRUE,
+  event_level = yardstick_event_level()
+)
 
 roc_auc_vec(
   truth,
@@ -16,6 +24,7 @@ roc_auc_vec(
   options = list(),
   estimator = NULL,
   na_rm = TRUE,
+  event_level = yardstick_event_level(),
   ...
 )
 }
@@ -31,12 +40,12 @@ Otherwise, there should be as many columns as factor levels of \code{truth}.}
 \item{truth}{The column identifier for the true class results
 (that is a \code{factor}). This should be an unquoted column name although
 this argument is passed by expression and supports
-\link[rlang:quasiquotation]{quasiquotation} (you can unquote column
+\link[rlang:nse-force]{quasiquotation} (you can unquote column
 names). For \verb{_vec()} functions, a \code{factor} vector.}
 
 \item{options}{A \code{list} of named options to pass to \code{\link[pROC:roc]{pROC::roc()}}
-such as \code{direction} or \code{smooth}. These options should not include \code{response},
-\code{predictor}, \code{levels}, or \code{quiet}.}
+such as \code{smooth}. These options should not include \code{response},
+\code{predictor}, \code{levels}, \code{quiet}, or \code{direction}.}
 
 \item{estimator}{One of \code{"binary"}, \code{"hand_till"}, \code{"macro"}, or
 \code{"macro_weighted"} to specify the type of averaging to be done. \code{"binary"}
@@ -46,6 +55,13 @@ calculating multiclass metrics. The default will automatically choose
 
 \item{na_rm}{A \code{logical} value indicating whether \code{NA}
 values should be stripped before the computation proceeds.}
+
+\item{event_level}{A single string. Either \code{"first"} or \code{"second"} to specify
+which level of \code{truth} to consider as the "event". This argument is only
+applicable when \code{estimator = "binary"}. The default uses an
+internal helper that generally defaults to \code{"first"}, however, if the
+deprecated global option \code{yardstick.event_first} is set, that will be
+used instead with a warning.}
 
 \item{estimate}{If \code{truth} is binary, a numeric vector of class probabilities
 corresponding to the "relevant" class. Otherwise, a matrix with as many
@@ -66,14 +82,10 @@ For \code{roc_auc_vec()}, a single \code{numeric} value (or \code{NA}).
 \code{\link[=roc_curve]{roc_curve()}} for the full curve.
 }
 \details{
-For most methods, \code{roc_auc()} defaults to allowing \code{pROC::roc()} control
-the direction of the computation, but allows you to control this by passing
-\code{options = list(direction = "<")} or any other allowed direction value.
-However, the Hand, Till (2001) method assumes that the individual AUCs are
-all above \code{0.5}, so if an AUC value below \code{0.5} is computed, then \code{1} is
-subtracted from it to get the correct result. When not using the Hand, Till
-method, pROC advises setting the \code{direction} when doing resampling so that
-the AUC values are not biased upwards.
+The underlying \code{direction} option in \code{\link[pROC:roc]{pROC::roc()}} is forced to
+\code{direction = "<"}. This computes the ROC curve assuming that the \code{estimate}
+values are the probability that the "event" occurred, which is what they
+are always assumed to be in yardstick.
 
 Generally, an ROC AUC value is between \code{0.5} and \code{1}, with \code{1} being a
 perfect prediction model. If your value is between \code{0} and \code{0.5}, then
@@ -85,13 +97,11 @@ predicts would result in an AUC \verb{>0.5}.
 
 
 There is no common convention on which factor level should
-automatically be considered the "event" or "positive" result.
-In \code{yardstick}, the default is to use the \emph{first} level. To
-change this, a global option called \code{yardstick.event_first} is
-set to \code{TRUE} when the package is loaded. This can be changed
-to \code{FALSE} if the \emph{last} level of the factor is considered the
-level of interest by running: \code{options(yardstick.event_first = FALSE)}.
-For multiclass extensions involving one-vs-all
+automatically be considered the "event" or "positive" result
+when computing binary classification metrics. In \code{yardstick}, the default
+is to use the \emph{first} level. To alter this, change the argument
+\code{event_level} to \code{"second"} to consider the \emph{last} level of the factor the
+level of interest. For multiclass extensions involving one-vs-all
 comparisons (such as macro averaging), this option is ignored and
 the "one" level is always the relevant result.
 }
@@ -101,6 +111,9 @@ the "one" level is always the relevant result.
 The default multiclass method for computing \code{roc_auc()} is to use the
 method from Hand, Till, (2001). Unlike macro-averaging, this method is
 insensitive to class distributions like the binary ROC AUC case.
+Additionally, while other multiclass techniques will return \code{NA} if any
+levels in \code{truth} occur zero times in the actual data, the Hand-Till method
+will simply ignore those levels in the averaging calculation, with a warning.
 
 Macro and macro-weighted averaging are still provided, even though they are
 not the default. In fact, macro-weighted averaging corresponds to the same

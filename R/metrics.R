@@ -144,7 +144,6 @@ metrics.data.frame <- function(data, truth, estimate, ...,
 #' @param ... The bare names of the functions to be included in the metric set.
 #'
 #' @details
-#'
 #' All functions must be either:
 #' - Only numeric metrics
 #' - A mix of class metrics or class prob metrics
@@ -157,14 +156,32 @@ metrics.data.frame <- function(data, truth, estimate, ...,
 #' depending on whether numeric metrics or a mix of class/prob metrics were
 #' passed in.
 #'
-#' Numeric metrics will have a signature like:
-#' `fn(data, truth, estimate, na_rm = TRUE, ...)`.
+#' ```
+#' # Numeric metric set signature:
+#' fn(
+#'   data,
+#'   truth,
+#'   estimate,
+#'   na_rm = TRUE,
+#'   ...
+#' )
 #'
-#' Class/prob metrics have a signature of
-#' `fn(data, truth, ..., estimate, na_rm = TRUE)`. When mixing class and
-#' class prob metrics, pass in the hard predictions (the factor column) as
-#' the named argument `estimate`, and the soft predictions (the class
-#' probability columns) as bare column names or `tidyselect` selectors to `...`.
+#' # Class / prob metric set signature:
+#' fn(
+#'   data,
+#'   truth,
+#'   ...,
+#'   estimate,
+#'   estimator =  NULL,
+#'   na_rm = TRUE,
+#'   event_level = yardstick_event_level()
+#' )
+#' ```
+#'
+#' When mixing class and class prob metrics, pass in the hard predictions
+#' (the factor column) as the named argument `estimate`, and the soft
+#' predictions (the class probability columns) as bare column names or
+#' `tidyselect` selectors to `...`.
 #'
 #' @examples
 #' library(dplyr)
@@ -202,10 +219,8 @@ metrics.data.frame <- function(data, truth, estimate, ...,
 #'   )
 #' }
 #'
-#' # Add on the underlying function class (here, "numeric_metric"), and the
-#' # direction to optimize the metric
-#' class(ccc_with_bias) <- class(ccc)
-#' attr(ccc_with_bias, "direction") <- attr(ccc, "direction")
+#' # Use `new_numeric_metric()` to formalize this new metric function
+#' ccc_with_bias <- new_numeric_metric(ccc_with_bias, "maximize")
 #'
 #' multi_metric2 <- metric_set(rmse, rsq, ccc_with_bias)
 #'
@@ -235,7 +250,6 @@ metrics.data.frame <- function(data, truth, estimate, ...,
 #' @importFrom rlang call2
 #' @importFrom dplyr bind_rows
 #' @importFrom rlang enquos
-#' @importFrom rlang quo_name
 metric_set <- function(...) {
   quo_fns <- enquos(...)
   validate_not_empty(quo_fns)
@@ -246,7 +260,7 @@ metric_set <- function(...) {
 
   # Add on names, and then check that
   # all fns are of the same function class
-  names(fns) <- vapply(quo_fns, quo_name, character(1))
+  names(fns) <- vapply(quo_fns, get_quo_label, character(1))
   validate_function_class(fns)
 
   fn_cls <- class(fns[[1]])[1]
@@ -303,8 +317,32 @@ get_metric_fn_direction <- function(x) {
   attr(x, "direction")
 }
 
+get_quo_label <- function(quo) {
+  out <- rlang::as_label(quo)
+
+  if (length(out) != 1L) {
+    rlang::abort("Internal error: `as_label(quo)` resulted in a character vector of length >1.")
+  }
+
+  is_namespaced <- grepl("::", out, fixed = TRUE)
+
+  if (is_namespaced) {
+    # Split by `::` and take the second half
+    split <- strsplit(out, "::", fixed = TRUE)[[1]]
+    out <- split[[2]]
+  }
+
+  out
+}
+
 make_prob_class_metric_function <- function(fns) {
-  metric_function <- function(data, truth, ..., estimate, estimator = NULL, na_rm = TRUE) {
+  metric_function <- function(data,
+                              truth,
+                              ...,
+                              estimate,
+                              estimator = NULL,
+                              na_rm = TRUE,
+                              event_level = yardstick_event_level()) {
 
     # Find class vs prob metrics
     are_class_metrics <- vapply(
@@ -327,7 +365,8 @@ make_prob_class_metric_function <- function(fns) {
         truth = !!enquo(truth),
         estimate = !!enquo(estimate),
         estimator = estimator,
-        na_rm = na_rm
+        na_rm = na_rm,
+        event_level = event_level
       )
 
       class_calls <- lapply(class_fns, call2, !!! class_args)
@@ -359,7 +398,8 @@ make_prob_class_metric_function <- function(fns) {
         truth = !!enquo(truth),
         ... = ...,
         estimator = prob_estimator,
-        na_rm = na_rm
+        na_rm = na_rm,
+        event_level = event_level
       )
 
       prob_calls <- lapply(prob_fns, call2, !!! prob_args)
@@ -470,19 +510,33 @@ validate_function_class <- function(fns) {
   }
 
   if (length(fn_cls_unique) > 1) {
-
     # Each element of the list contains the names of the fns
     # that inherit that specific class
     fn_bad_names <- lapply(fn_cls_unique, function(x) {
-      x <- unique(c(x, "function"))
-      fn_nms <- names(fns)
-      where <- vapply(fns, rlang::inherits_only, logical(1), class = x)
-      fn_nms[where]
+      names(fns)[fn_cls == x]
     })
 
     # clean up for nicer printing
     fn_cls_unique <- gsub("_metric", "", fn_cls_unique)
     fn_cls_unique <- gsub("function", "other", fn_cls_unique)
+
+    fn_cls_other <- fn_cls_unique == "other"
+
+    if (any(fn_cls_other)) {
+      fn_cls_other_loc <- which(fn_cls_other)
+      fn_other_names <- fn_bad_names[[fn_cls_other_loc]]
+      fns_other <- fns[fn_other_names]
+
+      env_names_other <- vapply(
+        fns_other,
+        function(fn) rlang::env_name(rlang::fn_env(fn)),
+        character(1)
+      )
+
+      fn_bad_names[[fn_cls_other_loc]] <- paste0(
+        fn_other_names, " ", "<", env_names_other, ">"
+      )
+    }
 
     # Prints as:
     # - fn_type1 (fn_name1, fn_name2)
@@ -502,7 +556,7 @@ validate_function_class <- function(fns) {
     abort(paste0(
       "\nThe combination of metric functions must be:\n",
       "- only numeric metrics\n",
-      "- a mix of class metrics and class probability metrics\n",
+      "- a mix of class metrics and class probability metrics\n\n",
       "The following metric function types are being mixed:\n",
       fn_pastable
     ))

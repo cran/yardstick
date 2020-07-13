@@ -27,7 +27,7 @@ method.}
 \item{truth}{The column identifier for the true class results
 (that is a \code{factor}). This should be an unquoted column name although
 this argument is passed by expression and supports
-\link[rlang:quasiquotation]{quasiquotation} (you can unquote column
+\link[rlang:nse-force]{quasiquotation} (you can unquote column
 names). For \verb{_vec()} functions, a \code{factor} vector.}
 
 \item{estimate}{The column identifier for the predicted class
@@ -41,8 +41,8 @@ unquoted variable name. For \verb{_vec()} functions, a \code{factor} vector.}
 
 \item{object}{The \code{conf_mat} data frame returned from \code{conf_mat()}.}
 
-\item{type}{Type of plot desired, must be "mosaic" or "heatmap",
-defaults to "mosaic".}
+\item{type}{Type of plot desired, must be \code{"mosaic"} or \code{"heatmap"},
+defaults to \code{"mosaic"}.}
 }
 \value{
 \code{conf_mat()} produces an object with class \code{conf_mat}. This contains the

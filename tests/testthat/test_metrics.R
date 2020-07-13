@@ -126,6 +126,22 @@ test_that('can mix class and class prob metrics together', {
   )
 })
 
+test_that("can supply `event_level` even with metrics that don't use it", {
+  df <- two_class_example
+
+  df_rev <- df
+  df_rev$truth <- relevel(df_rev$truth, "Class2")
+  df_rev$predicted <- relevel(df_rev$predicted, "Class2")
+
+  # accuracy doesn't use it, and doesn't have it as an argument
+  set <- metric_set(accuracy, recall, roc_auc)
+
+  expect_equal(
+    as.data.frame(set(df, truth, Class1, estimate = predicted)),
+    as.data.frame(set(df_rev, truth, Class1, estimate = predicted, event_level = "second"))
+  )
+})
+
 test_that('metric set functions are classed', {
   expect_is(
     metric_set(accuracy, roc_auc),
@@ -155,12 +171,12 @@ test_that('metric set functions retain class/prob metric functions', {
 
   expect_equal(
     class(fns[[1]]),
-    c("class_metric", "function")
+    c("class_metric", "metric", "function")
   )
 
   expect_equal(
     class(fns[[2]]),
-    c("prob_metric", "function")
+    c("prob_metric", "metric", "function")
   )
 
   expect_equal(
@@ -179,12 +195,12 @@ test_that('metric set functions retain numeric metric functions', {
 
   expect_equal(
     class(fns[[1]]),
-    c("numeric_metric", "function")
+    c("numeric_metric", "metric", "function")
   )
 
   expect_equal(
     class(fns[[2]]),
-    c("numeric_metric", "function")
+    c("numeric_metric", "metric", "function")
   )
 
   expect_equal(
@@ -193,9 +209,33 @@ test_that('metric set functions retain numeric metric functions', {
   )
 })
 
+test_that("`metric_set()` labeling remove namespaces", {
+  x <- metric_set(yardstick::mase, rmse)
+  expect_identical(names(attr(x, "metrics")), c("mase", "rmse"))
+})
+
 test_that("print metric_set works", {
   verify_output(test_path("test-print-metric_set.txt"), {
     multi_metric <- metric_set(rmse, rsq, ccc)
     print(multi_metric)
   })
+})
+
+test_that("`metric_set()` errors contain env name for unknown functions (#128)", {
+  foobar <- function() {}
+
+  # Store env name in `name` attribute for `environmentName()` to find it
+  env <- rlang::new_environment(parent = globalenv())
+  attr(env, "name") <- "test"
+
+  rlang::fn_env(foobar) <- env
+
+  expect_error(
+    metric_set(accuracy, foobar, sens, rlang::abort),
+    "class [(]accuracy, sens[)]"
+  )
+  expect_error(
+    metric_set(accuracy, foobar, sens, rlang::abort),
+    "other [(]foobar <test>, abort <namespace:rlang>[)]"
+  )
 })

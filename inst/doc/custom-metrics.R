@@ -52,6 +52,8 @@ mse <- function(data, ...) {
   UseMethod("mse")
 }
 
+mse <- new_numeric_metric(mse, direction = "minimize")
+
 mse.data.frame <- function(data, truth, estimate, na_rm = TRUE, ...) {
   
   metric_summarizer(
@@ -94,31 +96,33 @@ solubility_resampled %>%
   mse(solubility, prediction)
 
 ## -----------------------------------------------------------------------------
-# So we can support the yardstick event_first option
-relevant_col <- function(xtab) {
-  if (getOption("yardstick.event_first")) {
-      colnames(xtab)[1]
-    } else {
-      colnames(xtab)[2]
-    }
+# Logic for `event_level`
+event_col <- function(xtab, event_level) {
+  if (identical(event_level, "first")) {
+    colnames(xtab)[[1]]
+  } else {
+    colnames(xtab)[[2]]
+  }
 }
 
-miss_rate_vec <- function(truth, estimate, estimator = NULL, na_rm = TRUE, ...) {
-  
+miss_rate_vec <- function(truth, 
+                          estimate, 
+                          estimator = NULL, 
+                          na_rm = TRUE, 
+                          event_level = "first",
+                          ...) {
   estimator <- finalize_estimator(truth, estimator)
   
   miss_rate_impl <- function(truth, estimate) {
-    
     # Create 
     xtab <- table(estimate, truth)
-    col <- relevant_col(xtab)
+    col <- event_col(xtab, event_level)
     col2 <- setdiff(colnames(xtab), col)
     
     tp <- xtab[col, col]
     fn <- xtab[col2, col]
     
     fn / (fn + tp)
-    
   }
   
   metric_vec_template(
@@ -130,7 +134,6 @@ miss_rate_vec <- function(truth, estimate, estimator = NULL, na_rm = TRUE, ...) 
     estimator = estimator,
     ...
   )
-  
 }
 
 ## -----------------------------------------------------------------------------
@@ -144,29 +147,34 @@ miss_rate_vec(fold1$obs, fold1$pred)
 
 ## ---- error = TRUE------------------------------------------------------------
 finalize_estimator_internal.miss_rate <- function(metric_dispatcher, x, estimator) {
-  
   validate_estimator(estimator, estimator_override = "binary")
+  
   if(!is.null(estimator)) {
     return(estimator)
   }
   
   lvls <- levels(x)
+  
   if(length(lvls) > 2) {
     stop("A multiclass `truth` input was provided, but only `binary` is supported.")
   } 
+  
   "binary"
 }
 
-miss_rate_vec <- function(truth, estimate, estimator = NULL, na_rm = TRUE, ...) {
-  
+miss_rate_vec <- function(truth, 
+                          estimate, 
+                          estimator = NULL, 
+                          na_rm = TRUE, 
+                          event_level = "first",
+                          ...) {
   # calls finalize_estimator_internal() internally
   estimator <- finalize_estimator(truth, estimator, metric_class = "miss_rate")
   
   miss_rate_impl <- function(truth, estimate) {
-    
     # Create 
     xtab <- table(estimate, truth)
-    col <- relevant_col(xtab)
+    col <- event_col(xtab, event_level)
     col2 <- setdiff(colnames(xtab), col)
     
     tp <- xtab[col, col]
@@ -185,7 +193,6 @@ miss_rate_vec <- function(truth, estimate, estimator = NULL, na_rm = TRUE, ...) 
     estimator = estimator,
     ...
   )
-  
 }
 
 # Error thrown by our custom handler
@@ -198,8 +205,12 @@ miss_rate_vec(fold1$obs, fold1$pred, estimator = "macro")
 rm(finalize_estimator_internal.miss_rate)
 
 ## -----------------------------------------------------------------------------
-miss_rate_vec <- function(truth, estimate, estimator = NULL, na_rm = TRUE, ...) {
-  
+miss_rate_vec <- function(truth, 
+                          estimate, 
+                          estimator = NULL, 
+                          na_rm = TRUE, 
+                          event_level = "first",
+                          ...) {
   # calls finalize_estimator_internal() internally
   estimator <- finalize_estimator(truth, estimator, metric_class = "miss_rate")
   
@@ -208,7 +219,7 @@ miss_rate_vec <- function(truth, estimate, estimator = NULL, na_rm = TRUE, ...) 
     # Rather than implement the actual method here, we rely on
     # an *_estimator_impl() function that can handle binary
     # and multiclass cases
-    miss_rate_estimator_impl(xtab, estimator)
+    miss_rate_estimator_impl(xtab, estimator, event_level)
   }
   
   metric_vec_template(
@@ -220,13 +231,12 @@ miss_rate_vec <- function(truth, estimate, estimator = NULL, na_rm = TRUE, ...) 
     estimator = estimator,
     ...
   )
-  
 }
 
 # This function switches between binary and multiclass implementations
-miss_rate_estimator_impl <- function(data, estimator) {
+miss_rate_estimator_impl <- function(data, estimator, event_level) {
   if(estimator == "binary") {
-    miss_rate_binary(data)
+    miss_rate_binary(data, event_level)
   } else {
     # Encapsulates the macro, macro weighted, and micro cases
     wt <- get_weights(data, estimator)
@@ -235,8 +245,8 @@ miss_rate_estimator_impl <- function(data, estimator) {
   }
 }
 
-miss_rate_binary <- function(data) {
-  col <- relevant_col(data)
+miss_rate_binary <- function(data, event_level) {
+  col <- event_col(data, event_level)
   col2 <- setdiff(colnames(data), col)
   
   tp <- data[col, col]
@@ -246,7 +256,6 @@ miss_rate_binary <- function(data) {
 }
 
 miss_rate_multiclass <- function(data, estimator) {
-  
   # We need tp and fn for all classes individually
   # we can get this by taking advantage of the fact
   # that tp + fn = colSums(data)
@@ -273,12 +282,19 @@ miss_rate_vec(two_class_example$truth, two_class_example$predicted)
 miss_rate_vec(fold1$obs, fold1$pred)
 
 ## -----------------------------------------------------------------------------
-miss_rate <- function(data, truth, estimate, estimator = NULL, na_rm = TRUE, ...) {
+miss_rate <- function(data, ...) {
   UseMethod("miss_rate")
 }
 
-miss_rate.data.frame <- function(data, truth, estimate, estimator = NULL, na_rm = TRUE, ...) {
-  
+miss_rate <- new_class_metric(miss_rate, direction = "minimize")
+
+miss_rate.data.frame <- function(data, 
+                                 truth, 
+                                 estimate, 
+                                 estimator = NULL, 
+                                 na_rm = TRUE, 
+                                 event_level = "first",
+                                 ...) {
   metric_summarizer(
     metric_nm = "miss_rate",
     metric_fn = miss_rate_vec,
@@ -287,9 +303,9 @@ miss_rate.data.frame <- function(data, truth, estimate, estimator = NULL, na_rm 
     estimate = !! enquo(estimate), 
     estimator = estimator,
     na_rm = na_rm,
+    event_level = event_level,
     ...
   )
-  
 }
 
 ## ---- error = TRUE------------------------------------------------------------
@@ -309,12 +325,7 @@ hpc_cv %>%
 # Error handling
 miss_rate(hpc_cv, obs, VF)
 
-## ---- error=TRUE--------------------------------------------------------------
-# This errors because the class has not been set
-metric_set(mse, rmse)
-
-class(mse) <- c("numeric_metric", class(mse))
-
+## -----------------------------------------------------------------------------
 numeric_mets <- metric_set(mse, rmse)
 
 numeric_mets(solubility_test, solubility, prediction)

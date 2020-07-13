@@ -21,7 +21,7 @@ Otherwise, there should be as many columns as factor levels of \code{truth}.}
 \item{truth}{The column identifier for the true results (that
 is \code{numeric} or \code{factor}). This should be an unquoted column name
 although this argument is passed by expression and support
-\link[rlang:quasiquotation]{quasiquotation} (you can unquote column
+\link[rlang:nse-force]{quasiquotation} (you can unquote column
 names).}
 
 \item{estimate}{The column identifier for the predicted results
@@ -30,8 +30,8 @@ specified different ways but the primary method is to use an
 unquoted variable name.}
 
 \item{options}{A \code{list} of named options to pass to \code{\link[pROC:roc]{pROC::roc()}}
-such as \code{direction} or \code{smooth}. These options should not include \code{response},
-\code{predictor}, \code{levels}, or \code{quiet}.}
+such as \code{smooth}. These options should not include \code{response},
+\code{predictor}, \code{levels}, \code{quiet}, or \code{direction}.}
 
 \item{na_rm}{A \code{logical} value indicating whether \code{NA}
 values should be stripped before the computation proceeds.}
