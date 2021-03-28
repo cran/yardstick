@@ -98,39 +98,35 @@ conf_mat <- function(data, ...) {
 #' @rdname conf_mat
 conf_mat.data.frame <- function(data, truth, estimate,
                                 dnn = c("Prediction", "Truth"), ...) {
+  names <- names(data)
 
-  vars <-
-    factor_select(
-      data = data,
-      truth = !!enquo(truth),
-      estimate = !!enquo(estimate),
-      ...
-    )
+  truth <- tidyselect::vars_pull(names, {{truth}})
+  estimate <- tidyselect::vars_pull(names, {{estimate}})
+
+  truth <- data[[truth]]
+  estimate <- data[[estimate]]
 
   xtab <- vec2table(
-    truth = data[[vars$truth]],
-    estimate = data[[vars$estimate]],
+    truth = truth,
+    estimate = estimate,
     dnn = dnn,
     ...
   )
-  conf_mat.table(xtab, ...)
 
+  conf_mat.table(xtab, ...)
 }
 
 #' @export
 conf_mat.grouped_df <- function(data, truth, estimate,
                                 dnn = c("Prediction", "Truth"), ...) {
 
-  vars <-
-    factor_select(
-      data = data,
-      truth = !!enquo(truth),
-      estimate = !!enquo(estimate),
-      ...
-    )
+  names <- names(data)
 
-  truth <- as.name(vars$truth)
-  estimate <- as.name(vars$estimate)
+  truth <- tidyselect::vars_pull(names, {{truth}})
+  estimate <- tidyselect::vars_pull(names, {{estimate}})
+
+  truth <- as.name(truth)
+  estimate <- as.name(estimate)
 
   dplyr::summarise(
     data,
@@ -307,18 +303,16 @@ conf_mat_plot_types <- c("mosaic", "heatmap")
 cm_heat <- function(x) {
   `%+%` <- ggplot2::`%+%`
 
-  table <- x$table
-
-  df <- as.data.frame.table(table)
-
-  # Force known column names, assuming that predictions are on the
-  # left hand side of the table (#157).
+  df <- as.data.frame.table(x$table)
+  # Force specific column names for referencing in ggplot2 code
   names(df) <- c("Prediction", "Truth", "Freq")
 
   # Have prediction levels going from high to low so they plot in an
   # order that matches the LHS of the confusion matrix
   lvls <- levels(df$Prediction)
   df$Prediction <- factor(df$Prediction, levels = rev(lvls))
+
+  axis_labels <- get_axis_labels(x)
 
   df %>%
     ggplot2::ggplot(
@@ -329,12 +323,21 @@ cm_heat <- function(x) {
       )
     ) %+%
     ggplot2::geom_tile() %+%
-    ggplot2::scale_fill_gradient(low = "grey90", high = "grey40") %+%
+    ggplot2::scale_fill_gradient(
+      low = "grey90",
+      high = "grey40"
+    ) %+%
     ggplot2::theme(
       panel.background = ggplot2::element_blank(),
       legend.position = "none"
     ) %+%
-    ggplot2::geom_text(ggplot2::aes(label = Freq))
+    ggplot2::geom_text(
+      mapping = ggplot2::aes(label = Freq)
+    ) %+%
+    ggplot2::labs(
+      x = axis_labels$x,
+      y = axis_labels$y
+    )
 }
 
 space_fun <- function(x, adjustment, rescale = FALSE) {
@@ -378,6 +381,7 @@ cm_mosaic <- function(x) {
   y1_data <- full_data_list[[1]]
 
   tick_labels <- colnames(cm_zero)
+  axis_labels <- get_axis_labels(x)
 
   ggplot2::ggplot(full_data) %+%
     ggplot2::geom_rect(
@@ -397,8 +401,24 @@ cm_mosaic <- function(x) {
       labels = tick_labels
     ) %+%
     ggplot2::labs(
-      y = "Predicted",
-      x = "Truth"
+      y = axis_labels$y,
+      x = axis_labels$x
     ) %+%
     ggplot2::theme(panel.background = ggplot2::element_blank())
+}
+
+# Note: Always assumes predictions are on the LHS of the table
+get_axis_labels <- function(x) {
+  table <- x$table
+
+  labels <- names(dimnames(table))
+
+  if (is.null(labels)) {
+    labels <- c("Prediction", "Truth")
+  }
+
+  list(
+    y = labels[[1]],
+    x = labels[[2]]
+  )
 }

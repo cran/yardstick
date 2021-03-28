@@ -69,67 +69,40 @@ metrics <- function(data, ...) {
 #' @export
 #' @rdname metrics
 #' @importFrom dplyr bind_rows
-metrics.data.frame <- function(data, truth, estimate, ...,
-                               options = list(), na_rm = TRUE) {
+metrics.data.frame <- function(data,
+                               truth,
+                               estimate,
+                               ...,
+                               options = list(),
+                               na_rm = TRUE) {
+  names <- names(data)
 
-  # Get set of character vars
-  vars <- all_select(
-    data = data,
-    truth = !!enquo(truth),
-    estimate = !!enquo(estimate),
-    ...
-  )
+  truth <- tidyselect::vars_pull(names, {{truth}})
+  estimate <- tidyselect::vars_pull(names, {{estimate}})
+  probs <- unname(tidyselect::vars_select(names, ...))
 
-  is_class <- is.factor(data[[ vars$truth ]])
+  is_class <- is.factor(data[[truth]]) || is_class_pred(data[[truth]])
 
   if (is_class) {
-
-    if(!is.factor(data[[ vars$estimate ]])) {
-      stop("`estimate` should be a factor", call. = FALSE)
-    }
-
     metrics_class <- metric_set(accuracy, kap)
+    res <- metrics_class(data, !!truth, estimate = !!estimate, na_rm = na_rm)
 
-    res <- metrics_class(data, !! vars$truth, estimate = !!vars$estimate)
-
-    # truth=factor. Any ... ?
-    has_probs <- !all(is.na(vars$probs))
-
-    if (has_probs) {
-
-      # truth=factor and there are ...
-      # Is truth a 2 level factor?
-      lvl <- levels(data[[ vars$truth ]])
-
-      res <- bind_rows(
-        res,
-        mn_log_loss(data, !! vars$truth, !! vars$probs, na_rm = na_rm),
-        roc_auc(
-          data, !! vars$truth, !! vars$probs,
-          na_rm = na_rm, options = options
-        )
-      )
-
-    } # end has_probs
-
-    # truth != factor
-  } else {
-
-    # Assume only regression for now
-    if (!is.numeric(data[[ vars$estimate ]])) {
-      stop("`estimate` should be numeric", call. = FALSE)
+    if (length(probs) > 0L) {
+      res2 <- mn_log_loss(data, !!truth, !!probs, na_rm = na_rm)
+      res3 <- roc_auc(data, !!truth, !!probs, na_rm = na_rm, options = options)
+      res <- bind_rows(res, res2, res3)
     }
-
+  } else {
+    # Assume only regression for now
     metrics_regression <- metric_set(rmse, rsq, mae)
 
     res <- metrics_regression(
       data = data,
-      truth = !! vars$truth,
-      estimate = !! vars$estimate,
+      truth = !!truth,
+      estimate = !!estimate,
       na_rm = na_rm
     )
-
-  } # end regression
+  }
 
   res
 }
@@ -249,7 +222,7 @@ metrics.data.frame <- function(data, truth, estimate, ...,
 #'
 #' @importFrom rlang call2
 #' @importFrom dplyr bind_rows
-#' @importFrom rlang enquos
+#' @importFrom rlang quos enquo enquos abort
 metric_set <- function(...) {
   quo_fns <- enquos(...)
   validate_not_empty(quo_fns)
@@ -263,30 +236,31 @@ metric_set <- function(...) {
   names(fns) <- vapply(quo_fns, get_quo_label, character(1))
   validate_function_class(fns)
 
-  fn_cls <- class(fns[[1]])[1]
+  fn_cls <- class1(fns[[1]])
 
   # signature of the function is different depending on input functions
   if (fn_cls == "numeric_metric") {
-    metric_function <- make_numeric_metric_function(fns)
-    return(metric_function)
+    make_numeric_metric_function(fns)
+  } else if(fn_cls %in% c("prob_metric", "class_metric")) {
+    make_prob_class_metric_function(fns)
+  } else {
+    abort(paste0(
+      "Internal error: `validate_function_class()` should have ",
+      "errored on unknown classes."
+    ))
   }
-
-  if(fn_cls %in% c("prob_metric", "class_metric")) {
-    metric_function <- make_prob_class_metric_function(fns)
-    return(metric_function)
-  }
-
-  msg <- paste0(
-    "No `metric_set()` implementation available for functions of class: ",
-    fn_cls,
-    "."
-  )
-
-  abort(msg)
 }
 
 #' @export
 print.metric_set <- function(x, ...) {
+  info <- as_tibble(x)
+  print(info)
+  invisible(x)
+}
+
+#' @importFrom dplyr as_tibble
+#' @export
+as_tibble.metric_set <- function(x, ...) {
   metrics <- attributes(x)$metrics
   names <- names(metrics)
   metrics <- unname(metrics)
@@ -294,15 +268,11 @@ print.metric_set <- function(x, ...) {
   classes <- map_chr(metrics, class1)
   directions <- map_chr(metrics, get_metric_fn_direction)
 
-  info <- data.frame(
+  dplyr::tibble(
     metric = names,
     class = classes,
     direction = directions
   )
-
-  print(info)
-
-  invisible(x)
 }
 
 map_chr <- function(x, f, ...) {
@@ -494,73 +464,82 @@ validate_inputs_are_functions <- function(fns) {
 
 }
 
-# Validate that all metric functions inherit from the same function class
+# Validate that all metric functions inherit from valid function classes or
+# combinations of classes
 validate_function_class <- function(fns) {
   fn_cls <- vapply(fns, function(fn) class(fn)[1], character(1))
-
   fn_cls_unique <- unique(fn_cls)
+  n_unique <- length(fn_cls_unique)
+
+  if (n_unique == 0L) {
+    return(invisible(fns))
+  }
+
+  if (n_unique == 1L) {
+    if (fn_cls_unique %in% c("class_metric", "prob_metric", "numeric_metric")) {
+      return(invisible(fns))
+    }
+  }
 
   # Special case of ONLY class and prob functions together
   # These are allowed to be together
-  if (length(fn_cls_unique) == 2) {
-    if (fn_cls_unique[1] %in% c("class_metric", "prob_metric") &
+  if (n_unique == 2) {
+    if (fn_cls_unique[1] %in% c("class_metric", "prob_metric") &&
         fn_cls_unique[2] %in% c("class_metric", "prob_metric")) {
-      return()
+      return(invisible(fns))
     }
   }
 
-  if (length(fn_cls_unique) > 1) {
-    # Each element of the list contains the names of the fns
-    # that inherit that specific class
-    fn_bad_names <- lapply(fn_cls_unique, function(x) {
-      names(fns)[fn_cls == x]
-    })
+  # Each element of the list contains the names of the fns
+  # that inherit that specific class
+  fn_bad_names <- lapply(fn_cls_unique, function(x) {
+    names(fns)[fn_cls == x]
+  })
 
-    # clean up for nicer printing
-    fn_cls_unique <- gsub("_metric", "", fn_cls_unique)
-    fn_cls_unique <- gsub("function", "other", fn_cls_unique)
+  # clean up for nicer printing
+  fn_cls_unique <- gsub("_metric", "", fn_cls_unique)
+  fn_cls_unique <- gsub("function", "other", fn_cls_unique)
 
-    fn_cls_other <- fn_cls_unique == "other"
+  fn_cls_other <- fn_cls_unique == "other"
 
-    if (any(fn_cls_other)) {
-      fn_cls_other_loc <- which(fn_cls_other)
-      fn_other_names <- fn_bad_names[[fn_cls_other_loc]]
-      fns_other <- fns[fn_other_names]
+  if (any(fn_cls_other)) {
+    fn_cls_other_loc <- which(fn_cls_other)
+    fn_other_names <- fn_bad_names[[fn_cls_other_loc]]
+    fns_other <- fns[fn_other_names]
 
-      env_names_other <- vapply(
-        fns_other,
-        function(fn) rlang::env_name(rlang::fn_env(fn)),
-        character(1)
-      )
-
-      fn_bad_names[[fn_cls_other_loc]] <- paste0(
-        fn_other_names, " ", "<", env_names_other, ">"
-      )
-    }
-
-    # Prints as:
-    # - fn_type1 (fn_name1, fn_name2)
-    # - fn_type2 (fn_name1)
-    fn_pastable <- mapply(
-      FUN = function(fn_type, fn_names) {
-        fn_names <- paste0(fn_names, collapse = ", ")
-        paste0("- ", fn_type, " (", fn_names, ")")
-      },
-      fn_type = fn_cls_unique,
-      fn_names = fn_bad_names,
-      USE.NAMES = FALSE
+    env_names_other <- vapply(
+      fns_other,
+      function(fn) rlang::env_name(rlang::fn_env(fn)),
+      character(1)
     )
 
-    fn_pastable <- paste0(fn_pastable, collapse = "\n")
-
-    abort(paste0(
-      "\nThe combination of metric functions must be:\n",
-      "- only numeric metrics\n",
-      "- a mix of class metrics and class probability metrics\n\n",
-      "The following metric function types are being mixed:\n",
-      fn_pastable
-    ))
+    fn_bad_names[[fn_cls_other_loc]] <- paste0(
+      fn_other_names, " ", "<", env_names_other, ">"
+    )
   }
+
+  # Prints as:
+  # - fn_type1 (fn_name1, fn_name2)
+  # - fn_type2 (fn_name1)
+  fn_pastable <- mapply(
+    FUN = function(fn_type, fn_names) {
+      fn_names <- paste0(fn_names, collapse = ", ")
+      paste0("- ", fn_type, " (", fn_names, ")")
+    },
+    fn_type = fn_cls_unique,
+    fn_names = fn_bad_names,
+    USE.NAMES = FALSE
+  )
+
+  fn_pastable <- paste0(fn_pastable, collapse = "\n")
+
+  abort(paste0(
+    "\nThe combination of metric functions must be:\n",
+    "- only numeric metrics\n",
+    "- a mix of class metrics and class probability metrics\n\n",
+    "The following metric function types are being mixed:\n",
+    fn_pastable
+  ))
 }
 
 # Safely evaluate metrics in such a way that we can capture the

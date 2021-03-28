@@ -63,7 +63,6 @@ ppv.data.frame <- function(data,
     estimator = estimator,
     na_rm = na_rm,
     event_level = event_level,
-    ... = ...,
     metric_fn_options = list(prevalence = prevalence)
   )
 }
@@ -132,7 +131,6 @@ ppv_vec <- function(truth,
     na_rm = na_rm,
     estimator = estimator,
     cls = "factor",
-    ...,
     prevalence = prevalence
   )
 }
@@ -157,8 +155,7 @@ ppv_binary <- function(data, event_level, prevalence = NULL) {
     prevalence <- sum(data[, positive]) / sum(data)
   }
 
-  # sens = recall
-  sens <- recall_binary(data, event_level)
+  sens <- sens_binary(data, event_level)
   spec <- spec_binary(data, event_level)
   (sens * prevalence) / ((sens * prevalence) + ((1 - spec) * (1 - prevalence)))
 }

@@ -1,3 +1,43 @@
+# yardstick 0.0.8
+
+* New `metric_tweak()` for adjusting the default values of optional arguments in
+  an existing yardstick metric. This is useful to quickly adjust the defaults
+  of a metric that will be included in a `metric_set()`, especially if that
+  metric set is going to be used for tuning with the tune package (#206, #182).
+
+* New `classification_cost()` metric for computing the cost of a poor class
+  probability prediction using user-defined costs (#3).
+
+* New `msd()` for computing the mean signed deviation (also called mean
+  signed difference, or mean signed error) (#183, @datenzauberai).
+  
+* `class_pred` objects from the [probably](https://probably.tidymodels.org/)
+  package are now supported, and are automatically converted to factors before
+  computing any metric. Note that this means that any equivocal values are
+  materialized as `NA` (#198).
+  
+* The `kap()` metric has a new `weighting` argument to apply linear or
+  quadratic weightings before computing the kappa value (#2, #125, @jonthegeek).
+
+* When `sens()` is undefined when computing `ppv()`, `npv()`, `j_index()`, or 
+  `bal_accuracy()`, a sensitivity warning is now correctly thrown, rather than
+  a recall warning (#101).
+
+* The `autoplot()` method for gain curves now plots the curve line
+  on top of the shaded polygon, resulting in a sharper look for the
+  line itself (#192, @eddjberry).
+  
+* The `autoplot()` methods for `conf_mat` now respect user-defined dimension
+  names added through `conf_mat(dnn = )` or from converting a table with
+  dimension names to a `conf_mat` (#191).
+
+* Added an `as_tibble()` method for `metric_set` objects. Printing a
+  `metric_set` now uses this to print out a tibble rather than a data frame
+  (#186).
+
+* Re-licensed package from GPL-2 to MIT. See [consent from copyright holders
+  here](https://github.com/tidymodels/yardstick/issues/204) (#204).
+
 # yardstick 0.0.7
 
 * The global option, `yardstick.event_first`, has been deprecated in favor of

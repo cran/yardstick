@@ -62,8 +62,7 @@ j_index.data.frame <- function(data,
     estimate = !!enquo(estimate),
     estimator = estimator,
     na_rm = na_rm,
-    event_level = event_level,
-    ... = ...
+    event_level = event_level
   )
 }
 
@@ -116,8 +115,7 @@ j_index_vec <- function(truth,
     estimate = estimate,
     na_rm = na_rm,
     cls = "factor",
-    estimator = estimator,
-    ...
+    estimator = estimator
   )
 }
 
@@ -132,8 +130,7 @@ j_index_table_impl <- function(data, estimator, event_level) {
 }
 
 j_index_binary <- function(data, event_level) {
-  # sens + spec - 1
-  recall_binary(data, event_level) + spec_binary(data, event_level) - 1
+  sens_binary(data, event_level) + spec_binary(data, event_level) - 1
 }
 
 j_index_multiclass <- function(data, estimator) {

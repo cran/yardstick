@@ -32,7 +32,6 @@ hpc_cv %>%
   class_metrics(obs, estimate = pred)
 
 ## ---- echo=FALSE, warning=FALSE, message=FALSE, results='asis'----------------
-library(kableExtra)
 library(knitr)
 library(dplyr)
 
@@ -51,8 +50,5 @@ all_metrics <- bind_rows(
   tibble(type = "numeric", metric = get_metrics(fns, "numeric_metric"))
 )
 
-all_metrics %>%
-  knitr::kable(format = "html") %>%
-  kable_styling(full_width = FALSE) %>%
-  collapse_rows(columns = 1)
+kable(all_metrics, format = "html")
 

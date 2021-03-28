@@ -221,6 +221,11 @@ test_that("print metric_set works", {
   })
 })
 
+test_that("metric_set can be coerced to a tibble", {
+  x <- metric_set(roc_auc, pr_auc, accuracy)
+  expect_s3_class(as_tibble(x), "tbl_df")
+})
+
 test_that("`metric_set()` errors contain env name for unknown functions (#128)", {
   foobar <- function() {}
 
@@ -237,5 +242,20 @@ test_that("`metric_set()` errors contain env name for unknown functions (#128)",
   expect_error(
     metric_set(accuracy, foobar, sens, rlang::abort),
     "other [(]foobar <test>, abort <namespace:rlang>[)]"
+  )
+})
+
+test_that("`metric_set()` gives an informative error for a single non-metric function (#181)", {
+  foobar <- function() {}
+
+  # Store env name in `name` attribute for `environmentName()` to find it
+  env <- rlang::new_environment(parent = globalenv())
+  attr(env, "name") <- "test"
+  rlang::fn_env(foobar) <- env
+
+  expect_error(
+    metric_set(foobar),
+    "other (foobar <test>)",
+    fixed = TRUE
   )
 })
