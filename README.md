@@ -4,18 +4,17 @@
 <!-- badges: start -->
 
 [![Coverage
-Status](https://img.shields.io/codecov/c/github/tidymodels/yardstick/master.svg)](https://codecov.io/github/tidymodels/yardstick?branch=master)
-[![CRAN\_Status\_Badge](https://www.r-pkg.org/badges/version/yardstick)](https://CRAN.R-project.org/package=yardstick)
+Status](https://img.shields.io/codecov/c/github/tidymodels/yardstick/main.svg)](https://codecov.io/github/tidymodels/yardstick?branch=main)
+[![CRAN_Status_Badge](https://www.r-pkg.org/badges/version/yardstick)](https://CRAN.R-project.org/package=yardstick)
 [![Downloads](https://cranlogs.r-pkg.org/badges/yardstick)](https://CRAN.R-project.org/package=yardstick)
-[![R build
-status](https://github.com/tidymodels/yardstick/workflows/R-CMD-check/badge.svg)](https://github.com/tidymodels/yardstick/actions)
+[![R-CMD-check](https://github.com/tidymodels/yardstick/workflows/R-CMD-check/badge.svg)](https://github.com/tidymodels/yardstick/actions)
 <!-- badges: end -->
 
 ## Overview
 
 `yardstick` is a package to estimate how well models are working using
-[tidy data](https://www.jstatsoft.org/article/view/v059i10) principles.
-See the [package webpage](https://yardstick.tidymodels.org/) for more
+[tidy data](https://doi.org/10.18637/jss.v059.i10) principles. See the
+[package webpage](https://yardstick.tidymodels.org/) for more
 information.
 
 ## Installation
@@ -53,7 +52,7 @@ characteristics of the model and get them back in a data frame:
 
 ``` r
 metrics(two_class_example, truth, predicted)
-#> # A tibble: 2 x 3
+#> # A tibble: 2 × 3
 #>   .metric  .estimator .estimate
 #>   <chr>    <chr>          <dbl>
 #> 1 accuracy binary         0.838
@@ -63,7 +62,7 @@ metrics(two_class_example, truth, predicted)
 
 two_class_example %>% 
   roc_auc(truth, Class1)
-#> # A tibble: 1 x 3
+#> # A tibble: 1 × 3
 #>   .metric .estimator .estimate
 #>   <chr>   <chr>          <dbl>
 #> 1 roc_auc binary         0.939
@@ -78,7 +77,7 @@ many of them having multiple ways to calculate multiclass metrics.
 data("hpc_cv")
 hpc_cv <- as_tibble(hpc_cv)
 hpc_cv
-#> # A tibble: 3,467 x 7
+#> # A tibble: 3,467 × 7
 #>    obs   pred     VF      F       M          L Resample
 #>    <fct> <fct> <dbl>  <dbl>   <dbl>      <dbl> <chr>   
 #>  1 VF    VF    0.914 0.0779 0.00848 0.0000199  Fold01  
@@ -97,14 +96,14 @@ hpc_cv
 ``` r
 # Macro averaged multiclass precision
 precision(hpc_cv, obs, pred)
-#> # A tibble: 1 x 3
+#> # A tibble: 1 × 3
 #>   .metric   .estimator .estimate
 #>   <chr>     <chr>          <dbl>
 #> 1 precision macro          0.631
 
 # Micro averaged multiclass precision
 precision(hpc_cv, obs, pred, estimator = "micro")
-#> # A tibble: 1 x 3
+#> # A tibble: 1 × 3
 #>   .metric   .estimator .estimate
 #>   <chr>     <chr>          <dbl>
 #> 1 precision micro          0.709
@@ -122,7 +121,7 @@ Till (2001), and does it across all 10 resamples at once.
 hpc_cv %>%
   group_by(Resample) %>%
   roc_auc(obs, VF:L)
-#> # A tibble: 10 x 4
+#> # A tibble: 10 × 4
 #>    Resample .metric .estimator .estimate
 #>    <chr>    <chr>   <chr>          <dbl>
 #>  1 Fold01   roc_auc hand_till      0.813
@@ -153,23 +152,6 @@ hpc_cv %>%
 ```
 
 ![](man/figures/README-roc-curves-1.png)<!-- -->
-
-## Quasiquotation
-
-[Quasiquotation](https://rlang.r-lib.org/reference/quasiquotation.html)
-can also be used to supply inputs.
-
-``` r
-# probability columns:
-lvl <- levels(two_class_example$truth)
-
-two_class_example %>% 
-  mn_log_loss(truth, !! lvl[1])
-#> # A tibble: 1 x 3
-#>   .metric     .estimator .estimate
-#>   <chr>       <chr>          <dbl>
-#> 1 mn_log_loss binary         0.328
-```
 
 ## Contributing
 

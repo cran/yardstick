@@ -1,5 +1,3 @@
-context("AUNP")
-
 test_that("AUNP is equivalent to macro_weighted estimator", {
   hpc_f1 <- data_hpc_fold1()
 
@@ -10,11 +8,9 @@ test_that("AUNP is equivalent to macro_weighted estimator", {
 })
 
 test_that("AUNP errors on binary case", {
-  expect_error(
-    roc_aunp(two_class_example, truth, Class1),
-    "The number of levels in",
-    class = "dplyr_error"
-  )
+  expect_snapshot((expect_error(
+    roc_aunp(two_class_example, truth, Class1)
+  )))
 })
 
 test_that("AUNP results match mlr for soybean example", {

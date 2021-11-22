@@ -39,7 +39,6 @@
 #' @template event_first
 #'
 #' @inheritParams pr_auc
-#' @param object The `lift_df` data frame returned from `lift_curve()`.
 #'
 #' @return
 #' A tibble with class `lift_df` or `lift_grouped_df` having
@@ -92,31 +91,18 @@ lift_curve.data.frame <- function(data,
                                   na_rm = TRUE,
                                   event_level = yardstick_event_level()) {
   estimate <- dots_to_estimate(data, !!! enquos(...))
-  truth <- enquo(truth)
 
-  validate_not_missing(truth, "truth")
-
-  # Explicit handling of length 1 character vectors as column names
-  truth <- handle_chr_names(truth, colnames(data))
-
-  res <- dplyr::do(
-    data,
-    lift_curve_vec(
-      truth = rlang::eval_tidy(truth, data = .),
-      estimate = rlang::eval_tidy(estimate, data = .),
-      na_rm = na_rm,
-      event_level = event_level
-    )
+  result <- metric_summarizer(
+    metric_nm = "lift_curve",
+    metric_fn = lift_curve_vec,
+    data = data,
+    truth = !!enquo(truth),
+    estimate = !!estimate,
+    na_rm = na_rm,
+    event_level = event_level
   )
 
-  if (dplyr::is_grouped_df(res)) {
-    class(res) <- c("grouped_lift_df", "lift_df", class(res))
-  }
-  else {
-    class(res) <- c("lift_df", class(res))
-  }
-
-  res
+  curve_finalize(result, data, "lift_df", "grouped_lift_df")
 }
 
 lift_curve_vec <- function(truth,
@@ -143,7 +129,6 @@ lift_curve_vec <- function(truth,
 
 # dynamically exported in .onLoad()
 
-#' @rdname lift_curve
 autoplot.lift_df <- function(object, ...) {
 
   `%+%` <- ggplot2::`%+%`

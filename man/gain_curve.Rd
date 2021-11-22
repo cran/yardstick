@@ -3,7 +3,6 @@
 \name{gain_curve}
 \alias{gain_curve}
 \alias{gain_curve.data.frame}
-\alias{autoplot.gain_df}
 \title{Gain curve}
 \usage{
 gain_curve(data, ...)
@@ -15,8 +14,6 @@ gain_curve(data, ...)
   na_rm = TRUE,
   event_level = yardstick_event_level()
 )
-
-autoplot.gain_df(object, ...)
 }
 \arguments{
 \item{data}{A \code{data.frame} containing the \code{truth} and \code{estimate}
@@ -42,8 +39,6 @@ applicable when \code{estimator = "binary"}. The default uses an
 internal helper that generally defaults to \code{"first"}, however, if the
 deprecated global option \code{yardstick.event_first} is set, that will be
 used instead with a warning.}
-
-\item{object}{The \code{gain_df} data frame returned from \code{gain_curve()}.}
 }
 \value{
 A tibble with class \code{gain_df} or \code{gain_grouped_df} having
