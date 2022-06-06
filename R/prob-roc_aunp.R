@@ -77,18 +77,6 @@
 #'     ncol = 4
 #'   )
 #' )
-#'
-#' # ---------------------------------------------------------------------------
-#' # Options for `pROC::roc()`
-#'
-#' # Pass options via a named list and not through `...`!
-#' roc_aunp(
-#'   hpc_cv,
-#'   obs,
-#'   VF:L,
-#'   options = list(smooth = TRUE)
-#' )
-#'
 #' @export
 roc_aunp <- function(data, ...) {
   UseMethod("roc_aunp")
@@ -103,8 +91,11 @@ roc_aunp <- new_prob_metric(
 roc_aunp.data.frame <- function(data,
                                 truth,
                                 ...,
-                                options = list(),
-                                na_rm = TRUE) {
+                                na_rm = TRUE,
+                                case_weights = NULL,
+                                options = list()) {
+  check_roc_options_deprecated("roc_aunp", options)
+
   estimate <- dots_to_estimate(data, !!! enquos(...))
 
   metric_summarizer(
@@ -116,30 +107,36 @@ roc_aunp.data.frame <- function(data,
     estimator = NULL,
     na_rm = na_rm,
     event_level = NULL,
-    metric_fn_options = list(options = options)
+    case_weights = !!enquo(case_weights)
   )
 }
 
 #' @rdname roc_aunp
 #' @export
-#' @importFrom rlang call2
-#' @importFrom pROC roc auc
 roc_aunp_vec <- function(truth,
                          estimate,
-                         options = list(),
                          na_rm = TRUE,
+                         case_weights = NULL,
+                         options = list(),
                          ...) {
+  check_roc_options_deprecated("roc_aunp_vec", options)
+
   estimator <- "macro_weighted"
 
   # `event_level` doesn't really matter, but we set it anyways
-  roc_aunp_impl <- function(truth, estimate) {
+  roc_aunp_impl <- function(truth,
+                            estimate,
+                            ...,
+                            case_weights = NULL) {
+    check_dots_empty()
+
     roc_auc_vec(
       truth = truth,
       estimate = estimate,
-      options = options,
       estimator = estimator,
       na_rm = FALSE,
-      event_level = "first"
+      event_level = "first",
+      case_weights = case_weights
     )
   }
 
@@ -149,6 +146,7 @@ roc_aunp_vec <- function(truth,
     estimate = estimate,
     estimator = estimator,
     na_rm = na_rm,
+    case_weights = case_weights,
     cls = c("factor", "numeric")
   )
 }

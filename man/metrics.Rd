@@ -7,11 +7,11 @@
 \usage{
 metrics(data, ...)
 
-\method{metrics}{data.frame}(data, truth, estimate, ..., options = list(), na_rm = TRUE)
+\method{metrics}{data.frame}(data, truth, estimate, ..., na_rm = TRUE, options = list())
 }
 \arguments{
-\item{data}{A \code{data.frame} containing the \code{truth} and \code{estimate}
-columns and any columns specified by \code{...}.}
+\item{data}{A \code{data.frame} containing the columns specified by \code{truth},
+\code{estimate}, and \code{...}.}
 
 \item{...}{A set of unquoted column names or one or more
 \code{dplyr} selector functions to choose which variables contain the
@@ -21,7 +21,7 @@ Otherwise, there should be as many columns as factor levels of \code{truth}.}
 \item{truth}{The column identifier for the true results (that
 is \code{numeric} or \code{factor}). This should be an unquoted column name
 although this argument is passed by expression and support
-\link[rlang:nse-force]{quasiquotation} (you can unquote column
+\link[rlang:topic-inject]{quasiquotation} (you can unquote column
 names).}
 
 \item{estimate}{The column identifier for the predicted results
@@ -29,12 +29,16 @@ names).}
 specified different ways but the primary method is to use an
 unquoted variable name.}
 
-\item{options}{A \code{list} of named options to pass to \code{\link[pROC:roc]{pROC::roc()}}
-such as \code{smooth}. These options should not include \code{response},
-\code{predictor}, \code{levels}, \code{quiet}, or \code{direction}.}
-
 \item{na_rm}{A \code{logical} value indicating whether \code{NA}
 values should be stripped before the computation proceeds.}
+
+\item{options}{\verb{[deprecated]}
+
+No longer supported as of yardstick 1.0.0. If you pass something here it
+will be ignored with a warning.
+
+Previously, these were options passed on to \code{pROC::roc()}. If you need
+support for this, use the pROC package directly.}
 }
 \value{
 A three column tibble.

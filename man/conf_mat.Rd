@@ -10,21 +10,26 @@
 \usage{
 conf_mat(data, ...)
 
-\method{conf_mat}{data.frame}(data, truth, estimate, dnn = c("Prediction", "Truth"), ...)
+\method{conf_mat}{data.frame}(
+  data,
+  truth,
+  estimate,
+  dnn = c("Prediction", "Truth"),
+  case_weights = NULL,
+  ...
+)
 
 \method{tidy}{conf_mat}(x, ...)
 }
 \arguments{
 \item{data}{A data frame or a \code{\link[base:table]{base::table()}}.}
 
-\item{...}{Options to pass to \code{\link[base:table]{base::table()}} (not including
-\code{dnn}). This argument is not currently used for the \code{tidy}
-method.}
+\item{...}{Not used.}
 
 \item{truth}{The column identifier for the true class results
 (that is a \code{factor}). This should be an unquoted column name although
 this argument is passed by expression and supports
-\link[rlang:nse-force]{quasiquotation} (you can unquote column
+\link[rlang:topic-inject]{quasiquotation} (you can unquote column
 names). For \verb{_vec()} functions, a \code{factor} vector.}
 
 \item{estimate}{The column identifier for the predicted class
@@ -33,6 +38,10 @@ specified different ways but the primary method is to use an
 unquoted variable name. For \verb{_vec()} functions, a \code{factor} vector.}
 
 \item{dnn}{A character vector of dimnames for the table.}
+
+\item{case_weights}{The optional column identifier for case weights.
+This should be an unquoted column name that evaluates to a numeric column
+in \code{data}. For \verb{_vec()} functions, a numeric vector.}
 
 \item{x}{A \code{conf_mat} object.}
 }
@@ -75,13 +84,12 @@ cm
 # Now compute the average confusion matrix across all folds in
 # terms of the proportion of the data contained in each cell.
 # First get the raw cell counts per fold using the `tidy` method
-library(purrr)
 library(tidyr)
 
 cells_per_resample <- hpc_cv \%>\%
   group_by(Resample) \%>\%
   conf_mat(obs, pred) \%>\%
-  mutate(tidied = map(conf_mat, tidy)) \%>\%
+  mutate(tidied = lapply(conf_mat, tidy)) \%>\%
   unnest(tidied)
 
 # Get the totals per resample
@@ -109,7 +117,6 @@ library(ggplot2)
 
 autoplot(cm, type = "mosaic")
 autoplot(cm, type = "heatmap")
-
 }
 \seealso{
 \code{\link[=summary.conf_mat]{summary.conf_mat()}} for computing a large number of metrics from one

@@ -14,7 +14,8 @@ pr_auc(data, ...)
   ...,
   estimator = NULL,
   na_rm = TRUE,
-  event_level = yardstick_event_level()
+  event_level = yardstick_event_level(),
+  case_weights = NULL
 )
 
 pr_auc_vec(
@@ -23,12 +24,13 @@ pr_auc_vec(
   estimator = NULL,
   na_rm = TRUE,
   event_level = yardstick_event_level(),
+  case_weights = NULL,
   ...
 )
 }
 \arguments{
-\item{data}{A \code{data.frame} containing the \code{truth} and \code{estimate}
-columns.}
+\item{data}{A \code{data.frame} containing the columns specified by \code{truth} and
+\code{...}.}
 
 \item{...}{A set of unquoted column names or one or more
 \code{dplyr} selector functions to choose which variables contain the
@@ -38,7 +40,7 @@ Otherwise, there should be as many columns as factor levels of \code{truth}.}
 \item{truth}{The column identifier for the true class results
 (that is a \code{factor}). This should be an unquoted column name although
 this argument is passed by expression and supports
-\link[rlang:nse-force]{quasiquotation} (you can unquote column
+\link[rlang:topic-inject]{quasiquotation} (you can unquote column
 names). For \verb{_vec()} functions, a \code{factor} vector.}
 
 \item{estimator}{One of \code{"binary"}, \code{"macro"}, or \code{"macro_weighted"} to
@@ -56,6 +58,10 @@ applicable when \code{estimator = "binary"}. The default uses an
 internal helper that generally defaults to \code{"first"}, however, if the
 deprecated global option \code{yardstick.event_first} is set, that will be
 used instead with a warning.}
+
+\item{case_weights}{The optional column identifier for case weights.
+This should be an unquoted column name that evaluates to a numeric column
+in \code{data}. For \verb{_vec()} functions, a numeric vector.}
 
 \item{estimate}{If \code{truth} is binary, a numeric vector of class probabilities
 corresponding to the "relevant" class. Otherwise, a matrix with as many

@@ -23,9 +23,7 @@
 #'
 #' @param dnn A character vector of dimnames for the table.
 #'
-#' @param ... Options to pass to [base::table()] (not including
-#'  `dnn`). This argument is not currently used for the `tidy`
-#'  method.
+#' @param ... Not used.
 #'
 #' @return
 #' `conf_mat()` produces an object with class `conf_mat`. This contains the
@@ -54,13 +52,12 @@
 #' # Now compute the average confusion matrix across all folds in
 #' # terms of the proportion of the data contained in each cell.
 #' # First get the raw cell counts per fold using the `tidy` method
-#' library(purrr)
 #' library(tidyr)
 #'
 #' cells_per_resample <- hpc_cv %>%
 #'   group_by(Resample) %>%
 #'   conf_mat(obs, pred) %>%
-#'   mutate(tidied = map(conf_mat, tidy)) %>%
+#'   mutate(tidied = lapply(conf_mat, tidy)) %>%
 #'   unnest(tidied)
 #'
 #' # Get the totals per resample
@@ -88,7 +85,6 @@
 #'
 #' autoplot(cm, type = "mosaic")
 #' autoplot(cm, type = "heatmap")
-#'
 #' @export
 conf_mat <- function(data, ...) {
   UseMethod("conf_mat")
@@ -96,57 +92,97 @@ conf_mat <- function(data, ...) {
 
 #' @export
 #' @rdname conf_mat
-conf_mat.data.frame <- function(data, truth, estimate,
-                                dnn = c("Prediction", "Truth"), ...) {
+conf_mat.data.frame <- function(data,
+                                truth,
+                                estimate,
+                                dnn = c("Prediction", "Truth"),
+                                case_weights = NULL,
+                                ...) {
+  if (dots_n(...) != 0L) {
+    warn_conf_mat_dots_deprecated()
+  }
+
   names <- names(data)
 
   truth <- tidyselect::vars_pull(names, {{truth}})
-  estimate <- tidyselect::vars_pull(names, {{estimate}})
-
   truth <- data[[truth]]
+
+  estimate <- tidyselect::vars_pull(names, {{estimate}})
   estimate <- data[[estimate]]
 
-  xtab <- vec2table(
+  case_weights <- enquo(case_weights)
+  if (quo_is_null(case_weights)) {
+    case_weights <- NULL
+  } else {
+    case_weights <- tidyselect::vars_pull(names, !!case_weights)
+    case_weights <- data[[case_weights]]
+  }
+
+  table <- yardstick_table(
     truth = truth,
     estimate = estimate,
-    dnn = dnn,
-    ...
+    case_weights = case_weights
   )
 
-  conf_mat.table(xtab, ...)
+  dimnames <- dimnames(table)
+  names(dimnames) <- dnn
+  dimnames(table) <- dimnames
+
+  conf_mat.matrix(table)
 }
 
 #' @export
-conf_mat.grouped_df <- function(data, truth, estimate,
-                                dnn = c("Prediction", "Truth"), ...) {
+conf_mat.grouped_df <- function(data,
+                                truth,
+                                estimate,
+                                dnn = c("Prediction", "Truth"),
+                                case_weights = NULL,
+                                ...) {
+  if (dots_n(...) != 0L) {
+    warn_conf_mat_dots_deprecated()
+  }
 
   names <- names(data)
 
   truth <- tidyselect::vars_pull(names, {{truth}})
-  estimate <- tidyselect::vars_pull(names, {{estimate}})
-
   truth <- as.name(truth)
+
+  estimate <- tidyselect::vars_pull(names, {{estimate}})
   estimate <- as.name(estimate)
+
+  case_weights <- enquo(case_weights)
+  if (quo_is_null(case_weights)) {
+    case_weights <- NULL
+  } else {
+    case_weights <- tidyselect::vars_pull(names, !!case_weights)
+    case_weights <- as.name(case_weights)
+  }
 
   dplyr::summarise(
     data,
     conf_mat = {
-      xtab <- vec2table(
-        truth = !! truth,
-        estimate = !! estimate,
-        dnn = dnn,
-        ...
+      table <- yardstick_table(
+        truth = !!truth,
+        estimate = !!estimate,
+        case_weights = !!case_weights
       )
-      list(conf_mat.table(xtab, ...))
+
+      dimnames <- dimnames(table)
+      names(dimnames) <- dnn
+      dimnames(table) <- dimnames
+
+      list(conf_mat.matrix(table))
     }
   )
-
 }
 
 #' @export
 conf_mat.table <- function(data, ...) {
-
   check_table(data)
+
+  # To ensure that we always have a consistent output type, whether or not
+  # case weights were used when constructing the table
+  storage.mode(data) <- "double"
 
   class_lev <- rownames(data)
   num_lev <- length(class_lev)
@@ -156,24 +192,34 @@ conf_mat.table <- function(data, ...) {
   }
 
   structure(
-    list(table = data, dots = list(...)),
+    list(table = data),
     class = "conf_mat"
   )
-
 }
 
 #' @export
 conf_mat.matrix <- function(data, ...) {
-
+  # We want the conversion from a yardstick_table() result (i.e. a double
+  # matrix) to a table to occur. tune relies on the `as.data.frame.table()`
+  # method to run, so it has to be a table.
   data <- as.table(data)
-  conf_mat.table(data, ...)
-
+  conf_mat.table(data)
 }
 
+warn_conf_mat_dots_deprecated <- function() {
+  message <- c(
+    "The `...` argument of `conf_mat()` is deprecated as of yardstick 1.0.0.",
+    "This argument no longer has any effect, and is being ignored."
+  )
+  message <- paste0(message, collapse = "\n")
+
+  warn_deprecated(message)
+}
 
 #' @export
-print.conf_mat <- function(x, ...)
+print.conf_mat <- function(x, ...) {
   print(x$table)
+}
 
 #' @export
 #' @rdname conf_mat
@@ -232,7 +278,6 @@ flatten <- function(xtab) {
 #' summary(cmat, prevalence = 0.70)
 #'
 #' library(dplyr)
-#' library(purrr)
 #' library(tidyr)
 #' data("hpc_cv")
 #'
@@ -240,7 +285,7 @@ flatten <- function(xtab) {
 #' all_metrics <- hpc_cv %>%
 #'   group_by(Resample) %>%
 #'   conf_mat(obs, pred) %>%
-#'   mutate(summary_tbl = map(conf_mat, summary)) %>%
+#'   mutate(summary_tbl = lapply(conf_mat, summary)) %>%
 #'   unnest(summary_tbl)
 #'
 #' all_metrics %>%
@@ -249,10 +294,7 @@ flatten <- function(xtab) {
 #'     mean = mean(.estimate, na.rm = TRUE),
 #'     sd = sd(.estimate, na.rm = TRUE)
 #'   )
-#'
-#'
 #' @export
-#' @importFrom dplyr bind_rows
 summary.conf_mat <- function(object,
                              prevalence = NULL,
                              beta = 1,
@@ -262,7 +304,7 @@ summary.conf_mat <- function(object,
 
   xtab <- object$table
 
-  stats <- bind_rows(
+  stats <- dplyr::bind_rows(
     # known multiclass extension
     accuracy(xtab),
     # known multiclass extension
@@ -307,6 +349,9 @@ cm_heat <- function(x) {
   # order that matches the LHS of the confusion matrix
   lvls <- levels(df$Prediction)
   df$Prediction <- factor(df$Prediction, levels = rev(lvls))
+
+  # For case weighted confusion matrices this looks a little better
+  df$Freq <- round(df$Freq, digits = 3)
 
   axis_labels <- get_axis_labels(x)
 
@@ -367,9 +412,9 @@ cm_mosaic <- function(x) {
 
   x_data <- space_fun(colSums(cm_zero), 200)
 
-  full_data_list <- purrr::map(
+  full_data_list <- lapply(
     seq_len(ncol(cm_zero)),
-    ~ space_y_fun(cm_zero, .x, x_data)
+    FUN = function(.x) space_y_fun(cm_zero, .x, x_data)
   )
 
   full_data <- dplyr::bind_rows(full_data_list)

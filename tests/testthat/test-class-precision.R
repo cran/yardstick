@@ -22,8 +22,8 @@ test_that("`event_level = 'second'` works", {
   df <- lst$pathology
 
   df_rev <- df
-  df_rev$pathology <- relevel(df_rev$pathology, "norm")
-  df_rev$scan <- relevel(df_rev$scan, "norm")
+  df_rev$pathology <- stats::relevel(df_rev$pathology, "norm")
+  df_rev$scan <- stats::relevel(df_rev$scan, "norm")
 
   expect_equal(
     precision_vec(df$pathology, df$scan),
@@ -103,5 +103,37 @@ test_that('Multi class - sklearn equivalent', {
   expect_equal(
     r_metric(hpc_cv, obs, pred, "macro_weighted")[[".estimate"]],
     py_res$weighted
+  )
+})
+
+test_that('Two class case weighted - sklearn equivalent', {
+  py_res <- read_pydata("py-precision")
+  r_metric <- precision
+
+  two_class_example$weights <- read_weights_two_class_example()
+
+  expect_equal(
+    r_metric(two_class_example, truth, predicted, case_weights = weights)[[".estimate"]],
+    py_res$case_weight$binary
+  )
+})
+
+test_that('Multi class case weighted - sklearn equivalent', {
+  py_res <- read_pydata("py-precision")
+  r_metric <- precision
+
+  hpc_cv$weights <- read_weights_hpc_cv()
+
+  expect_equal(
+    r_metric(hpc_cv, obs, pred, case_weights = weights)[[".estimate"]],
+    py_res$case_weight$macro
+  )
+  expect_equal(
+    r_metric(hpc_cv, obs, pred, estimator = "micro", case_weights = weights)[[".estimate"]],
+    py_res$case_weight$micro
+  )
+  expect_equal(
+    r_metric(hpc_cv, obs, pred, estimator = "macro_weighted", case_weights = weights)[[".estimate"]],
+    py_res$case_weight$weighted
   )
 })

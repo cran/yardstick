@@ -3,8 +3,8 @@ test_that("two class produces identical results regardless of level order", {
   df <- lst$pathology
 
   df_rev <- df
-  df_rev$pathology <- relevel(df_rev$pathology, "norm")
-  df_rev$scan <- relevel(df_rev$scan, "norm")
+  df_rev$pathology <- stats::relevel(df_rev$pathology, "norm")
+  df_rev$scan <- stats::relevel(df_rev$scan, "norm")
 
   expect_equal(
     kap_vec(df$pathology, df$scan),
@@ -96,5 +96,63 @@ test_that("quadratic weighting - sklearn equivalent", {
   expect_equal(
     r_metric(hpc_cv, obs, pred, weighting = "quadratic")[[".estimate"]],
     py_res$quadratic_multiclass
+  )
+})
+
+test_that('Two class case weighted - sklearn equivalent', {
+  py_res <- read_pydata("py-kap")
+  r_metric <- kap
+
+  two_class_example$weights <- read_weights_two_class_example()
+
+  expect_equal(
+    r_metric(two_class_example, truth, predicted, case_weights = weights)[[".estimate"]],
+    py_res$case_weight$binary
+  )
+})
+
+test_that('Multi class case weighted - sklearn equivalent', {
+  py_res <- read_pydata("py-kap")
+  r_metric <- kap
+
+  hpc_cv$weights <- read_weights_hpc_cv()
+
+  expect_equal(
+    r_metric(hpc_cv, obs, pred, case_weights = weights)[[".estimate"]],
+    py_res$case_weight$multiclass
+  )
+})
+
+test_that("linear weighting case weighted - sklearn equivalent", {
+  py_res <- read_pydata("py-kap")
+  r_metric <- kap
+
+  two_class_example$weights <- read_weights_two_class_example()
+  hpc_cv$weights <- read_weights_hpc_cv()
+
+  expect_equal(
+    r_metric(two_class_example, truth, predicted, weighting = "linear", case_weights = weights)[[".estimate"]],
+    py_res$case_weight$linear_binary
+  )
+  expect_equal(
+    r_metric(hpc_cv, obs, pred, weighting = "linear", case_weights = weights)[[".estimate"]],
+    py_res$case_weight$linear_multiclass
+  )
+})
+
+test_that("quadratic weighting case weighted - sklearn equivalent", {
+  py_res <- read_pydata("py-kap")
+  r_metric <- kap
+
+  two_class_example$weights <- read_weights_two_class_example()
+  hpc_cv$weights <- read_weights_hpc_cv()
+
+  expect_equal(
+    r_metric(two_class_example, truth, predicted, weighting = "quadratic", case_weights = weights)[[".estimate"]],
+    py_res$case_weight$quadratic_binary
+  )
+  expect_equal(
+    r_metric(hpc_cv, obs, pred, weighting = "quadratic", case_weights = weights)[[".estimate"]],
+    py_res$case_weight$quadratic_multiclass
   )
 })

@@ -11,14 +11,15 @@ roc_curve(data, ...)
   data,
   truth,
   ...,
-  options = list(),
   na_rm = TRUE,
-  event_level = yardstick_event_level()
+  event_level = yardstick_event_level(),
+  case_weights = NULL,
+  options = list()
 )
 }
 \arguments{
-\item{data}{A \code{data.frame} containing the \code{truth} and \code{estimate}
-columns.}
+\item{data}{A \code{data.frame} containing the columns specified by \code{truth} and
+\code{...}.}
 
 \item{...}{A set of unquoted column names or one or more
 \code{dplyr} selector functions to choose which variables contain the
@@ -28,12 +29,8 @@ Otherwise, there should be as many columns as factor levels of \code{truth}.}
 \item{truth}{The column identifier for the true class results
 (that is a \code{factor}). This should be an unquoted column name although
 this argument is passed by expression and supports
-\link[rlang:nse-force]{quasiquotation} (you can unquote column
+\link[rlang:topic-inject]{quasiquotation} (you can unquote column
 names). For \verb{_vec()} functions, a \code{factor} vector.}
-
-\item{options}{A \code{list} of named options to pass to \code{\link[pROC:roc]{pROC::roc()}}
-such as \code{smooth}. These options should not include \code{response},
-\code{predictor}, \code{levels}, \code{quiet}, or \code{direction}.}
 
 \item{na_rm}{A \code{logical} value indicating whether \code{NA}
 values should be stripped before the computation proceeds.}
@@ -44,13 +41,22 @@ applicable when \code{estimator = "binary"}. The default uses an
 internal helper that generally defaults to \code{"first"}, however, if the
 deprecated global option \code{yardstick.event_first} is set, that will be
 used instead with a warning.}
+
+\item{case_weights}{The optional column identifier for case weights.
+This should be an unquoted column name that evaluates to a numeric column
+in \code{data}. For \verb{_vec()} functions, a numeric vector.}
+
+\item{options}{\verb{[deprecated]}
+
+No longer supported as of yardstick 1.0.0. If you pass something here it
+will be ignored with a warning.
+
+Previously, these were options passed on to \code{pROC::roc()}. If you need
+support for this, use the pROC package directly.}
 }
 \value{
 A tibble with class \code{roc_df} or \code{roc_grouped_df} having
-columns \code{specificity} and \code{sensitivity}.
-
-If an ordinary (i.e. non-smoothed) curve
-is used, there is also a column for \code{.threshold}.
+columns \code{.threshold}, \code{specificity}, and \code{sensitivity}.
 }
 \description{
 \code{roc_curve()} constructs the full ROC curve and returns a
@@ -59,15 +65,11 @@ tibble. See \code{\link[=roc_auc]{roc_auc()}} for the area under the ROC curve.
 \details{
 \code{roc_curve()} computes the sensitivity at every unique
 value of the probability column (in addition to infinity and
-minus infinity). If a smooth ROC curve was produced, the unique
-observed values of the specificity are used to create the curve
-points. In either case, this may not be efficient for large data
-sets.
+minus infinity).
 
-There is a \code{\link[ggplot2:autoplot]{ggplot2::autoplot()}}
-method for quickly visualizing the curve. This works for
-binary and multiclass output, and also works with grouped data (i.e. from
-resamples). See the examples.
+There is a \code{\link[ggplot2:autoplot]{ggplot2::autoplot()}} method for quickly visualizing the curve.
+This works for binary and multiclass output, and also works with grouped
+data (i.e. from resamples). See the examples.
 }
 \section{Multiclass}{
 

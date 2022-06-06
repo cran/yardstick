@@ -4,17 +4,15 @@
 # https://en.wikipedia.org/wiki/Trapezoidal_rule
 # assumes x is a partition and that x & y are the same length
 auc <- function(x, y, na_rm = TRUE) {
-
   if(na_rm) {
-    comp <- complete.cases(x, y)
+    comp <- stats::complete.cases(x, y)
     x <- x[comp]
     y <- y[comp]
   }
 
-  # order increasing by x
-  x_order <- order(x)
-  x <- x[x_order]
-  y <- y[x_order]
+  if (is.unsorted(x, na.rm = TRUE, strictly = FALSE)) {
+    abort("`x` must already be in weakly increasing order.", .internal = TRUE)
+  }
 
   # length x = length y
   n <- length(x)
@@ -34,9 +32,10 @@ auc <- function(x, y, na_rm = TRUE) {
 
 #' Developer helpers
 #'
-#' Helpers to be used alongside [metric_vec_template()] and [metric_summarizer()]
-#' when creating new metrics. See `vignette("custom-metrics", "yardstick")` for
-#' more information.
+#' Helpers to be used alongside [metric_vec_template()] and
+#' [metric_summarizer()] when creating new metrics. See [Custom performance
+#' metrics](https://www.tidymodels.org/learn/develop/metrics/) for more
+#' information.
 #'
 #' @section Dots -> Estimate:
 #'
@@ -88,7 +87,11 @@ dots_to_estimate <- function(data, ...) {
 
 # One vs all helper ------------------------------------------------------------
 
-one_vs_all_impl <- function(metric_fn, truth, estimate, ...) {
+one_vs_all_impl <- function(metric_fn,
+                            truth,
+                            estimate,
+                            case_weights,
+                            ...) {
   lvls <- levels(truth)
   other <- "..other"
 
@@ -115,6 +118,7 @@ one_vs_all_impl <- function(metric_fn, truth, estimate, ...) {
     metric_lst[[i]] <- metric_fn(
       truth_temp,
       estimate_temp,
+      case_weights = case_weights,
       event_level = "first",
       ...
     )
@@ -124,9 +128,19 @@ one_vs_all_impl <- function(metric_fn, truth, estimate, ...) {
   metric_lst
 }
 
-one_vs_all_with_level <- function(metric_fn, truth, estimate, ...) {
+one_vs_all_with_level <- function(metric_fn,
+                                  truth,
+                                  estimate,
+                                  case_weights,
+                                  ...) {
 
-  res <- one_vs_all_impl(metric_fn, truth, estimate, ...)
+  res <- one_vs_all_impl(
+    metric_fn = metric_fn,
+    truth = truth,
+    estimate = estimate,
+    case_weights = case_weights,
+    ...
+  )
 
   lvls <- levels(truth)
 
@@ -146,4 +160,3 @@ one_vs_all_with_level <- function(metric_fn, truth, estimate, ...) {
   dplyr::bind_rows(res)
 
 }
-

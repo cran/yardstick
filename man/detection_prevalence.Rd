@@ -14,6 +14,7 @@ detection_prevalence(data, ...)
   estimate,
   estimator = NULL,
   na_rm = TRUE,
+  case_weights = NULL,
   event_level = yardstick_event_level(),
   ...
 )
@@ -23,21 +24,22 @@ detection_prevalence_vec(
   estimate,
   estimator = NULL,
   na_rm = TRUE,
+  case_weights = NULL,
   event_level = yardstick_event_level(),
   ...
 )
 }
 \arguments{
-\item{data}{Either a \code{data.frame} containing the \code{truth} and \code{estimate}
-columns, or a \code{table}/\code{matrix} where the true class results should be
-in the columns of the table.}
+\item{data}{Either a \code{data.frame} containing the columns specified by the
+\code{truth} and \code{estimate} arguments, or a \code{table}/\code{matrix} where the true
+class results should be in the columns of the table.}
 
 \item{...}{Not currently used.}
 
 \item{truth}{The column identifier for the true class results
 (that is a \code{factor}). This should be an unquoted column name although
 this argument is passed by expression and supports
-\link[rlang:nse-force]{quasiquotation} (you can unquote column
+\link[rlang:topic-inject]{quasiquotation} (you can unquote column
 names). For \verb{_vec()} functions, a \code{factor} vector.}
 
 \item{estimate}{The column identifier for the predicted class
@@ -53,6 +55,10 @@ for calculating multiclass metrics. The default will automatically choose
 
 \item{na_rm}{A \code{logical} value indicating whether \code{NA}
 values should be stripped before the computation proceeds.}
+
+\item{case_weights}{The optional column identifier for case weights.
+This should be an unquoted column name that evaluates to a numeric column
+in \code{data}. For \verb{_vec()} functions, a numeric vector.}
 
 \item{event_level}{A single string. Either \code{"first"} or \code{"second"} to specify
 which level of \code{truth} to consider as the "event". This argument is only

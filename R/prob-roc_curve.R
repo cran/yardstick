@@ -1,19 +1,17 @@
 #' Receiver operator curve
 #'
+#' @description
 #' `roc_curve()` constructs the full ROC curve and returns a
 #' tibble. See [roc_auc()] for the area under the ROC curve.
 #'
+#' @details
 #' `roc_curve()` computes the sensitivity at every unique
 #'  value of the probability column (in addition to infinity and
-#'  minus infinity). If a smooth ROC curve was produced, the unique
-#'  observed values of the specificity are used to create the curve
-#'  points. In either case, this may not be efficient for large data
-#'  sets.
+#'  minus infinity).
 #'
-#'  There is a [ggplot2::autoplot()]
-#'  method for quickly visualizing the curve. This works for
-#'  binary and multiclass output, and also works with grouped data (i.e. from
-#'  resamples). See the examples.
+#'  There is a [ggplot2::autoplot()] method for quickly visualizing the curve.
+#'  This works for binary and multiclass output, and also works with grouped
+#'  data (i.e. from resamples). See the examples.
 #'
 #' @family curve metrics
 #' @templateVar metric_fn roc_curve
@@ -24,10 +22,7 @@
 #'
 #' @return
 #' A tibble with class `roc_df` or `roc_grouped_df` having
-#' columns `specificity` and `sensitivity`.
-#'
-#' If an ordinary (i.e. non-smoothed) curve
-#' is used, there is also a column for `.threshold`.
+#' columns `.threshold`, `specificity`, and `sensitivity`.
 #'
 #' @seealso
 #' Compute the area under the ROC curve with [roc_auc()].
@@ -68,21 +63,21 @@
 #' }
 #'
 #' @export
-#'
-roc_curve <- function(data, ...)
+roc_curve <- function(data, ...) {
   UseMethod("roc_curve")
+}
 
 #' @export
 #' @rdname roc_curve
-#' @importFrom pROC coords
-#' @importFrom rlang exec
-#' @importFrom dplyr arrange as_tibble %>%
-roc_curve.data.frame <- function (data,
-                                  truth,
-                                  ...,
-                                  options = list(),
-                                  na_rm = TRUE,
-                                  event_level = yardstick_event_level()) {
+roc_curve.data.frame <- function(data,
+                                 truth,
+                                 ...,
+                                 na_rm = TRUE,
+                                 event_level = yardstick_event_level(),
+                                 case_weights = NULL,
+                                 options = list()) {
+  check_roc_options_deprecated("roc_curve", options)
+
   estimate <- dots_to_estimate(data, !!! enquos(...))
 
   result <- metric_summarizer(
@@ -93,7 +88,7 @@ roc_curve.data.frame <- function (data,
     estimate = !!estimate,
     na_rm = na_rm,
     event_level = event_level,
-    metric_fn_options = list(options = options)
+    case_weights = !!enquo(case_weights)
   )
 
   curve_finalize(result, data, "roc_df", "grouped_roc_df")
@@ -101,15 +96,26 @@ roc_curve.data.frame <- function (data,
 
 roc_curve_vec <- function(truth,
                           estimate,
-                          options = list(),
                           na_rm = TRUE,
                           event_level = yardstick_event_level(),
+                          case_weights = NULL,
                           ...) {
   estimator <- finalize_estimator(truth, metric_class = "roc_curve")
 
   # estimate here is a matrix of class prob columns
-  roc_curve_impl <- function(truth, estimate, options = list()) {
-    roc_curve_estimator_impl(truth, estimate, estimator, event_level, options)
+  roc_curve_impl <- function(truth,
+                             estimate,
+                             ...,
+                             case_weights = NULL) {
+    check_dots_empty()
+
+    roc_curve_estimator_impl(
+      truth = truth,
+      estimate = estimate,
+      estimator = estimator,
+      event_level = event_level,
+      case_weights = case_weights
+    )
   }
 
   metric_vec_template(
@@ -118,82 +124,104 @@ roc_curve_vec <- function(truth,
     estimate = estimate,
     na_rm = na_rm,
     estimator = estimator,
-    cls = c("factor", "numeric"),
-    options = options
+    case_weights = case_weights,
+    cls = c("factor", "numeric")
   )
 }
 
-roc_curve_estimator_impl <- function(truth, estimate, estimator, event_level, options) {
+roc_curve_estimator_impl <- function(truth,
+                                     estimate,
+                                     estimator,
+                                     event_level,
+                                     case_weights) {
   if (is_binary(estimator)) {
-    roc_curve_binary(truth, estimate, event_level, options)
-  }
-  else {
-    roc_curve_multiclass(truth, estimate, options)
+    roc_curve_binary(truth, estimate, event_level, case_weights)
+  } else {
+    roc_curve_multiclass(truth, estimate, case_weights)
   }
 }
 
-roc_curve_binary <- function(truth, estimate, event_level, options) {
+roc_curve_binary <- function(truth,
+                             estimate,
+                             event_level,
+                             case_weights) {
   lvls <- levels(truth)
 
-  # pROC will actually expect the levels in the order of control, then event
-  # and confusingly that aligns with our interpretation of event being
-  # the first level
-  if (is_event_first(event_level)) {
+  if (!is_event_first(event_level)) {
     lvls <- rev(lvls)
   }
 
-  control <- lvls[[1]]
-  event <- lvls[[2]]
+  event <- lvls[[1]]
+  control <- lvls[[2]]
 
-  if (compute_n_occurrences(truth, control) == 0L) {
-    stop_roc_truth_no_control(control)
-  }
   if (compute_n_occurrences(truth, event) == 0L) {
     stop_roc_truth_no_event(event)
   }
-
-  # working on a better way of doing this
-  options$response <- truth
-  options$predictor <- estimate
-  options$levels <- lvls
-  options$quiet <- TRUE
-  options$direction <- "<"
-
-  curv <- exec(pROC::roc, !!!options)
-
-  if (!inherits(curv, "smooth.roc")) {
-    res <- coords(
-      curv,
-      x = unique(c(-Inf, options$predictor, Inf)),
-      input = "threshold",
-      transpose = FALSE
-    )
-  }
-  else {
-    res <- coords(
-      curv,
-      x = unique(c(0, curv$specificities, 1)),
-      input = "specificity",
-      transpose = FALSE
-    )
+  if (compute_n_occurrences(truth, control) == 0L) {
+    stop_roc_truth_no_control(control)
   }
 
-  res <- dplyr::as_tibble(res)
+  curve <- binary_threshold_curve(
+    truth = truth,
+    estimate = estimate,
+    event_level = event_level,
+    case_weights = case_weights
+  )
 
-  if (!inherits(curv, "smooth.roc")) {
-    res <- dplyr::arrange(res, threshold)
-    res <- dplyr::rename(res, .threshold = threshold)
-  }
-  else {
-    res <- dplyr::arrange(res, specificity)
-  }
+  threshold <- curve$threshold
+  tp <- curve$tp
+  fp <- curve$fp
 
-  res
+  tpr <- tp / tp[length(tp)]
+  fpr <- fp / fp[length(fp)]
+
+  sensitivity <- tpr
+  specificity <- 1 - fpr
+
+  # In order of increasing specificity
+  threshold <- rev(threshold)
+  sensitivity <- rev(sensitivity)
+  specificity <- rev(specificity)
+
+  # Add first/last rows to the data frame to ensure the curve and
+  # AUC metrics are computed correctly
+  threshold <- c(-Inf, threshold, Inf)
+  sensitivity <- c(1, sensitivity, 0)
+  specificity <- c(0, specificity, 1)
+
+  dplyr::tibble(
+    .threshold = threshold,
+    specificity = specificity,
+    sensitivity = sensitivity
+  )
 }
 
 # One-VS-All approach
-roc_curve_multiclass <- function(truth, estimate, options) {
-  one_vs_all_with_level(roc_curve_binary, truth, estimate, options = options)
+roc_curve_multiclass <- function(truth,
+                                 estimate,
+                                 case_weights) {
+  one_vs_all_with_level(
+    metric_fn = roc_curve_binary,
+    truth = truth,
+    estimate = estimate,
+    case_weights = case_weights
+  )
+}
+
+check_roc_options_deprecated <- function(what, options) {
+  if (!identical(options, list())) {
+    warn_roc_options_deprecated(what)
+  }
+}
+warn_roc_options_deprecated <- function(what) {
+  message <- c(
+    sprintf("The `options` argument of `%s()` is deprecated as of yardstick 1.0.0.", what),
+    "This argument no longer has any effect, and is being ignored.",
+    "Use the pROC package directly if you need these features."
+  )
+  message <- paste0(message, collapse = "\n")
+
+  warn_deprecated(message)
 }
 
 

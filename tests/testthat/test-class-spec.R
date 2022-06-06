@@ -26,8 +26,8 @@ test_that("`event_level = 'second'` works", {
   df <- lst$pathology
 
   df_rev <- df
-  df_rev$pathology <- relevel(df_rev$pathology, "norm")
-  df_rev$scan <- relevel(df_rev$scan, "norm")
+  df_rev$pathology <- stats::relevel(df_rev$pathology, "norm")
+  df_rev$scan <- stats::relevel(df_rev$scan, "norm")
 
   expect_equal(
     spec_vec(df$pathology, df$scan),
@@ -86,6 +86,26 @@ test_that("`NA` is still returned if there are some undefined spec values but `n
   estimate <- factor(c("a", NA), levels = levels)
   expect_equal(spec_vec(truth, estimate, na_rm = FALSE), NA_real_)
   expect_warning(spec_vec(truth, estimate, na_rm = FALSE), NA)
+})
+
+# ------------------------------------------------------------------------------
+
+test_that("two class with case weights is correct", {
+  df <- data.frame(
+    truth = factor(c("x", "y", "y", "y"), levels = c("x", "y")),
+    estimate = factor(c("x", "y", "y", "x"), levels = c("x", "y")),
+    case_weights = c(1L, 1L, 2L, 3L)
+  )
+
+  expect_identical(
+    spec(df, truth, estimate, case_weights = case_weights)[[".estimate"]],
+    1/2
+  )
+
+  expect_identical(
+    specificity(df, truth, estimate, case_weights = case_weights)[[".estimate"]],
+    1/2
+  )
 })
 
 # ------------------------------------------------------------------------------

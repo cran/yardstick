@@ -8,20 +8,20 @@
 \usage{
 mae(data, ...)
 
-\method{mae}{data.frame}(data, truth, estimate, na_rm = TRUE, ...)
+\method{mae}{data.frame}(data, truth, estimate, na_rm = TRUE, case_weights = NULL, ...)
 
-mae_vec(truth, estimate, na_rm = TRUE, ...)
+mae_vec(truth, estimate, na_rm = TRUE, case_weights = NULL, ...)
 }
 \arguments{
-\item{data}{A \code{data.frame} containing the \code{truth} and \code{estimate}
-columns.}
+\item{data}{A \code{data.frame} containing the columns specified by the \code{truth}
+and \code{estimate} arguments.}
 
 \item{...}{Not currently used.}
 
 \item{truth}{The column identifier for the true results
 (that is \code{numeric}). This should be an unquoted column name although
 this argument is passed by expression and supports
-\link[rlang:nse-force]{quasiquotation} (you can unquote column
+\link[rlang:topic-inject]{quasiquotation} (you can unquote column
 names). For \verb{_vec()} functions, a \code{numeric} vector.}
 
 \item{estimate}{The column identifier for the predicted
@@ -31,6 +31,10 @@ unquoted variable name. For \verb{_vec()} functions, a \code{numeric} vector.}
 
 \item{na_rm}{A \code{logical} value indicating whether \code{NA}
 values should be stripped before the computation proceeds.}
+
+\item{case_weights}{The optional column identifier for case weights. This
+should be an unquoted column name that evaluates to a numeric column in
+\code{data}. For \verb{_vec()} functions, a numeric vector.}
 }
 \value{
 A \code{tibble} with columns \code{.metric}, \code{.estimator},

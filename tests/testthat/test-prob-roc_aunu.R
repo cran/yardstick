@@ -7,6 +7,15 @@ test_that("AUNU is equivalent to macro estimator", {
   )
 })
 
+test_that("AUNU is equivalent to macro estimator with case weights", {
+  hpc_cv$weight <- read_weights_hpc_cv()
+
+  expect_equal(
+    roc_auc(hpc_cv, obs, VF:L, estimator = "macro", case_weights = weight)[[".estimate"]],
+    roc_aunu(hpc_cv, obs, VF:L, case_weights = weight)[[".estimate"]]
+  )
+})
+
 test_that("AUNU errors on binary case", {
   expect_snapshot((expect_error(
     roc_aunu(two_class_example, truth, Class1)
@@ -25,3 +34,34 @@ test_that("AUNU results match mlr for soybean example", {
   )
 })
 
+# ------------------------------------------------------------------------------
+
+test_that("roc_aunu() - `options` is deprecated", {
+  skip_if(getRversion() <= "3.5.3", "Base R used a different deprecated warning class.")
+  local_lifecycle_warnings()
+
+  expect_snapshot({
+    out <- roc_aunu(two_class_example, truth, Class1, Class2, options = 1)
+  })
+
+  expect_identical(
+    out,
+    roc_aunu(two_class_example, truth, Class1, Class2),
+  )
+
+  expect_snapshot({
+    out <- roc_aunu_vec(
+      truth = two_class_example$truth,
+      estimate = as.matrix(two_class_example[c("Class1", "Class2")]),
+      options = 1
+    )
+  })
+
+  expect_identical(
+    out,
+    roc_aunu_vec(
+      truth = two_class_example$truth,
+      estimate = as.matrix(two_class_example[c("Class1", "Class2")])
+    )
+  )
+})

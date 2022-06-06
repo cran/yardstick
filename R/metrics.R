@@ -6,8 +6,8 @@
 #'
 #' @inheritParams roc_auc
 #'
-#' @param data A `data.frame` containing the `truth` and `estimate`
-#' columns and any columns specified by `...`.
+#' @param data A `data.frame` containing the columns specified by `truth`,
+#' `estimate`, and `...`.
 #'
 #' @param truth The column identifier for the true results (that
 #' is `numeric` or `factor`). This should be an unquoted column name
@@ -68,13 +68,14 @@ metrics <- function(data, ...) {
 
 #' @export
 #' @rdname metrics
-#' @importFrom dplyr bind_rows
 metrics.data.frame <- function(data,
                                truth,
                                estimate,
                                ...,
-                               options = list(),
-                               na_rm = TRUE) {
+                               na_rm = TRUE,
+                               options = list()) {
+  check_roc_options_deprecated("metrics", options)
+
   names <- names(data)
 
   truth <- tidyselect::vars_pull(names, {{truth}})
@@ -89,8 +90,8 @@ metrics.data.frame <- function(data,
 
     if (length(probs) > 0L) {
       res2 <- mn_log_loss(data, !!truth, !!probs, na_rm = na_rm)
-      res3 <- roc_auc(data, !!truth, !!probs, na_rm = na_rm, options = options)
-      res <- bind_rows(res, res2, res3)
+      res3 <- roc_auc(data, !!truth, !!probs, na_rm = na_rm)
+      res <- dplyr::bind_rows(res, res2, res3)
     }
   } else {
     # Assume only regression for now
@@ -136,6 +137,7 @@ metrics.data.frame <- function(data,
 #'   truth,
 #'   estimate,
 #'   na_rm = TRUE,
+#'   case_weights = NULL,
 #'   ...
 #' )
 #'
@@ -145,9 +147,10 @@ metrics.data.frame <- function(data,
 #'   truth,
 #'   ...,
 #'   estimate,
-#'   estimator =  NULL,
+#'   estimator = NULL,
 #'   na_rm = TRUE,
-#'   event_level = yardstick_event_level()
+#'   event_level = yardstick_event_level(),
+#'   case_weights = NULL
 #' )
 #' ```
 #'
@@ -219,10 +222,6 @@ metrics.data.frame <- function(data,
 #' @seealso [metrics()]
 #'
 #' @export
-#'
-#' @importFrom rlang call2
-#' @importFrom dplyr bind_rows
-#' @importFrom rlang quos enquo enquos abort
 metric_set <- function(...) {
   quo_fns <- enquos(...)
   validate_not_empty(quo_fns)
@@ -253,12 +252,11 @@ metric_set <- function(...) {
 
 #' @export
 print.metric_set <- function(x, ...) {
-  info <- as_tibble(x)
+  info <- dplyr::as_tibble(x)
   print(info)
   invisible(x)
 }
 
-#' @importFrom dplyr as_tibble
 #' @export
 as_tibble.metric_set <- function(x, ...) {
   metrics <- attributes(x)$metrics
@@ -312,7 +310,8 @@ make_prob_class_metric_function <- function(fns) {
                               estimate,
                               estimator = NULL,
                               na_rm = TRUE,
-                              event_level = yardstick_event_level()) {
+                              event_level = yardstick_event_level(),
+                              case_weights = NULL) {
 
     # Find class vs prob metrics
     are_class_metrics <- vapply(
@@ -336,7 +335,8 @@ make_prob_class_metric_function <- function(fns) {
         estimate = !!enquo(estimate),
         estimator = estimator,
         na_rm = na_rm,
-        event_level = event_level
+        event_level = event_level,
+        case_weights = !!enquo(case_weights)
       )
 
       class_calls <- lapply(class_fns, call2, !!! class_args)
@@ -369,7 +369,8 @@ make_prob_class_metric_function <- function(fns) {
         ... = ...,
         estimator = prob_estimator,
         na_rm = na_rm,
-        event_level = event_level
+        event_level = event_level,
+        case_weights = !!enquo(case_weights)
       )
 
       prob_calls <- lapply(prob_fns, call2, !!! prob_args)
@@ -385,7 +386,7 @@ make_prob_class_metric_function <- function(fns) {
       metric_list <- c(metric_list, prob_list)
     }
 
-    bind_rows(metric_list)
+    dplyr::bind_rows(metric_list)
   }
 
   class(metric_function) <- c(
@@ -400,7 +401,12 @@ make_prob_class_metric_function <- function(fns) {
 }
 
 make_numeric_metric_function <- function(fns) {
-  metric_function <- function(data, truth, estimate, na_rm = TRUE, ...) {
+  metric_function <- function(data,
+                              truth,
+                              estimate,
+                              na_rm = TRUE,
+                              case_weights = NULL,
+                              ...) {
 
     # Construct common argument set for each metric call
     # Doing this dynamically inside the generated function means
@@ -410,6 +416,7 @@ make_numeric_metric_function <- function(fns) {
       truth = !!enquo(truth),
       estimate = !!enquo(estimate),
       na_rm = na_rm,
+      case_weights = !!enquo(case_weights),
       ... = ...
     )
 
@@ -425,7 +432,7 @@ make_numeric_metric_function <- function(fns) {
       USE.NAMES = FALSE
     )
 
-    bind_rows(metric_list)
+    dplyr::bind_rows(metric_list)
   }
 
   class(metric_function) <- c(
@@ -445,7 +452,6 @@ validate_not_empty <- function(x) {
   }
 }
 
-#' @importFrom rlang is_function
 validate_inputs_are_functions <- function(fns) {
 
   # Check that the user supplied all functions
@@ -544,9 +550,6 @@ validate_function_class <- function(fns) {
 
 # Safely evaluate metrics in such a way that we can capture the
 # error and inform the user of the metric that failed
-
-#' @importFrom rlang caller_env
-#' @importFrom rlang eval_tidy
 eval_safely <- function(expr, expr_nm, data = NULL, env = caller_env()) {
   tryCatch(
     expr = {
@@ -555,7 +558,7 @@ eval_safely <- function(expr, expr_nm, data = NULL, env = caller_env()) {
     error = function(e) {
       abort(paste0(
         "In metric: `", expr_nm, "`\n",
-        e$message
+        conditionMessage(e)
       ))
     }
   )

@@ -26,12 +26,15 @@ metric. But \code{accuracy()} can be used with \code{roc_auc()}.
 
 The returned metric function will have a different argument list
 depending on whether numeric metrics or a mix of class/prob metrics were
-passed in.\preformatted{# Numeric metric set signature:
+passed in.
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{# Numeric metric set signature:
 fn(
   data,
   truth,
   estimate,
   na_rm = TRUE,
+  case_weights = NULL,
   ...
 )
 
@@ -41,11 +44,12 @@ fn(
   truth,
   ...,
   estimate,
-  estimator =  NULL,
+  estimator = NULL,
   na_rm = TRUE,
-  event_level = yardstick_event_level()
+  event_level = yardstick_event_level(),
+  case_weights = NULL
 )
-}
+}\if{html}{\out{</div>}}
 
 When mixing class and class prob metrics, pass in the hard predictions
 (the factor column) as the named argument \code{estimate}, and the soft

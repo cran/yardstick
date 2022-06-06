@@ -8,21 +8,21 @@
 \usage{
 mcc(data, ...)
 
-\method{mcc}{data.frame}(data, truth, estimate, na_rm = TRUE, ...)
+\method{mcc}{data.frame}(data, truth, estimate, na_rm = TRUE, case_weights = NULL, ...)
 
-mcc_vec(truth, estimate, na_rm = TRUE, ...)
+mcc_vec(truth, estimate, na_rm = TRUE, case_weights = NULL, ...)
 }
 \arguments{
-\item{data}{Either a \code{data.frame} containing the \code{truth} and \code{estimate}
-columns, or a \code{table}/\code{matrix} where the true class results should be
-in the columns of the table.}
+\item{data}{Either a \code{data.frame} containing the columns specified by the
+\code{truth} and \code{estimate} arguments, or a \code{table}/\code{matrix} where the true
+class results should be in the columns of the table.}
 
 \item{...}{Not currently used.}
 
 \item{truth}{The column identifier for the true class results
 (that is a \code{factor}). This should be an unquoted column name although
 this argument is passed by expression and supports
-\link[rlang:nse-force]{quasiquotation} (you can unquote column
+\link[rlang:topic-inject]{quasiquotation} (you can unquote column
 names). For \verb{_vec()} functions, a \code{factor} vector.}
 
 \item{estimate}{The column identifier for the predicted class
@@ -32,6 +32,10 @@ unquoted variable name. For \verb{_vec()} functions, a \code{factor} vector.}
 
 \item{na_rm}{A \code{logical} value indicating whether \code{NA}
 values should be stripped before the computation proceeds.}
+
+\item{case_weights}{The optional column identifier for case weights.
+This should be an unquoted column name that evaluates to a numeric column
+in \code{data}. For \verb{_vec()} functions, a numeric vector.}
 }
 \value{
 A \code{tibble} with columns \code{.metric}, \code{.estimator},

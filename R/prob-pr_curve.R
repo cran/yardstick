@@ -64,12 +64,12 @@ pr_curve <- function(data, ...) {
 
 #' @export
 #' @rdname pr_curve
-#' @importFrom stats relevel
 pr_curve.data.frame <- function(data,
                                 truth,
                                 ...,
                                 na_rm = TRUE,
-                                event_level = yardstick_event_level()) {
+                                event_level = yardstick_event_level(),
+                                case_weights = NULL) {
   estimate <- dots_to_estimate(data, !!! enquos(...))
 
   result <- metric_summarizer(
@@ -79,7 +79,8 @@ pr_curve.data.frame <- function(data,
     truth = !!enquo(truth),
     estimate = !!estimate,
     na_rm = na_rm,
-    event_level = event_level
+    event_level = event_level,
+    case_weights = !!enquo(case_weights)
   )
 
   curve_finalize(result, data, "pr_df", "grouped_pr_df")
@@ -90,12 +91,24 @@ pr_curve_vec <- function(truth,
                          estimate,
                          na_rm = TRUE,
                          event_level = yardstick_event_level(),
+                         case_weights = NULL,
                          ...) {
   estimator <- finalize_estimator(truth, metric_class = "pr_curve")
 
   # `estimate` here is a matrix of class prob columns
-  pr_curve_impl <- function(truth, estimate) {
-    pr_curve_estimator_impl(truth, estimate, estimator, event_level)
+  pr_curve_impl <- function(truth,
+                            estimate,
+                            ...,
+                            case_weights = NULL) {
+    check_dots_empty()
+
+    pr_curve_estimator_impl(
+      truth = truth,
+      estimate = estimate,
+      estimator = estimator,
+      event_level = event_level,
+      case_weights = case_weights
+    )
   }
 
   metric_vec_template(
@@ -104,59 +117,83 @@ pr_curve_vec <- function(truth,
     estimate = estimate,
     na_rm = na_rm,
     estimator = estimator,
+    case_weights = case_weights,
     cls = c("factor", "numeric")
   )
-
 }
 
-pr_curve_estimator_impl <- function(truth, estimate, estimator, event_level) {
+pr_curve_estimator_impl <- function(truth,
+                                    estimate,
+                                    estimator,
+                                    event_level,
+                                    case_weights) {
   if (is_binary(estimator)) {
-    pr_curve_binary(truth, estimate, event_level)
-  }
-  else {
-    pr_curve_multiclass(truth, estimate)
+    pr_curve_binary(truth, estimate, event_level, case_weights)
+  } else {
+    pr_curve_multiclass(truth, estimate, case_weights)
   }
 }
 
-pr_curve_binary <- function(truth, estimate, event_level) {
-  lvls <- levels(truth)
+pr_curve_binary <- function(truth,
+                            estimate,
+                            event_level,
+                            case_weights) {
+  # Algorithm modified from page 866 of
+  # http://people.inf.elte.hu/kiss/12dwhdm/roc.pdf
 
-  # Relevel if `event_level = "second"`
-  # The second level becomes the first so as.integer()
-  # holds the 1s and 2s in the correct slot
-  if (!is_event_first(event_level)) {
-    truth <- relevel(truth, lvls[2])
-  }
+  # P = #positives (sum of case weights when truth == event)
+  # N = #elements (sum of case weights)
+  #
+  # At the start of the curve (we force this):
+  # threshold = infinity
+  # recall    = TP / P = 0, if P > 0
+  # precision = TP / (TP + FP) = undefined b/c we haven't seen any values yet
+  #             but we need to put 1 here so we can start the graph in the top
+  #             left corner and compute PR AUC correctly
+  #
+  # At the end of the curve:
+  # threshold = last estimate
+  # recall    = TP / P = 1, P > 0
+  # precision = TP / (TP + FP) = P / N
 
-  # Quicker to convert to integer now
-  # 1 = event, 2 = non-event
-  truth <- as.integer(truth)
+  curve <- binary_threshold_curve(
+    truth = truth,
+    estimate = estimate,
+    event_level = event_level,
+    case_weights = case_weights
+  )
 
-  # Sort at the R level
-  ord <- order(estimate, decreasing = TRUE)
-  truth <- truth[ord]
-  estimate <- estimate[ord]
+  threshold <- curve$threshold
+  tp <- curve$tp
+  fp <- curve$fp
 
-  # Algorithm skips repeated probabilities.
-  # Call unique() from the R level.
-  thresholds <- unique(estimate)
+  recall <- tp / tp[length(tp)]
+  precision <- tp / (tp + fp)
 
-  # First row always has `threshold = Inf`, we handle first
-  # row of `recall` and `precision` at the C level
-  thresholds <- c(Inf,  thresholds)
+  # First row always has `threshold = Inf`.
+  # First recall is always `0`.
+  # First precision is always `1`.
+  threshold <- c(Inf, threshold)
+  recall <- c(0, recall)
+  precision <- c(1, precision)
 
-  pr_list <- pr_curve_binary_impl(truth, estimate, thresholds)
+  out <- list(
+    .threshold = threshold,
+    recall = recall,
+    precision = precision
+  )
 
-  dplyr::tibble(!!!pr_list)
-}
-
-pr_curve_binary_impl <- function(truth, estimate, thresholds) {
-  .Call(yardstick_pr_curve_binary_impl, truth, estimate, thresholds)
+  dplyr::tibble(!!!out)
 }
 
 # One vs all approach
-pr_curve_multiclass <- function(truth, estimate) {
-  one_vs_all_with_level(pr_curve_binary, truth, estimate)
+pr_curve_multiclass <- function(truth, estimate, case_weights) {
+  one_vs_all_with_level(
+    metric_fn = pr_curve_binary,
+    truth = truth,
+    estimate = estimate,
+    case_weights = case_weights
+  )
 }
 
 

@@ -13,6 +13,7 @@ metric_summarizer(
   estimator = NULL,
   na_rm = TRUE,
   event_level = NULL,
+  case_weights = NULL,
   ...,
   metric_fn_options = list()
 )
@@ -53,6 +54,11 @@ classification metrics, this can either be \code{NULL} to use the default
 \code{"first"} or \code{"second"} to pass along describing which level should be
 considered the "event".}
 
+\item{case_weights}{For metrics supporting case weights, an unquoted
+column name corresponding to case weights can be passed here. If not \code{NULL},
+the case weights will be passed on to \code{metric_fn} as the named argument
+\code{case_weights}.}
+
 \item{...}{Currently not used. Metric specific options are passed in
 through \code{metric_fn_options}.}
 
@@ -66,7 +72,8 @@ implementing new custom metrics. \code{metric_summarizer()} calls the metric
 function inside \code{dplyr::summarise()}. \code{metric_vec_template()} is a
 generalized function that calls the core implementation of a metric function,
 and includes a number of checks on the types, lengths, and argument inputs.
-See \code{vignette("custom-metrics", "yardstick")} for more information.
+See \href{https://www.tidymodels.org/learn/develop/metrics/}{Custom performance metrics} for more
+information.
 }
 \details{
 \code{metric_summarizer()} is generally called from the data frame version

@@ -2,7 +2,7 @@ test_that("`event_level = 'second'` works", {
   df <- two_class_example
 
   df_rev <- df
-  df_rev$truth <- relevel(df_rev$truth, "Class2")
+  df_rev$truth <- stats::relevel(df_rev$truth, "Class2")
 
   expect_equal(
     mn_log_loss_vec(df$truth, df$Class1),
@@ -85,5 +85,67 @@ test_that("mn_log_loss() applies the min/max rule when a 'non-event' has probabi
     mn_log_loss_vec(truth, estimate),
     12.476649250079,
     tolerance = 0.0001
+  )
+})
+
+# ------------------------------------------------------------------------------
+
+test_that('Two class - sklearn equivalent', {
+  py_res <- read_pydata("py-mn_log_loss")
+  r_metric <- mn_log_loss
+
+  expect_equal(
+    r_metric(two_class_example, truth, Class1)[[".estimate"]],
+    py_res$binary
+  )
+  expect_equal(
+    r_metric(two_class_example, truth, Class1, sum = TRUE)[[".estimate"]],
+    py_res$binary_sum
+  )
+})
+
+test_that('Multi class - sklearn equivalent', {
+  py_res <- read_pydata("py-mn_log_loss")
+  r_metric <- mn_log_loss
+
+  expect_equal(
+    r_metric(hpc_cv, obs, VF:L)[[".estimate"]],
+    py_res$multiclass
+  )
+  expect_equal(
+    r_metric(hpc_cv, obs, VF:L, sum = TRUE)[[".estimate"]],
+    py_res$multiclass_sum
+  )
+})
+
+test_that('Two class case weighted - sklearn equivalent', {
+  py_res <- read_pydata("py-mn_log_loss")
+  r_metric <- mn_log_loss
+
+  two_class_example$weights <- read_weights_two_class_example()
+
+  expect_equal(
+    r_metric(two_class_example, truth, Class1, case_weights = weights)[[".estimate"]],
+    py_res$case_weight$binary
+  )
+  expect_equal(
+    r_metric(two_class_example, truth, Class1, sum = TRUE, case_weights = weights)[[".estimate"]],
+    py_res$case_weight$binary_sum
+  )
+})
+
+test_that('Multi class case weighted - sklearn equivalent', {
+  py_res <- read_pydata("py-mn_log_loss")
+  r_metric <- mn_log_loss
+
+  hpc_cv$weights <- read_weights_hpc_cv()
+
+  expect_equal(
+    r_metric(hpc_cv, obs, VF:L, case_weights = weights)[[".estimate"]],
+    py_res$case_weight$multiclass
+  )
+  expect_equal(
+    r_metric(hpc_cv, obs, VF:L, sum = TRUE, case_weights = weights)[[".estimate"]],
+    py_res$case_weight$multiclass_sum
   )
 })
