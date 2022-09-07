@@ -1,7 +1,7 @@
-fdb8621fb9defbf85d89ded4901cfcca *DESCRIPTION
+d169ff1bd43988661cd0c031b31cb038 *DESCRIPTION
 9a7a43ed8dd87295df8985f362a202da *LICENSE
 6c3e382205bb43b29278af7bf0494c54 *NAMESPACE
-f2f6debc86816fc77af539375decc8a3 *NEWS.md
+a02361fe91ee55e0b9c1877eb221b4e2 *NEWS.md
 e756d3168e7cd23fda022af6613838c0 *R/aaa-new.R
 342676fa47666fe7a16b21b876163344 *R/aaa.R
 a96aa0dcc2744473bb652ad40b8f9814 *R/class-accuracy.R
@@ -23,7 +23,7 @@ cf208887f06aff618631d749a09b4aca *R/data.R
 0c691acb6080d64868d5810bbabca563 *R/estimator-helpers.R
 9f69cf1af2567a357a5ab9ec263414ea *R/event-level.R
 7487adf1aa5f8b63c75530cc9aca010f *R/metric-tweak.R
-4bc5cf0adc94526ec0b901fc39fae2e5 *R/metrics.R
+a149034f3c6a3e61ef1672a6f695ba41 *R/metrics.R
 0dd7bc75b81b324661a7a368d0fddfae *R/misc.R
 d88d215f13c006ecc26e79b025d049a0 *R/num-ccc.R
 4abae78bbb2c44e76ccf9c9b66e237df *R/num-huber_loss.R
@@ -59,7 +59,7 @@ bcd9913a1775f03d3c6321548f461aa6 *R/reexports.R
 5e451871cccd559c3da87cea07361b4e *R/template.R
 93735ae0e1ce5d28c180c3842ae1ae16 *R/validation.R
 4125b5ff9c99750dd6c6b41349eea3cd *R/yardstick-package.R
-1262e7855a9c7971f0c9f978b51611ab *README.md
+68335388e8f9499202cec31335947230 *README.md
 c4e6ca31edb7fcc446bceb998b7911f8 *build/vignette.rds
 c3c820a31b58bef70797fa1263b81075 *data/datalist
 cef3066afc908d38b14528239f330881 *data/hpc_cv.rda
@@ -68,10 +68,10 @@ cef3066afc908d38b14528239f330881 *data/hpc_cv.rda
 9a07343f57618ec8e55108744e8073d3 *data/two_class_example.rda
 f796263adfe9226fda22363c3de685e2 *inst/doc/metric-types.R
 622c4c700c88ad3c51b7cfdcbee8e8d2 *inst/doc/metric-types.Rmd
-b239295384ffb88032a4b37378b120dd *inst/doc/metric-types.html
+d5a6a435ff0ea2c44d4f12460173731d *inst/doc/metric-types.html
 46750e778a5cdb4d65c347f8e43df623 *inst/doc/multiclass.R
 925b70c6ad405814f59167d660884d58 *inst/doc/multiclass.Rmd
-8d962465aeac4cf2ad1f3e14e6b2f9c7 *inst/doc/multiclass.html
+817388c48f9c113cc1bbee78e0f211c5 *inst/doc/multiclass.html
 4d155f0566cdc2978ba3d3e5eda85af0 *man/accuracy.Rd
 6df4fc1fed5810e93ad7469596dafa31 *man/average_precision.Rd
 722b774798333cd1a96a1cf4a0641310 *man/bal_accuracy.Rd
@@ -129,7 +129,7 @@ bff7590da0cfb9969367421f0dfc692c *man/solubility_test.Rd
 6bfafc50739e808ed3a383869ff519ab *man/spec.Rd
 92d4ebd1dc535bafb35a2b9b721897d6 *man/summary.conf_mat.Rd
 9af20eb11314aae8a0fbe561cb2602cc *man/two_class_example.Rd
-dd1844b3c33e996d0c112b69caf0bfef *man/yardstick-package.Rd
+a2812f8b6b52c82ea9e1694752575bc4 *man/yardstick-package.Rd
 7d52b730618e83a3f399378b57aa7a55 *src/init.c
 2d727cf9725f22a6f38124a1471c511e *src/mcc-multiclass.c
 f5e834aa30a2546d038b99ee7cecab3d *src/yardstick.h
@@ -145,7 +145,7 @@ b45bc6cac907929ffc9e0d26fe7e0d6b *tests/testthat/_snaps/class-spec.md
 085434b81323a94dfa43d40c4a3b8797 *tests/testthat/_snaps/conf_mat.md
 3eead30485367d8e849b3e227d79fe8e *tests/testthat/_snaps/error-handling.md
 177a917b7d316985d5f3b3520148039c *tests/testthat/_snaps/event-level.md
-256b3ef794103630cb65dfd04f45b564 *tests/testthat/_snaps/metrics.md
+d209b22b59bc02a583a1b1db5ea15051 *tests/testthat/_snaps/metrics.md
 6f74ec8ef501de5abff633979e07961d *tests/testthat/_snaps/misc.md
 d4b6f86a23c9ddbecd9c8faeda5ad11a *tests/testthat/_snaps/num-huber_loss.md
 7a9703b1e9b9d8dd3f32aa410a394dab *tests/testthat/_snaps/num-pseudo_huber_loss.md
