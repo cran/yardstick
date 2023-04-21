@@ -34,8 +34,10 @@ mn_log_loss_vec(
 
 \item{...}{A set of unquoted column names or one or more
 \code{dplyr} selector functions to choose which variables contain the
-class probabilities. If \code{truth} is binary, only 1 column should be selected.
-Otherwise, there should be as many columns as factor levels of \code{truth}.}
+class probabilities. If \code{truth} is binary, only 1 column should be selected,
+and it should correspond to the value of \code{event_level}. Otherwise, there
+should be as many columns as factor levels of \code{truth} and the ordering of
+the columns should be the same as the factor levels of \code{truth}.}
 
 \item{truth}{The column identifier for the true class results
 (that is a \code{factor}). This should be an unquoted column name although
@@ -123,22 +125,23 @@ fold1 <- hpc_cv \%>\%
   filter(Resample == "Fold01")
 
 mn_log_loss_vec(
-   truth = fold1$obs,
-   matrix(
-     c(fold1$VF, fold1$F, fold1$M, fold1$L),
-     ncol = 4
-   )
+  truth = fold1$obs,
+  matrix(
+    c(fold1$VF, fold1$F, fold1$M, fold1$L),
+    ncol = 4
+  )
 )
 
 # Supply `...` with quasiquotation
 prob_cols <- levels(two_class_example$truth)
 mn_log_loss(two_class_example, truth, Class1)
-mn_log_loss(two_class_example, truth, !! prob_cols[1])
+mn_log_loss(two_class_example, truth, !!prob_cols[1])
 
 }
 \seealso{
 Other class probability metrics: 
 \code{\link{average_precision}()},
+\code{\link{brier_class}()},
 \code{\link{classification_cost}()},
 \code{\link{gain_capture}()},
 \code{\link{pr_auc}()},

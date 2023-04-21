@@ -81,9 +81,7 @@
     Code
       roc_auc(hpc_cv, obs, VF:L, estimator = "hand_till", case_weights = weight)
     Condition
-      Error in `dplyr::summarise()`:
-      ! Problem while computing `.estimate = metric_fn(...)`.
-      Caused by error in `finalize_estimator_roc_auc()`:
+      Error in `roc_auc()`:
       ! Can't specify both `estimator = 'hand_till'` and `case_weights`.
 
 # roc_auc() - `options` is deprecated
@@ -92,9 +90,8 @@
       out <- roc_auc(two_class_example, truth, Class1, options = 1)
     Condition
       Warning:
-      The `options` argument of `roc_auc()` is deprecated as of yardstick 1.0.0.
-      This argument no longer has any effect, and is being ignored.
-      Use the pROC package directly if you need these features.
+      The `options` argument of `roc_auc()` was deprecated in yardstick 1.0.0.
+      i This argument no longer has any effect, and is being ignored. Use the pROC package directly if you need these features.
 
 ---
 
@@ -103,7 +100,14 @@
         Class1, options = 1)
     Condition
       Warning:
-      The `options` argument of `roc_auc_vec()` is deprecated as of yardstick 1.0.0.
-      This argument no longer has any effect, and is being ignored.
-      Use the pROC package directly if you need these features.
+      The `options` argument of `roc_auc_vec()` was deprecated in yardstick 1.0.0.
+      i This argument no longer has any effect, and is being ignored. Use the pROC package directly if you need these features.
+
+# errors with class_pred input
+
+    Code
+      roc_auc_vec(cp_truth, estimate)
+    Condition
+      Error in `roc_auc_vec()`:
+      ! `truth` should not a `class_pred` object.
 

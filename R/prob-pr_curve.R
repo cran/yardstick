@@ -12,7 +12,7 @@
 #'  resamples). See the examples.
 #'
 #' @family curve metrics
-#' @templateVar metric_fn pr_curve
+#' @templateVar fn pr_curve
 #' @template multiclass-curve
 #' @template event_first
 #'
@@ -70,14 +70,12 @@ pr_curve.data.frame <- function(data,
                                 na_rm = TRUE,
                                 event_level = yardstick_event_level(),
                                 case_weights = NULL) {
-  estimate <- dots_to_estimate(data, !!! enquos(...))
-
-  result <- metric_summarizer(
-    metric_nm = "pr_curve",
-    metric_fn = pr_curve_vec,
+  result <- curve_metric_summarizer(
+    name = "pr_curve",
+    fn = pr_curve_vec,
     data = data,
     truth = !!enquo(truth),
-    estimate = !!estimate,
+    ...,
     na_rm = na_rm,
     event_level = event_level,
     case_weights = !!enquo(case_weights)
@@ -93,32 +91,28 @@ pr_curve_vec <- function(truth,
                          event_level = yardstick_event_level(),
                          case_weights = NULL,
                          ...) {
+  abort_if_class_pred(truth)
+
   estimator <- finalize_estimator(truth, metric_class = "pr_curve")
 
-  # `estimate` here is a matrix of class prob columns
-  pr_curve_impl <- function(truth,
-                            estimate,
-                            ...,
-                            case_weights = NULL) {
-    check_dots_empty()
+  check_prob_metric(truth, estimate, case_weights, estimator)
 
-    pr_curve_estimator_impl(
-      truth = truth,
-      estimate = estimate,
-      estimator = estimator,
-      event_level = event_level,
-      case_weights = case_weights
-    )
+  if (na_rm) {
+    result <- yardstick_remove_missing(truth, estimate, case_weights)
+
+    truth <- result$truth
+    estimate <- result$estimate
+    case_weights <- result$case_weights
+  } else if (yardstick_any_missing(truth, estimate, case_weights)) {
+    return(NA_real_)
   }
 
-  metric_vec_template(
-    metric_impl = pr_curve_impl,
+  pr_curve_estimator_impl(
     truth = truth,
     estimate = estimate,
-    na_rm = na_rm,
     estimator = estimator,
-    case_weights = case_weights,
-    cls = c("factor", "numeric")
+    event_level = event_level,
+    case_weights = case_weights
   )
 }
 
@@ -189,7 +183,7 @@ pr_curve_binary <- function(truth,
 # One vs all approach
 pr_curve_multiclass <- function(truth, estimate, case_weights) {
   one_vs_all_with_level(
-    metric_fn = pr_curve_binary,
+    fn = pr_curve_binary,
     truth = truth,
     estimate = estimate,
     case_weights = case_weights
@@ -199,7 +193,6 @@ pr_curve_multiclass <- function(truth, estimate, case_weights) {
 
 # Dynamically exported
 autoplot.pr_df <- function(object, ...) {
-
   `%+%` <- ggplot2::`%+%`
 
   # Base chart
@@ -207,37 +200,32 @@ autoplot.pr_df <- function(object, ...) {
 
   # Add in group interactions if required
   if (inherits(object, "grouped_pr_df")) {
-
     grps <- dplyr::groups(object)
 
     grps_chr <- paste0(dplyr::group_vars(object), collapse = "_")
 
     interact_expr <- list(
-      color = rlang::expr(interaction(!!! grps, sep = "_"))
+      color = expr(interaction(!!!grps, sep = "_"))
     )
 
     pr_chart <- pr_chart %+%
       ggplot2::labs(color = grps_chr)
-
-  }
-  else {
-
+  } else {
     interact_expr <- list()
-
   }
 
   # splice in the group interactions, or do nothing
   aes_spliced <- ggplot2::aes(
     x = recall,
     y = precision,
-    !!! interact_expr
+    !!!interact_expr
   )
 
   # build the graph
   pr_chart <- pr_chart %+%
     ggplot2::geom_path(mapping = aes_spliced) %+%
     ggplot2::lims(x = c(0, 1), y = c(0, 1)) %+%
-    ggplot2::coord_equal(ratio = .75) %+%
+    ggplot2::coord_equal(ratio = 1) %+%
     ggplot2::theme_bw()
 
   # If we have .level, that means this was multiclass

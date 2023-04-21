@@ -14,7 +14,7 @@
 #' Note that you can't combine `estimator = "hand_till"` with `case_weights`.
 #'
 #' @family class probability metrics
-#' @templateVar metric_fn roc_auc
+#' @templateVar fn roc_auc
 #' @template return
 #' @template event_first
 #'
@@ -89,16 +89,14 @@ roc_auc.data.frame <- function(data,
                                options = list()) {
   check_roc_options_deprecated("roc_auc", options)
 
-  estimate <- dots_to_estimate(data, !!! enquos(...))
-
   case_weights_quo <- enquo(case_weights)
 
-  out <- metric_summarizer(
-    metric_nm = "roc_auc",
-    metric_fn = roc_auc_vec,
+  out <- prob_metric_summarizer(
+    name = "roc_auc",
+    fn = roc_auc_vec,
     data = data,
     truth = !!enquo(truth),
-    estimate = !!estimate,
+    ...,
     estimator = estimator,
     na_rm = na_rm,
     event_level = event_level,
@@ -124,6 +122,8 @@ roc_auc_vec <- function(truth,
                         case_weights = NULL,
                         options = list(),
                         ...) {
+  abort_if_class_pred(truth)
+
   check_roc_options_deprecated("roc_auc_vec", options)
 
   estimator <- finalize_estimator_roc_auc(
@@ -133,29 +133,24 @@ roc_auc_vec <- function(truth,
     case_weights = case_weights
   )
 
-  roc_auc_impl <- function(truth,
-                           estimate,
-                           ...,
-                           case_weights = NULL) {
-    check_dots_empty()
+  check_prob_metric(truth, estimate, case_weights, estimator)
 
-    roc_auc_estimator_impl(
-      truth = truth,
-      estimate = estimate,
-      estimator = estimator,
-      event_level = event_level,
-      case_weights = case_weights
-    )
+  if (na_rm) {
+    result <- yardstick_remove_missing(truth, estimate, case_weights)
+
+    truth <- result$truth
+    estimate <- result$estimate
+    case_weights <- result$case_weights
+  } else if (yardstick_any_missing(truth, estimate, case_weights)) {
+    return(NA_real_)
   }
 
-  metric_vec_template(
-    metric_impl = roc_auc_impl,
+  roc_auc_estimator_impl(
     truth = truth,
     estimate = estimate,
     estimator = estimator,
-    na_rm = na_rm,
-    case_weights = case_weights,
-    cls = c("factor", "numeric")
+    event_level = event_level,
+    case_weights = case_weights
   )
 }
 
@@ -230,13 +225,13 @@ roc_auc_multiclass <- function(truth,
                                estimate,
                                case_weights) {
   results <- one_vs_all_impl(
-    metric_fn = roc_auc_binary,
+    fn = roc_auc_binary,
     truth = truth,
     estimate = estimate,
     case_weights = case_weights
   )
 
-  rlang::flatten_dbl(results)
+  vapply(results, FUN.VALUE = numeric(1), function(x) x)
 }
 
 # ------------------------------------------------------------------------------
@@ -281,8 +276,8 @@ roc_auc_adjust_result_estimator <- function(out,
   # `case_weights` just for this one metric, and that seemed like too much work.
   automatically_chose_hand_till_but_also_used_case_weights <-
     is.null(estimator) &&
-    !quo_is_null(case_weights_quo) &&
-    identical(out[[".estimator"]][[1]], "hand_till")
+      !quo_is_null(case_weights_quo) &&
+      identical(out[[".estimator"]][[1]], "hand_till")
 
   if (automatically_chose_hand_till_but_also_used_case_weights) {
     # `roc_auc_vec()` actually "automatically" used `"macro"` weighting here
@@ -322,7 +317,7 @@ roc_auc_hand_till <- function(truth, estimate) {
       "Computation will proceed by ignoring those levels."
     )
 
-    rlang::warn(msg)
+    warn(msg)
 
     # Proceed with non-missing levels
     lvls <- lvls[!indicator_missing]
@@ -334,13 +329,13 @@ roc_auc_hand_till <- function(truth, estimate) {
 
   sum_val <- 0
 
-  for(i_lvl in lvls) {
+  for (i_lvl in lvls) {
     # Double sum:
     # (sum i<j)
     cutpoint <- which(lvls == i_lvl)
     j_lvls <- lvls[-seq_len(cutpoint)]
 
-    for(j_lvl in j_lvls) {
+    for (j_lvl in j_lvls) {
       A_hat_i_given_j <- roc_auc_subset(i_lvl, j_lvl, truth, estimate)
       A_hat_j_given_i <- roc_auc_subset(j_lvl, i_lvl, truth, estimate)
 
@@ -384,7 +379,7 @@ roc_auc_subset <- function(lvl1, lvl2, truth, estimate) {
 # ------------------------------------------------------------------------------
 
 compute_n_occurrences <- function(x, what) {
-  # `NA` values have already been removed by `metric_vec_template()`
+  # `NA` values have already been removed by `roc_auc_vec()`
   sum(x == what)
 }
 
@@ -395,13 +390,13 @@ msg_roc_truth_no_control <- function(control) {
   )
 }
 warn_roc_truth_no_control <- function(control) {
-  rlang::warn(
+  warn(
     msg_roc_truth_no_control(control),
     class = "yardstick_warning_roc_truth_no_control"
   )
 }
 stop_roc_truth_no_control <- function(control) {
-  rlang::abort(
+  abort(
     msg_roc_truth_no_control(control),
     class = "yardstick_error_roc_truth_no_control"
   )
@@ -414,13 +409,13 @@ msg_roc_truth_no_event <- function(event) {
   )
 }
 warn_roc_truth_no_event <- function(event) {
-  rlang::warn(
+  warn(
     msg_roc_truth_no_event(event),
     class = "yardstick_warning_roc_truth_no_event"
   )
 }
 stop_roc_truth_no_event <- function(event) {
-  rlang::abort(
+  abort(
     msg_roc_truth_no_event(event),
     class = "yardstick_error_roc_truth_no_event"
   )

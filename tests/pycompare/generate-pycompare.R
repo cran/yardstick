@@ -1,8 +1,8 @@
 # reticulate::install_python("3.10.4")
 # reticulate::virtualenv_create("yardstick-environment", version = "3.10.4")
 # reticulate::use_virtualenv("yardstick-environment")
-# reticulate::py_install("scikit-learn") # 1.0.2 is what was downloaded
-
+# reticulate::py_install("scikit-learn") # 1.2.0 is what was downloaded
+# reticulate::py_install("scikit-survival") # 1.2.0 is what was downloaded
 library(reticulate)
 
 # Inside yardstick
@@ -11,6 +11,8 @@ devtools::load_all()
 use_virtualenv("yardstick-environment")
 
 skmetrics <- import("sklearn.metrics")
+sksurv_metrics <- import("sksurv.metrics")
+sksurv_util <- import("sksurv.util", convert = FALSE)
 
 data("hpc_cv")
 data("two_class_example")
@@ -21,7 +23,6 @@ weights_two_class_example <- read_weights_two_class_example()
 weights_solubility_test <- read_weights_solubility_test()
 
 save_metric_results <- function(nm, fn, ..., average = c("macro", "micro", "weighted")) {
-
   # Two class metrics
   res <- list(fn(two_class_example$truth, two_class_example$predicted, ..., pos_label = "Class1"))
 
@@ -146,7 +147,7 @@ saveRDS(py_mae, test_path("py-data", "py-mae.rds"), version = 2)
 # MAPE
 # (Zeros purposefully cause infinite results in our R metrics, see #271)
 zero_solubility <- solubility_test$solubility == 0
-solubility_test_not_zero <- solubility_test[!zero_solubility,]
+solubility_test_not_zero <- solubility_test[!zero_solubility, ]
 py_mape <- list(
   case_weight = skmetrics$mean_absolute_percentage_error(
     y_true = solubility_test_not_zero$solubility,
@@ -265,7 +266,7 @@ make_py_two_class_pr_curve <- function(case_weights) {
   curve <- dplyr::select(curve, .threshold, recall, precision)
 
   # Reverse rows to match yardstick
-  curve <- curve[rev(seq_len(nrow(curve))),]
+  curve <- curve[rev(seq_len(nrow(curve))), ]
 
   class(curve) <- c("pr_df", class(curve))
 
@@ -390,3 +391,29 @@ py_roc_auc <- list(
   )
 )
 saveRDS(py_roc_auc, test_path("py-data", "py-roc-auc.rds"), version = 2)
+
+# Brier survival
+lung_surv <- data_lung_surv()
+lung_surv_unnest <- tidyr::unnest(lung_surv, cols = c(.pred))
+
+sksurv_obj <- sksurv_util$Surv$from_arrays(
+  event = lung_surv$surv_obj[, "status"],
+  time = lung_surv$surv_obj[, "time"]
+)
+
+eval_time_unique <- unique(lung_surv_unnest$.eval_time)
+
+py_brier_survival <- vapply(
+  X = eval_time_unique,
+  FUN.VALUE = numeric(1),
+  FUN = function(x) {
+    sksurv_metrics$brier_score(
+      sksurv_obj, sksurv_obj,
+      dplyr::filter(lung_surv_unnest, .eval_time == x)$.pred_survival,
+      x
+    )[[2]]
+  }
+)
+
+names(py_brier_survival) <- eval_time_unique
+saveRDS(py_brier_survival, test_path("py-data", "py-brier-survival.rds"), version = 2)

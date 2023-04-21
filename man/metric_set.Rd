@@ -18,6 +18,7 @@ All functions must be either:
 \itemize{
 \item Only numeric metrics
 \item A mix of class metrics or class prob metrics
+\item A mix of dynamic, integrated, and static survival metrics
 }
 
 For instance, \code{rmse()} can be used with \code{mae()} because they
@@ -49,12 +50,31 @@ fn(
   event_level = yardstick_event_level(),
   case_weights = NULL
 )
+
+# Dynamic / integrated / static survival metric set signature:
+fn(
+  data,
+  truth,
+  ...,
+  estimate,
+  na_rm = TRUE,
+  case_weights = NULL
+)
 }\if{html}{\out{</div>}}
 
 When mixing class and class prob metrics, pass in the hard predictions
 (the factor column) as the named argument \code{estimate}, and the soft
 predictions (the class probability columns) as bare column names or
 \code{tidyselect} selectors to \code{...}.
+
+When mixing dynamic, integrated, and static survival metrics, pass in the
+time predictions as the named argument \code{estimate}, and the survival
+predictions as bare column names or \code{tidyselect} selectors to \code{...}.
+
+If \code{metric_tweak()} has been used to "tweak" one of these arguments, like
+\code{estimator} or \code{event_level}, then the tweaked version wins. This allows you
+to set the estimator on a metric by metric basis and still use it in a
+\code{metric_set()}.
 }
 \examples{
 library(dplyr)
@@ -83,8 +103,8 @@ hpc_cv \%>\%
 ccc_with_bias <- function(data, truth, estimate, na_rm = TRUE, ...) {
   ccc(
     data = data,
-    truth = !! rlang::enquo(truth),
-    estimate = !! rlang::enquo(estimate),
+    truth = !!rlang::enquo(truth),
+    estimate = !!rlang::enquo(estimate),
     # set bias = TRUE
     bias = TRUE,
     na_rm = na_rm,

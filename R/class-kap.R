@@ -5,7 +5,7 @@
 #' when one or more classes have large frequency distributions.
 #'
 #' @family class metrics
-#' @templateVar metric_fn kap
+#' @templateVar fn kap
 #' @template return
 #'
 #' @section Multiclass:
@@ -65,25 +65,23 @@ kap <- new_class_metric(
 
 #' @export
 #' @rdname kap
-kap.data.frame  <- function(data,
-                            truth,
-                            estimate,
-                            weighting = "none",
-                            na_rm = TRUE,
-                            case_weights = NULL,
-                            ...) {
-
-  metric_summarizer(
-    metric_nm = "kap",
-    metric_fn = kap_vec,
+kap.data.frame <- function(data,
+                           truth,
+                           estimate,
+                           weighting = "none",
+                           na_rm = TRUE,
+                           case_weights = NULL,
+                           ...) {
+  class_metric_summarizer(
+    name = "kap",
+    fn = kap_vec,
     data = data,
     truth = !!enquo(truth),
     estimate = !!enquo(estimate),
     na_rm = na_rm,
     case_weights = !!enquo(case_weights),
-    metric_fn_options = list(weighting = weighting)
+    fn_options = list(weighting = weighting)
   )
-
 }
 
 #' @export
@@ -114,26 +112,23 @@ kap_vec <- function(truth,
                     na_rm = TRUE,
                     case_weights = NULL,
                     ...) {
+  abort_if_class_pred(truth)
+  estimate <- as_factor_from_class_pred(estimate)
+
   estimator <- finalize_estimator(truth, metric_class = "kap")
 
-  metric_vec_template(
-    metric_impl = kap_impl,
-    truth = truth,
-    estimate = estimate,
-    na_rm = na_rm,
-    estimator = estimator,
-    case_weights = case_weights,
-    cls = "factor",
-    weighting = weighting
-  )
-}
+  check_class_metric(truth, estimate, case_weights, estimator)
 
-kap_impl <- function(truth,
-                     estimate,
-                     ...,
-                     weighting = "none",
-                     case_weights = NULL) {
-  check_dots_empty()
+  if (na_rm) {
+    result <- yardstick_remove_missing(truth, estimate, case_weights)
+
+    truth <- result$truth
+    estimate <- result$estimate
+    case_weights <- result$case_weights
+  } else if (yardstick_any_missing(truth, estimate, case_weights)) {
+    return(NA_real_)
+  }
+
   data <- yardstick_table(truth, estimate, case_weights = case_weights)
   kap_table_impl(data, weighting = weighting)
 }
@@ -153,8 +148,8 @@ kap_table_impl <- function(data, weighting) {
   1 - n_disagree / n_chance
 }
 
-make_weighting_matrix <- function(weighting, n_levels) {
-  validate_weighting(weighting)
+make_weighting_matrix <- function(weighting, n_levels, call = caller_env()) {
+  validate_weighting(weighting, call = call)
 
   if (is_no_weighting(weighting)) {
     # [n_levels x n_levels], 0 on diagonal, 1 on off-diagonal
@@ -171,18 +166,19 @@ make_weighting_matrix <- function(weighting, n_levels) {
   }
 
   # [n_levels x n_levels], 0 on diagonal, increasing weighting on off-diagonal
-  w <- rlang::seq2(0L, n_levels - 1L)
+  w <- seq2(0L, n_levels - 1L)
   w <- matrix(w, nrow = n_levels, ncol = n_levels)
-  w <- abs(w - t(w)) ^ power
+  w <- abs(w - t(w))^power
 
   w
 }
 
 # ------------------------------------------------------------------------------
 
-validate_weighting <- function(x) {
-  if (!rlang::is_string(x)) {
-    abort("`weighting` must be a string.")
+
+validate_weighting <- function(x, call = caller_env()) {
+  if (!is_string(x)) {
+    abort("`weighting` must be a string.", call = call)
   }
 
   ok <- is_no_weighting(x) ||
@@ -190,7 +186,7 @@ validate_weighting <- function(x) {
     is_quadratic_weighting(x)
 
   if (!ok) {
-    abort("`weighting` must be 'none', 'linear', or 'quadratic'.")
+    abort("`weighting` must be 'none', 'linear', or 'quadratic'.", call = call)
   }
 
   invisible(x)

@@ -1,15 +1,17 @@
 set.seed(1311)
-three_class <- data.frame(obs = iris$Species,
-                          pred = sample(iris$Species, replace = TRUE))
+three_class <- data.frame(
+  obs = iris$Species,
+  pred = sample(iris$Species, replace = TRUE)
+)
 probs <- matrix(runif(150 * 3), nrow = 150)
-probs <- t(apply(probs, 1, function(x) x/sum(x)))
+probs <- t(apply(probs, 1, function(x) x / sum(x)))
 colnames(probs) <- levels(iris$Species)
 three_class <- cbind(three_class, as.data.frame(probs))
 
 
 ###################################################################
 
-test_that('correct metrics returned', {
+test_that("correct metrics returned", {
   expect_equal(
     metrics(two_class_example, truth, predicted)[[".metric"]],
     c("accuracy", "kap")
@@ -34,14 +36,17 @@ test_that('correct metrics returned', {
 
 ###################################################################
 
-test_that('bad args', {
-  expect_error(
+test_that("bad args", {
+  expect_snapshot(
+    error = TRUE,
     metrics(two_class_example, truth, Class1)
   )
-  expect_error(
+  expect_snapshot(
+    error = TRUE,
     metrics(two_class_example, Class1, truth)
   )
-  expect_error(
+  expect_snapshot(
+    error = TRUE,
     metrics(three_class, "obs", "pred", setosa, versicolor)
   )
 })
@@ -62,13 +67,12 @@ reg_res_1 <- dplyr::bind_rows(
 )
 
 
-test_that('correct results', {
-
+test_that("correct results", {
   class_idx <- which(class_res_1$.metric %in% c("accuracy", "kap"))
 
   expect_equal(
     metrics(two_class_example, truth, predicted)[[".estimate"]],
-    class_res_1[class_idx,][[".estimate"]]
+    class_res_1[class_idx, ][[".estimate"]]
   )
   expect_equal(
     metrics(two_class_example, truth, predicted, Class1)[[".estimate"]],
@@ -84,7 +88,7 @@ test_that('correct results', {
 
 test_that("metrics() - `options` is deprecated", {
   skip_if(getRversion() <= "3.5.3", "Base R used a different deprecated warning class.")
-  local_lifecycle_warnings()
+  rlang::local_options(lifecycle_verbosity = "warning")
 
   expect_snapshot({
     out <- metrics(two_class_example, truth, predicted, Class1, options = 1)
@@ -98,8 +102,7 @@ test_that("metrics() - `options` is deprecated", {
 
 ###################################################################
 
-test_that('numeric metric sets', {
-
+test_that("numeric metric sets", {
   reg_set <- metric_set(rmse, rsq, mae)
 
   expect_equal(
@@ -107,32 +110,62 @@ test_that('numeric metric sets', {
     reg_res_1
   )
   # ensure helpful messages are printed
-  expect_error(
+  expect_snapshot(
+    error = TRUE,
     metric_set(rmse, "x")
   )
 
   # Can mix class and class prob together
   mixed_set <- metric_set(accuracy, roc_auc)
-  expect_error(
-    mixed_set(two_class_example, truth, Class1, estimate = predicted),
-    NA
+  expect_no_error(
+    mixed_set(two_class_example, truth, Class1, estimate = predicted)
   )
 })
 
-test_that('mixing bad metric sets', {
-  expect_error(
+test_that("mixing bad metric sets", {
+  expect_snapshot(
+    error = TRUE,
     metric_set(rmse, accuracy)
   )
 })
 
-test_that('can mix class and class prob metrics together', {
-  expect_error(
-    mixed_set <- metric_set(accuracy, roc_auc),
-    NA
+test_that("can mix class and class prob metrics together", {
+  expect_no_error(
+    mixed_set <- metric_set(accuracy, roc_auc)
   )
-  expect_error(
-    mixed_set(two_class_example, truth, Class1, estimate = predicted),
-    NA
+  expect_no_error(
+    mixed_set(two_class_example, truth, Class1, estimate = predicted)
+  )
+})
+
+test_that("dynamic survival metric sets", {
+  my_set <- metric_set(brier_survival)
+
+  expect_equal(
+    my_set(lung_surv, surv_obj, .pred),
+    brier_survival(lung_surv, surv_obj, .pred)
+  )
+})
+
+test_that("can mix dynamic and static survival metric together", {
+  expect_no_error(
+    mixed_set <- metric_set(brier_survival, concordance_survival)
+  )
+  expect_no_error(
+    mixed_set(lung_surv, surv_obj, .pred, estimate = .pred_time)
+  )
+})
+
+test_that("can mix dynamic and static survival metric together", {
+  expect_no_error(
+    mixed_set <- metric_set(
+      brier_survival,
+      concordance_survival,
+      brier_survival_integrated
+    )
+  )
+  expect_no_error(
+    mixed_set(lung_surv, surv_obj, .pred, estimate = .pred_time)
   )
 })
 
@@ -152,7 +185,7 @@ test_that("can supply `event_level` even with metrics that don't use it", {
   )
 })
 
-test_that('metric set functions are classed', {
+test_that("metric set functions are classed", {
   expect_s3_class(
     metric_set(accuracy, roc_auc),
     "class_prob_metric_set"
@@ -171,7 +204,7 @@ test_that('metric set functions are classed', {
   )
 })
 
-test_that('metric set functions retain class/prob metric functions', {
+test_that("metric set functions retain class/prob metric functions", {
   fns <- attr(metric_set(accuracy, roc_auc), "metrics")
 
   expect_equal(
@@ -195,7 +228,7 @@ test_that('metric set functions retain class/prob metric functions', {
   )
 })
 
-test_that('metric set functions retain numeric metric functions', {
+test_that("metric set functions retain numeric metric functions", {
   fns <- attr(metric_set(mae, rmse), "metrics")
 
   expect_equal(
@@ -242,13 +275,13 @@ test_that("`metric_set()` errors contain env name for unknown functions (#128)",
 
   rlang::fn_env(foobar) <- env
 
-  expect_error(
-    metric_set(accuracy, foobar, sens, rlang::abort),
-    "class [(]accuracy, sens[)]"
+  expect_snapshot(
+    error = TRUE,
+    metric_set(accuracy, foobar, sens, rlang::abort)
   )
-  expect_error(
-    metric_set(accuracy, foobar, sens, rlang::abort),
-    "other [(]foobar <test>, abort <namespace:rlang>[)]"
+  expect_snapshot(
+    error = TRUE,
+    metric_set(accuracy, foobar, sens, rlang::abort)
   )
 })
 
@@ -260,10 +293,9 @@ test_that("`metric_set()` gives an informative error for a single non-metric fun
   attr(env, "name") <- "test"
   rlang::fn_env(foobar) <- env
 
-  expect_error(
-    metric_set(foobar),
-    "other (foobar <test>)",
-    fixed = TRUE
+  expect_snapshot(
+    error = TRUE,
+    metric_set(foobar)
   )
 })
 
@@ -290,7 +322,7 @@ test_that("all class metrics - `metric_set()` works with `case_weights`", {
 
   expect_identical(
     set(df, truth, estimate = estimate, case_weights = case_weights)[[".estimate"]],
-    c(1/4, 1/3)
+    c(1 / 4, 1 / 3)
   )
 })
 
@@ -358,4 +390,104 @@ test_that("propagates 'caused by' error message when specifying the wrong column
   expect_snapshot(error = TRUE, {
     set(two_class_example, truth, Class1, estimate = predicted, case_weights = weight)
   })
+})
+
+test_that("metric_tweak and metric_set plays nicely together (#351)", {
+  # Classification
+  multi_ex <- data_three_by_three()
+
+  ref <- dplyr::bind_rows(
+    j_index(multi_ex, estimator = "macro"),
+    j_index(multi_ex, estimator = "micro")
+  )
+
+  j_index_macro <- metric_tweak("j_index", j_index, estimator = "macro")
+  j_index_micro <- metric_tweak("j_index", j_index, estimator = "micro")
+
+  expect_identical(
+    metric_set(j_index_macro, j_index_micro)(multi_ex),
+    ref
+  )
+
+  # Probability
+  ref <- dplyr::bind_rows(
+    roc_auc(two_class_example, truth, Class1, event_level = "first"),
+    roc_auc(two_class_example, truth, Class1, event_level = "second")
+  )
+
+  roc_auc_first <- metric_tweak("roc_auc", roc_auc, event_level = "first")
+  roc_auc_second <- metric_tweak("roc_auc", roc_auc, event_level = "second")
+
+  expect_identical(
+    metric_set(roc_auc_first, roc_auc_second)(two_class_example, truth, Class1),
+    ref
+  )
+
+  # regression
+  ref <- dplyr::bind_rows(
+    ccc(mtcars, truth = mpg, estimate = disp, bias = TRUE),
+    ccc(mtcars, truth = mpg, estimate = disp, bias = FALSE)
+  )
+
+  ccc_bias <- metric_tweak("ccc", ccc, bias = TRUE)
+  ccc_no_bias <- metric_tweak("ccc", ccc, bias = FALSE)
+
+  expect_identical(
+    metric_set(ccc_bias, ccc_no_bias)(mtcars, truth = mpg, estimate = disp),
+    ref
+  )
+
+  # Static survival
+  lung_surv_na <- lung_surv
+  lung_surv_na$.pred_time[1] <- NA
+
+  ref <- dplyr::bind_rows(
+    concordance_survival(lung_surv_na, surv_obj, .pred_time, na_rm = TRUE),
+    concordance_survival(lung_surv_na, surv_obj, .pred_time, na_rm = FALSE)
+  )
+
+  concordance_survival_na_rm <- metric_tweak(
+    "concordance_survival",
+    concordance_survival,
+    na_rm = TRUE
+  )
+  concordance_survival_no_na_rm <- metric_tweak(
+    "concordance_survival",
+    concordance_survival,
+    na_rm = FALSE
+  )
+
+  expect_identical(
+    metric_set(concordance_survival_na_rm, concordance_survival_no_na_rm)(
+      lung_surv_na, truth = surv_obj, estimate = .pred_time
+    ),
+    ref
+  )
+
+  # dynamic survival
+  lung_surv_na <- lung_surv
+  lung_surv_na$surv_obj[1] <- NA
+
+  ref <- dplyr::bind_rows(
+    brier_survival(lung_surv_na, surv_obj, .pred, na_rm = TRUE),
+    brier_survival(lung_surv_na, surv_obj, .pred, na_rm = FALSE)
+  )
+
+  brier_survival_na_rm <- metric_tweak(
+    "brier_survival",
+    brier_survival,
+    na_rm = TRUE
+  )
+  brier_survival_no_na_rm <- metric_tweak(
+    "brier_survival",
+    brier_survival,
+    na_rm = FALSE
+  )
+
+  expect_identical(
+    metric_set(brier_survival_na_rm, brier_survival_no_na_rm)(
+      lung_surv_na, truth = surv_obj, .pred
+    ),
+    ref
+  )
 })

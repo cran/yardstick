@@ -51,28 +51,30 @@
 #' metrics <- metric_set(mase, mase10, mase12)
 #' metrics(solubility_test, solubility, prediction)
 metric_tweak <- function(.name, .fn, ...) {
-  if (!rlang::is_string(.name)) {
-    rlang::abort("`.name` must be a string.")
+  if (!is_string(.name)) {
+    abort("`.name` must be a string.")
   }
   if (!is_metric(.fn)) {
-    rlang::abort("`.fn` must be a metric function.")
+    abort("`.fn` must be a metric function.")
   }
 
-  fixed <- rlang::enquos(...)
+  fixed <- enquos(...)
 
-  if (length(fixed) > 0 && !rlang::is_named(fixed)) {
-    rlang::abort("All arguments passed through `...` must be named.")
+  if (length(fixed) > 0 && !is_named(fixed)) {
+    abort("All arguments passed through `...` must be named.")
   }
 
   check_protected_names(fixed)
 
   out <- function(...) {
-    args <- rlang::enquos(...)
-    call <- rlang::call2(.fn, !!!args, !!!fixed)
-    out <- rlang::eval_tidy(call)
+    args <- enquos(...)
+    call <- call2(.fn, !!!args, !!!fixed)
+    out <- eval_tidy(call)
     out[[".metric"]] <- .name
     out
   }
+
+  out <- set_static_arguments(out, names(fixed))
 
   class(out) <- class(.fn)
   metric_direction(out) <- metric_direction(.fn)
@@ -92,12 +94,22 @@ check_protected_names <- function(fixed) {
 
   protected <- quote_and_collapse(protected)
 
-  rlang::abort(paste0(
+  abort(paste0(
     "Arguments passed through `...` cannot be named any of: ",
     protected,
     "."
   ))
 }
+
 protected_names <- function() {
   c("data", "truth", "estimate")
+}
+
+get_static_arguments <- function(fn) {
+  attr(fn, "static", exact = TRUE)
+}
+
+set_static_arguments <- function(fn, static) {
+  attr(fn, "static") <- static
+  fn
 }

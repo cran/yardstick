@@ -1,10 +1,63 @@
+# yardstick 1.2.0
+
+## New Metrics
+
+* The Brier score for classification was added with `brier_class()` (#139).
+
+## Improvements
+
+* The global option, `yardstick.event_first`, has been hard deprecated in favor
+  of using explicit argument, `event_level`. Setting this option will now 
+  produce an warning, but won't have any effect. (#173)
+
+* Removed start-up message about `event_level` argument.
+
+* yardstick metric functions now use a pure tidyselect interface for `truth`, 
+  `estimate`, and the `...` of class probability metrics (#322).
+
+* Changed the default aspect ratio for PR curves to be 1.0. 
+
+* Error messages now show what user-facing function was called (#348). 
+
+* classification and probability metrics now fully support `class_pred` objects 
+  from {probably} package (#341).
+
+## Bug Fixes
+
+* Using `metric_set()` on a metric created with `metric_tweak()` will no longer
+  produces an error, and will favor arguments set with `metric_tweak()` (#351).
+  
+* Metric summarizers no longer error if column names in `data` conflict with
+  argument names (#382).
+  
+* `conf_mat()` no longer throw errors listed as internal (#327).
+
+## Developer
+
+* `metric_vec_template()` is being soft deprecated in favor of a more manual
+  and flexible metric creation approach. `yardstick_remove_missing()` and 
+  `yardstick_any_missing()` have been added for treatment of missing values. 
+  `check_class_metric()`, `check_numeric_metric()`,
+  and `check_prob_metric()` have been added to perform standardized input
+  checking for classification, regression and class probability metrics 
+  respectively. These changes mean that it is the developer's responsibility 
+  to perform validation of `truth` and `estimate` input. (#337).
+
+* `metric_summarizer()` is being soft deprecated in favor of the more specific
+  newly added `class_metric_summarizer()`, `numeric_metric_summarizer()`,
+  `prob_metric_summarizer()`, and `curve_metric_summarizer()` (#322).
+  
+* `dots_to_estimate()` is being soft deprecated along with 
+  `metric_summarizer()`. `dots_to_estimate()` is not needed with 
+  `prob_metric_summarizer()`, and `curve_metric_summarizer()` (#329).
+  
 # yardstick 1.1.0
 
 * Emil Hvitfeldt is now the maintainer (#315).
 
 * Improved on the chained error thrown by `metric_set()` when one of the metric
   computations fails (#313).
-
+  
 # yardstick 1.0.0
 
 * All yardstick metrics now support case weights through the new `case_weights`

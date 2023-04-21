@@ -26,7 +26,7 @@ test_that("binary roc curve uses equivalent of pROC `direction = <`", {
   expect_identical(curve$sensitivity, expect_sensitivity)
 })
 
-test_that('ROC Curve', {
+test_that("ROC Curve", {
   pROC_two_class_example_curve <- data_pROC_two_class_example_curve()
 
   # Equal to pROC up to a reasonable tolerance
@@ -60,7 +60,7 @@ test_that("grouped multiclass (one-vs-all) weighted example matches expanded equ
 
   hpc_cv <- dplyr::group_by(hpc_cv, Resample)
 
-  hpc_cv_expanded <- hpc_cv[vec_rep_each(seq_len(nrow(hpc_cv)), times = hpc_cv$weight),]
+  hpc_cv_expanded <- hpc_cv[vec_rep_each(seq_len(nrow(hpc_cv)), times = hpc_cv$weight), ]
 
   expect_identical(
     roc_curve(hpc_cv, obs, VF:L, case_weights = weight),
@@ -90,7 +90,7 @@ test_that("zero weights don't affect the curve", {
 
   expect_identical(
     roc_curve(df, truth, a, case_weights = weight),
-    roc_curve(df[df$weight != 0,], truth, a, case_weights = weight)
+    roc_curve(df[df$weight != 0, ], truth, a, case_weights = weight)
   )
 })
 
@@ -121,36 +121,33 @@ test_that("Binary weighted results are the same as scikit-learn", {
 test_that("roc_curve() - error is thrown when missing events", {
   no_event <- dplyr::filter(two_class_example, truth == "Class2")
 
-  expect_error(
-    roc_curve_vec(no_event$truth, no_event$Class1)[[".estimate"]],
-    "No event observations were detected in `truth` with event level 'Class1'.",
-    class = "yardstick_error_roc_truth_no_event"
+  expect_snapshot(
+    error = TRUE,
+    roc_curve_vec(no_event$truth, no_event$Class1)[[".estimate"]]
   )
 })
 
 test_that("roc_curve() - error is thrown when missing controls", {
   no_control <- dplyr::filter(two_class_example, truth == "Class1")
 
-  expect_error(
-    roc_curve_vec(no_control$truth, no_control$Class1)[[".estimate"]],
-    "No control observations were detected in `truth` with control level 'Class2'.",
-    class = "yardstick_error_roc_truth_no_control"
+  expect_snapshot(
+    error = TRUE,
+    roc_curve_vec(no_control$truth, no_control$Class1)[[".estimate"]]
   )
 })
 
 test_that("roc_curve() - multiclass one-vs-all approach results in error", {
   no_event <- dplyr::filter(hpc_cv, Resample == "Fold01", obs == "VF")
 
-  expect_error(
-    roc_curve_vec(no_event$obs, as.matrix(dplyr::select(no_event, VF:L)))[[".estimate"]],
-    "No control observations were detected in `truth` with control level '..other'",
-    class = "yardstick_error_roc_truth_no_control"
+  expect_snapshot(
+    error = TRUE,
+    roc_curve_vec(no_event$obs, as.matrix(dplyr::select(no_event, VF:L)))[[".estimate"]]
   )
 })
 
 test_that("roc_curve() - `options` is deprecated", {
   skip_if(getRversion() <= "3.5.3", "Base R used a different deprecated warning class.")
-  local_lifecycle_warnings()
+  rlang::local_options(lifecycle_verbosity = "warning")
 
   expect_snapshot({
     out <- roc_curve(two_class_example, truth, Class1, options = 1)
@@ -159,5 +156,20 @@ test_that("roc_curve() - `options` is deprecated", {
   expect_identical(
     out,
     roc_curve(two_class_example, truth, Class1)
+  )
+})
+
+test_that("errors with class_pred input", {
+  skip_if_not_installed("probably")
+
+  cp_truth <- probably::as_class_pred(two_class_example$truth, which = 1)
+  fct_truth <- two_class_example$truth
+  fct_truth[1] <- NA
+
+  estimate <- two_class_example$Class1
+
+  expect_snapshot(
+    error = TRUE,
+    roc_curve_vec(cp_truth, estimate)
   )
 })

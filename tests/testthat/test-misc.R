@@ -96,7 +96,7 @@ test_that("works with hardhat case weights", {
 
   expect_identical(
     yardstick_mean(x, case_weights = w),
-    2 + 4/9
+    2 + 4 / 9
   )
 })
 
@@ -350,4 +350,3 @@ test_that("`probabilities` must be in [0, 1]", {
 test_that("`probabilities` can't be missing", {
   expect_snapshot(error = TRUE, weighted_quantile(1, 1, NA))
 })
-

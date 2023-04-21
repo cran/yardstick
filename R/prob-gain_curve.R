@@ -35,7 +35,7 @@
 #' entire number of true results are found. This is the y-axis in a gain chart.
 #'
 #' @family curve metrics
-#' @templateVar metric_fn gain_curve
+#' @templateVar fn gain_curve
 #' @template multiclass-curve
 #' @template event_first
 #'
@@ -112,14 +112,12 @@ gain_curve.data.frame <- function(data,
                                   na_rm = TRUE,
                                   event_level = yardstick_event_level(),
                                   case_weights = NULL) {
-  estimate <- dots_to_estimate(data, !!! enquos(...))
-
-  result <- metric_summarizer(
-    metric_nm = "gain_curve",
-    metric_fn = gain_curve_vec,
+  result <- curve_metric_summarizer(
+    name = "gain_curve",
+    fn = gain_curve_vec,
     data = data,
     truth = !!enquo(truth),
-    estimate = !!estimate,
+    ...,
     na_rm = na_rm,
     event_level = event_level,
     case_weights = !!enquo(case_weights)
@@ -137,32 +135,28 @@ gain_curve_vec <- function(truth,
                            event_level = yardstick_event_level(),
                            case_weights = NULL,
                            ...) {
+  abort_if_class_pred(truth)
+
   estimator <- finalize_estimator(truth, metric_class = "gain_curve")
 
-  # estimate here is a matrix of class prob columns
-  gain_curve_impl <- function(truth,
-                              estimate,
-                              ...,
-                              case_weights = NULL) {
-    check_dots_empty()
+  check_prob_metric(truth, estimate, case_weights, estimator)
 
-    gain_curve_estimator_impl(
-      truth = truth,
-      estimate = estimate,
-      estimator = estimator,
-      event_level = event_level,
-      case_weights = case_weights
-    )
+  if (na_rm) {
+    result <- yardstick_remove_missing(truth, estimate, case_weights)
+
+    truth <- result$truth
+    estimate <- result$estimate
+    case_weights <- result$case_weights
+  } else if (yardstick_any_missing(truth, estimate, case_weights)) {
+    return(NA_real_)
   }
 
-  metric_vec_template(
-    metric_impl = gain_curve_impl,
+  gain_curve_estimator_impl(
     truth = truth,
     estimate = estimate,
-    na_rm = na_rm,
     estimator = estimator,
-    case_weights = case_weights,
-    cls = c("factor", "numeric")
+    event_level = event_level,
+    case_weights = case_weights
   )
 }
 
@@ -173,8 +167,7 @@ gain_curve_estimator_impl <- function(truth,
                                       case_weights) {
   if (is_binary(estimator)) {
     gain_curve_binary(truth, estimate, event_level, case_weights)
-  }
-  else {
+  } else {
     gain_curve_multiclass(truth, estimate, case_weights)
   }
 }
@@ -186,7 +179,7 @@ gain_curve_binary <- function(truth, estimate, event_level, case_weights) {
 
 gain_curve_multiclass <- function(truth, estimate, case_weights) {
   one_vs_all_with_level(
-    metric_fn = gain_curve_binary,
+    fn = gain_curve_binary,
     truth = truth,
     estimate = estimate,
     case_weights = case_weights
@@ -244,7 +237,7 @@ gain_curve_binary_impl <- function(truth,
   cumulative_found <- c(0, cumulative_found)
   cumulative_tested <- c(0, cumulative_tested)
   cumulative_percent_tested <- c(0, cumulative_percent_tested)
-  cumulative_percent_found  <- c(0, cumulative_percent_found)
+  cumulative_percent_found <- c(0, cumulative_percent_found)
 
   list(
     .n = cumulative_tested,
@@ -259,7 +252,6 @@ gain_curve_binary_impl <- function(truth,
 # dynamically exported in .onLoad()
 
 autoplot.gain_df <- function(object, ...) {
-
   `%+%` <- ggplot2::`%+%`
   `%>%` <- dplyr::`%>%`
 
@@ -268,27 +260,23 @@ autoplot.gain_df <- function(object, ...) {
 
   # Grouped specific chart features
   if (dplyr::is_grouped_df(object)) {
-
     # Construct the color interaction group
     grps <- dplyr::groups(object)
     interact_expr <- list(
-      color = rlang::expr(interaction(!!! grps, sep = "_"))
+      color = expr(interaction(!!!grps, sep = "_"))
     )
 
     # Add group legend label
     grps_chr <- paste0(dplyr::group_vars(object), collapse = "_")
     chart <- chart %+%
       ggplot2::labs(color = grps_chr)
-
-  }
-  else {
+  } else {
     interact_expr <- list()
   }
 
   # Generic enough to be used in the pipe chain
   # for multiclass and binary curves
   maybe_group_by_level <- function(object, with_old = TRUE) {
-
     if (with_old) {
       grps <- dplyr::groups(object)
     } else {
@@ -298,7 +286,7 @@ autoplot.gain_df <- function(object, ...) {
     if (".level" %in% colnames(object)) {
       # .level should be the first group b/c of how summarise()
       # drops a group
-      object <- dplyr::group_by(object, .level, !!! grps)
+      object <- dplyr::group_by(object, .level, !!!grps)
     }
     object
   }
@@ -346,7 +334,7 @@ autoplot.gain_df <- function(object, ...) {
       mapping = ggplot2::aes(
         x = !!.percent_tested,
         y = !!.percent_found,
-        !!! interact_expr
+        !!!interact_expr
       ),
       data = object
     ) %+%

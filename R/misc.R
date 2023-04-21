@@ -4,7 +4,7 @@
 
 pos_val <- function(xtab, event_level) {
   if (!all(dim(xtab) == 2)) {
-    rlang::abort("Only relevant for 2x2 tables")
+    abort("Only relevant for 2x2 tables")
   }
 
   if (is_event_first(event_level)) {
@@ -16,7 +16,7 @@ pos_val <- function(xtab, event_level) {
 
 neg_val <- function(xtab, event_level) {
   if (!all(dim(xtab) == 2)) {
-    rlang::abort("Only relevant for 2x2 tables")
+    abort("Only relevant for 2x2 tables")
   }
 
   if (is_event_first(event_level)) {
@@ -29,10 +29,12 @@ neg_val <- function(xtab, event_level) {
 # ------------------------------------------------------------------------------
 
 check_table <- function(x) {
-  if (!identical(nrow(x), ncol(x)))
+  if (!identical(nrow(x), ncol(x))) {
     stop("the table must have nrow = ncol", call. = FALSE)
-  if (!isTRUE(all.equal(rownames(x), colnames(x))))
+  }
+  if (!isTRUE(all.equal(rownames(x), colnames(x)))) {
     stop("the table must the same groups in the same order", call. = FALSE)
+  }
   invisible(NULL)
 }
 
@@ -60,8 +62,12 @@ is_class_pred <- function(x) {
 }
 
 as_factor_from_class_pred <- function(x) {
-  if (!rlang::is_installed("probably")) {
-    rlang::abort(paste0(
+  if (!is_class_pred(x)) {
+    return(x)
+  }
+
+  if (!is_installed("probably")) {
+    abort(paste0(
       "A <class_pred> input was detected, but the probably package ",
       "isn't installed. Install probably to be able to convert <class_pred> ",
       "to <factor>."
@@ -70,6 +76,15 @@ as_factor_from_class_pred <- function(x) {
   probably::as.factor(x)
 }
 
+abort_if_class_pred <- function(x, call = caller_env()) {
+  if (is_class_pred(x)) {
+    abort(
+      "`truth` should not a `class_pred` object.",
+      call = call
+    )
+  }
+  return(invisible(x))
+}
 # ------------------------------------------------------------------------------
 
 curve_finalize <- function(result, data, class, grouped_class) {
@@ -295,7 +310,7 @@ make_correlation_undefined_constant_message <- function(what) {
 }
 
 warn_correlation_undefined <- function(message, ..., class = character()) {
-  rlang::warn(
+  warn(
     message = message,
     class = c(class, "yardstick_warning_correlation_undefined"),
     ...
@@ -375,9 +390,8 @@ weighted_quantile <- function(x, weights, probabilities) {
 yardstick_table <- function(truth, estimate, ..., case_weights = NULL) {
   check_dots_empty()
 
-  if (is_class_pred(truth)) {
-    truth <- as_factor_from_class_pred(truth)
-  }
+  abort_if_class_pred(truth)
+
   if (is_class_pred(estimate)) {
     estimate <- as_factor_from_class_pred(estimate)
   }
@@ -430,9 +444,7 @@ yardstick_truth_table <- function(truth, ..., case_weights = NULL) {
 
   check_dots_empty()
 
-  if (is_class_pred(truth)) {
-    truth <- as_factor_from_class_pred(truth)
-  }
+  abort_if_class_pred(truth)
 
   if (!is.factor(truth)) {
     abort("`truth` must be a factor.", .internal = TRUE)

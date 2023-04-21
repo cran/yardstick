@@ -19,7 +19,7 @@
 #'
 #' @family class metrics
 #' @family relevance metrics
-#' @templateVar metric_fn precision
+#' @templateVar fn precision
 #' @template event_first
 #' @template multiclass
 #' @template return
@@ -60,9 +60,9 @@ precision.data.frame <- function(data,
                                  case_weights = NULL,
                                  event_level = yardstick_event_level(),
                                  ...) {
-  metric_summarizer(
-    metric_nm = "precision",
-    metric_fn = precision_vec,
+  class_metric_summarizer(
+    name = "precision",
+    fn = precision_vec,
     data = data,
     truth = !!enquo(truth),
     estimate = !!enquo(estimate),
@@ -74,10 +74,10 @@ precision.data.frame <- function(data,
 }
 
 #' @export
-precision.table <- function (data,
-                             estimator = NULL,
-                             event_level = yardstick_event_level(),
-                             ...) {
+precision.table <- function(data,
+                            estimator = NULL,
+                            event_level = yardstick_event_level(),
+                            ...) {
   check_table(data)
   estimator <- finalize_estimator(data, estimator)
 
@@ -106,27 +106,29 @@ precision_vec <- function(truth,
                           case_weights = NULL,
                           event_level = yardstick_event_level(),
                           ...) {
+  abort_if_class_pred(truth)
+  estimate <- as_factor_from_class_pred(estimate)
+
   estimator <- finalize_estimator(truth, estimator)
 
-  precision_impl <- function(truth, estimate, ..., case_weights = NULL) {
-    check_dots_empty()
-    data <- yardstick_table(truth, estimate, case_weights = case_weights)
-    precision_table_impl(data, estimator, event_level)
+  check_class_metric(truth, estimate, case_weights, estimator)
+
+  if (na_rm) {
+    result <- yardstick_remove_missing(truth, estimate, case_weights)
+
+    truth <- result$truth
+    estimate <- result$estimate
+    case_weights <- result$case_weights
+  } else if (yardstick_any_missing(truth, estimate, case_weights)) {
+    return(NA_real_)
   }
 
-  metric_vec_template(
-    metric_impl = precision_impl,
-    truth = truth,
-    estimate = estimate,
-    na_rm = na_rm,
-    estimator = estimator,
-    case_weights = case_weights,
-    cls = "factor"
-  )
+  data <- yardstick_table(truth, estimate, case_weights = case_weights)
+  precision_table_impl(data, estimator, event_level)
 }
 
 precision_table_impl <- function(data, estimator, event_level) {
-  if(is_binary(estimator)) {
+  if (is_binary(estimator)) {
     precision_binary(data, event_level)
   } else {
     w <- get_weights(data, estimator)
@@ -167,7 +169,7 @@ precision_multiclass <- function(data, estimator) {
   }
 
   # set `na.rm = TRUE` to remove undefined values from weighted computation (#98)
-  if(is_micro(estimator)) {
+  if (is_micro(estimator)) {
     numer <- sum(numer, na.rm = TRUE)
     denom <- sum(denom, na.rm = TRUE)
   }
@@ -215,7 +217,7 @@ warn_precision_undefined_multiclass <- function(events, counts) {
 }
 
 warn_precision_undefined <- function(message, events, counts, ..., class = character()) {
-  rlang::warn(
+  warn(
     message = message,
     class = c(class, "yardstick_warning_precision_undefined"),
     events = events,

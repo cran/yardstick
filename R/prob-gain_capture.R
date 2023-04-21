@@ -14,7 +14,7 @@
 #' a gain curve. See the Engelmann reference for more information.
 #'
 #' @family class probability metrics
-#' @templateVar metric_fn gain_capture
+#' @templateVar fn gain_capture
 #' @template event_first
 #' @template return
 #' @template multiclass-prob
@@ -63,14 +63,12 @@ gain_capture.data.frame <- function(data,
                                     na_rm = TRUE,
                                     event_level = yardstick_event_level(),
                                     case_weights = NULL) {
-  estimate <- dots_to_estimate(data, !!! enquos(...))
-
-  metric_summarizer(
-    metric_nm = "gain_capture",
-    metric_fn = gain_capture_vec,
+  prob_metric_summarizer(
+    name = "gain_capture",
+    fn = gain_capture_vec,
     data = data,
-    truth = !! enquo(truth),
-    estimate = !! estimate,
+    truth = !!enquo(truth),
+    ...,
     estimator = estimator,
     na_rm = na_rm,
     event_level = event_level,
@@ -87,31 +85,28 @@ gain_capture_vec <- function(truth,
                              event_level = yardstick_event_level(),
                              case_weights = NULL,
                              ...) {
+  abort_if_class_pred(truth)
+
   estimator <- finalize_estimator(truth, estimator, "gain_capture")
 
-  gain_capture_impl <- function(truth,
-                                estimate,
-                                ...,
-                                case_weights = NULL) {
-    check_dots_empty()
+  check_prob_metric(truth, estimate, case_weights, estimator)
 
-    gain_capture_estimator_impl(
-      truth = truth,
-      estimate = estimate,
-      estimator = estimator,
-      event_level = event_level,
-      case_weights = case_weights
-    )
+  if (na_rm) {
+    result <- yardstick_remove_missing(truth, estimate, case_weights)
+
+    truth <- result$truth
+    estimate <- result$estimate
+    case_weights <- result$case_weights
+  } else if (yardstick_any_missing(truth, estimate, case_weights)) {
+    return(NA_real_)
   }
 
-  metric_vec_template(
-    metric_impl = gain_capture_impl,
+  gain_capture_estimator_impl(
     truth = truth,
     estimate = estimate,
-    na_rm = na_rm,
     estimator = estimator,
-    case_weights = case_weights,
-    cls = c("factor", "numeric")
+    event_level = event_level,
+    case_weights = case_weights
   )
 }
 
@@ -120,7 +115,7 @@ gain_capture_estimator_impl <- function(truth,
                                         estimator,
                                         event_level,
                                         case_weights) {
-  if(is_binary(estimator)) {
+  if (is_binary(estimator)) {
     gain_capture_binary(truth, estimate, event_level, case_weights)
   } else {
     truth_table <- yardstick_truth_table(truth, case_weights = case_weights)
@@ -148,7 +143,7 @@ gain_capture_binary <- function(truth,
     y = gain_list[[".percent_found"]]
   )
 
-  scaler <- 1 / (100 ^ 2)
+  scaler <- 1 / (100^2)
   height <- 100
   width <- 100
   baseline <- 0.5
@@ -177,11 +172,11 @@ gain_capture_binary <- function(truth,
 
 gain_capture_multiclass <- function(truth, estimate, case_weights) {
   res_lst <- one_vs_all_impl(
-    metric_fn = gain_capture_binary,
+    fn = gain_capture_binary,
     truth = truth,
     estimate = estimate,
     case_weights = case_weights
   )
 
-  rlang::flatten_dbl(res_lst)
+  vapply(res_lst, FUN.VALUE = numeric(1), function(x) x)
 }

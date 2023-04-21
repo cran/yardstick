@@ -18,7 +18,6 @@ hpc_cv %>%
   filter(Resample == "Fold01") %>%
   accuracy(obs, pred)
 
-
 ## -----------------------------------------------------------------------------
 hpc_cv %>%
   group_by(Resample) %>%
@@ -47,7 +46,9 @@ get_metrics <- function(fns, type) {
 all_metrics <- bind_rows(
   tibble(type = "class", metric = get_metrics(fns, "class_metric")),
   tibble(type = "class prob", metric = get_metrics(fns, "prob_metric")),
-  tibble(type = "numeric", metric = get_metrics(fns, "numeric_metric"))
+  tibble(type = "numeric", metric = get_metrics(fns, "numeric_metric")),
+  tibble(type = "dynamic survival", metric = get_metrics(fns, "dynamic_survival_metric")),
+  tibble(type = "static survival", metric = get_metrics(fns, "static_survival_metric"))
 )
 
 kable(all_metrics, format = "html")

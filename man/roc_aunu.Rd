@@ -105,7 +105,7 @@ hpc_cv \%>\%
 # event of interest. The class probability columns should be supplied
 # in the same order as the levels.
 hpc_cv \%>\%
- filter(Resample == "Fold01") \%>\%
+  filter(Resample == "Fold01") \%>\%
   mutate(obs = relevel(obs, "M")) \%>\%
   roc_aunu(obs, M, VF:L)
 
@@ -138,6 +138,7 @@ the rest, using the a priori class distribution.
 
 Other class probability metrics: 
 \code{\link{average_precision}()},
+\code{\link{brier_class}()},
 \code{\link{classification_cost}()},
 \code{\link{gain_capture}()},
 \code{\link{mn_log_loss}()},

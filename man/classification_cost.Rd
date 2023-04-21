@@ -34,8 +34,10 @@ classification_cost_vec(
 
 \item{...}{A set of unquoted column names or one or more
 \code{dplyr} selector functions to choose which variables contain the
-class probabilities. If \code{truth} is binary, only 1 column should be selected.
-Otherwise, there should be as many columns as factor levels of \code{truth}.}
+class probabilities. If \code{truth} is binary, only 1 column should be selected,
+and it should correspond to the value of \code{event_level}. Otherwise, there
+should be as many columns as factor levels of \code{truth} and the ordering of
+the columns should be the same as the factor levels of \code{truth}.}
 
 \item{truth}{The column identifier for the true class results
 (that is a \code{factor}). This should be an unquoted column name although
@@ -133,23 +135,23 @@ data(hpc_cv)
 
 # Define cost matrix from Kuhn and Johnson (2013)
 hpc_costs <- tribble(
-   ~estimate, ~truth, ~cost,
-   "VF",   "VF",     0,
-   "VF",    "F",     1,
-   "VF",    "M",     5,
-   "VF",    "L",    10,
-   "F",    "VF",     1,
-   "F",     "F",     0,
-   "F",     "M",     5,
-   "F",     "L",     5,
-   "M",    "VF",     1,
-   "M",     "F",     1,
-   "M",     "M",     0,
-   "M",     "L",     1,
-   "L",    "VF",     1,
-   "L",     "F",     1,
-   "L",     "M",     1,
-   "L",     "L",     0
+  ~estimate, ~truth, ~cost,
+  "VF",      "VF",    0,
+  "VF",      "F",     1,
+  "VF",      "M",     5,
+  "VF",      "L",    10,
+  "F",       "VF",    1,
+  "F",       "F",     0,
+  "F",       "M",     5,
+  "F",       "L",     5,
+  "M",       "VF",    1,
+  "M",       "F",     1,
+  "M",       "M",     0,
+  "M",       "L",     1,
+  "L",       "VF",    1,
+  "L",       "F",     1,
+  "L",       "M",     1,
+  "L",       "L",     0
 )
 
 # You can use the col1:colN tidyselect syntax
@@ -165,6 +167,7 @@ hpc_cv \%>\%
 \seealso{
 Other class probability metrics: 
 \code{\link{average_precision}()},
+\code{\link{brier_class}()},
 \code{\link{gain_capture}()},
 \code{\link{mn_log_loss}()},
 \code{\link{pr_auc}()},

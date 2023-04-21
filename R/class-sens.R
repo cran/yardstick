@@ -17,7 +17,7 @@
 #'
 #' @family class metrics
 #' @family sensitivity metrics
-#' @templateVar metric_fn sens
+#' @templateVar fn sens
 #' @template event_first
 #' @template multiclass
 #' @template return
@@ -90,9 +90,9 @@ sens.data.frame <- function(data,
                             case_weights = NULL,
                             event_level = yardstick_event_level(),
                             ...) {
-  metric_summarizer(
-    metric_nm = "sens",
-    metric_fn = sens_vec,
+  class_metric_summarizer(
+    name = "sens",
+    fn = sens_vec,
     data = data,
     truth = !!enquo(truth),
     estimate = !!enquo(estimate),
@@ -136,24 +136,25 @@ sens_vec <- function(truth,
                      case_weights = NULL,
                      event_level = yardstick_event_level(),
                      ...) {
+  abort_if_class_pred(truth)
+  estimate <- as_factor_from_class_pred(estimate)
+
   estimator <- finalize_estimator(truth, estimator)
 
-  sens_impl <- function(truth, estimate, ..., case_weights = NULL) {
-    check_dots_empty()
-    data <- yardstick_table(truth, estimate, case_weights = case_weights)
-    sens_table_impl(data, estimator, event_level)
+  check_class_metric(truth, estimate, case_weights, estimator)
+
+  if (na_rm) {
+    result <- yardstick_remove_missing(truth, estimate, case_weights)
+
+    truth <- result$truth
+    estimate <- result$estimate
+    case_weights <- result$case_weights
+  } else if (yardstick_any_missing(truth, estimate, case_weights)) {
+    return(NA_real_)
   }
 
-  metric_vec_template(
-    metric_impl = sens_impl,
-    truth = truth,
-    estimate = estimate,
-    na_rm = na_rm,
-    estimator = estimator,
-    case_weights = case_weights,
-    cls = "factor"
-  )
-
+  data <- yardstick_table(truth, estimate, case_weights = case_weights)
+  sens_table_impl(data, estimator, event_level)
 }
 
 # ------------------------------------------------------------------------------
@@ -178,9 +179,9 @@ sensitivity.data.frame <- function(data,
                                    case_weights = NULL,
                                    event_level = yardstick_event_level(),
                                    ...) {
-  metric_summarizer(
-    metric_nm = "sensitivity",
-    metric_fn = sens_vec,
+  class_metric_summarizer(
+    name = "sensitivity",
+    fn = sens_vec,
     data = data,
     truth = !!enquo(truth),
     estimate = !!enquo(estimate),
@@ -225,7 +226,7 @@ sensitivity_vec <- sens_vec
 # classes
 
 sens_table_impl <- function(data, estimator, event_level) {
-  if(is_binary(estimator)) {
+  if (is_binary(estimator)) {
     sens_binary(data, event_level)
   } else {
     w <- get_weights(data, estimator)
@@ -266,7 +267,7 @@ sens_multiclass <- function(data, estimator) {
   }
 
   # set `na.rm = TRUE` to remove undefined values from weighted computation (#98)
-  if(is_micro(estimator)) {
+  if (is_micro(estimator)) {
     numer <- sum(numer, na.rm = TRUE)
     denom <- sum(denom, na.rm = TRUE)
   }
@@ -315,7 +316,7 @@ warn_sens_undefined_multiclass <- function(events, counts) {
 }
 
 warn_sens_undefined <- function(message, events, counts, ..., class = character()) {
-  rlang::warn(
+  warn(
     message = message,
     class = c(class, "yardstick_warning_sens_undefined"),
     events = events,

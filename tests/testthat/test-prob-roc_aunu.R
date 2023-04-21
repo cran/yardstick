@@ -17,9 +17,10 @@ test_that("AUNU is equivalent to macro estimator with case weights", {
 })
 
 test_that("AUNU errors on binary case", {
-  expect_snapshot((expect_error(
+  expect_snapshot(
+    error = TRUE,
     roc_aunu(two_class_example, truth, Class1)
-  )))
+  )
 })
 
 test_that("AUNU results match mlr for soybean example", {
@@ -38,7 +39,7 @@ test_that("AUNU results match mlr for soybean example", {
 
 test_that("roc_aunu() - `options` is deprecated", {
   skip_if(getRversion() <= "3.5.3", "Base R used a different deprecated warning class.")
-  local_lifecycle_warnings()
+  rlang::local_options(lifecycle_verbosity = "warning")
 
   expect_snapshot({
     out <- roc_aunu(two_class_example, truth, Class1, Class2, options = 1)
@@ -63,5 +64,20 @@ test_that("roc_aunu() - `options` is deprecated", {
       truth = two_class_example$truth,
       estimate = as.matrix(two_class_example[c("Class1", "Class2")])
     )
+  )
+})
+
+test_that("errors with class_pred input", {
+  skip_if_not_installed("probably")
+
+  cp_truth <- probably::as_class_pred(two_class_example$truth, which = 1)
+  fct_truth <- two_class_example$truth
+  fct_truth[1] <- NA
+
+  estimate <- as.matrix(two_class_example[c("Class1", "Class2")])
+
+  expect_snapshot(
+    error = TRUE,
+    roc_aunu_vec(cp_truth, estimate)
   )
 })

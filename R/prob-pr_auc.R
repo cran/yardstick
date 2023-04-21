@@ -5,7 +5,7 @@
 #'
 #'
 #' @family class probability metrics
-#' @templateVar metric_fn pr_auc
+#' @templateVar fn pr_auc
 #' @template return
 #' @template multiclass-prob
 #' @template event_first
@@ -22,8 +22,10 @@
 #'
 #' @param ... A set of unquoted column names or one or more
 #' `dplyr` selector functions to choose which variables contain the
-#' class probabilities. If `truth` is binary, only 1 column should be selected.
-#' Otherwise, there should be as many columns as factor levels of `truth`.
+#' class probabilities. If `truth` is binary, only 1 column should be selected,
+#' and it should correspond to the value of `event_level`. Otherwise, there
+#' should be as many columns as factor levels of `truth` and the ordering of
+#' the columns should be the same as the factor levels of `truth`.
 #'
 #' @param estimator One of `"binary"`, `"macro"`, or `"macro_weighted"` to
 #' specify the type of averaging to be done. `"binary"` is only relevant for
@@ -51,21 +53,19 @@ pr_auc <- new_prob_metric(
 
 #' @export
 #' @rdname pr_auc
-pr_auc.data.frame  <- function(data,
-                               truth,
-                               ...,
-                               estimator = NULL,
-                               na_rm = TRUE,
-                               event_level = yardstick_event_level(),
-                               case_weights = NULL) {
-  estimate <- dots_to_estimate(data, !!! enquos(...))
-
-  metric_summarizer(
-    metric_nm = "pr_auc",
-    metric_fn = pr_auc_vec,
+pr_auc.data.frame <- function(data,
+                              truth,
+                              ...,
+                              estimator = NULL,
+                              na_rm = TRUE,
+                              event_level = yardstick_event_level(),
+                              case_weights = NULL) {
+  prob_metric_summarizer(
+    name = "pr_auc",
+    fn = pr_auc_vec,
     data = data,
     truth = !!enquo(truth),
-    estimate = !!estimate,
+    ...,
     estimator = estimator,
     na_rm = na_rm,
     event_level = event_level,
@@ -82,31 +82,28 @@ pr_auc_vec <- function(truth,
                        event_level = yardstick_event_level(),
                        case_weights = NULL,
                        ...) {
+  abort_if_class_pred(truth)
+
   estimator <- finalize_estimator(truth, estimator, "pr_auc")
 
-  pr_auc_impl <- function(truth,
-                          estimate,
-                          ...,
-                          case_weights = NULL) {
-    check_dots_empty()
+  check_prob_metric(truth, estimate, case_weights, estimator)
 
-    pr_auc_estimator_impl(
-      truth = truth,
-      estimate = estimate,
-      estimator = estimator,
-      event_level = event_level,
-      case_weights = case_weights
-    )
+  if (na_rm) {
+    result <- yardstick_remove_missing(truth, estimate, case_weights)
+
+    truth <- result$truth
+    estimate <- result$estimate
+    case_weights <- result$case_weights
+  } else if (yardstick_any_missing(truth, estimate, case_weights)) {
+    return(NA_real_)
   }
 
-  metric_vec_template(
-    metric_impl = pr_auc_impl,
+  pr_auc_estimator_impl(
     truth = truth,
     estimate = estimate,
-    na_rm = na_rm,
     estimator = estimator,
-    case_weights = case_weights,
-    cls = c("factor", "numeric")
+    event_level = event_level,
+    case_weights = case_weights
   )
 }
 
@@ -152,11 +149,11 @@ pr_auc_multiclass <- function(truth,
                               estimate,
                               case_weights) {
   results <- one_vs_all_impl(
-    metric_fn = pr_auc_binary,
+    fn = pr_auc_binary,
     truth = truth,
     estimate = estimate,
     case_weights = case_weights
   )
 
-  rlang::flatten_dbl(results)
+  vapply(results, FUN.VALUE = numeric(1), function(x) x)
 }

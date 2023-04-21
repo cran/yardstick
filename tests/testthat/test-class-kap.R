@@ -12,12 +12,55 @@ test_that("two class produces identical results regardless of level order", {
   )
 })
 
+test_that("kap errors with wrong `weighting`", {
+  lst <- data_three_class()
+  three_class <- lst$three_class
+
+  expect_snapshot(
+    error = TRUE,
+    kap(three_class, truth = "obs", estimate = "pred", weighting = 1)
+  )
+
+  expect_snapshot(
+    error = TRUE,
+    kap(three_class, truth = "obs", estimate = "pred", weighting = "not right")
+  )
+})
+
+test_that("work with class_pred input", {
+  skip_if_not_installed("probably")
+
+  cp_truth <- probably::as_class_pred(two_class_example$truth, which = 1)
+  cp_estimate <- probably::as_class_pred(two_class_example$predicted, which = 2)
+
+  fct_truth <- two_class_example$truth
+  fct_truth[1] <- NA
+
+  fct_estimate <- two_class_example$predicted
+  fct_estimate[2] <- NA
+
+  expect_identical(
+    kap_vec(fct_truth, cp_estimate),
+    kap_vec(fct_truth, fct_estimate)
+  )
+
+  expect_identical(
+    kap_vec(fct_truth, cp_estimate, na_rm = FALSE),
+    NA_real_
+  )
+
+  expect_snapshot(
+    error = TRUE,
+    kap_vec(cp_truth, cp_estimate)
+  )
+})
+
 # ------------------------------------------------------------------------------
 
 # expected results from e1071::classAgreement(three_class_tb)$kappa
 # e1071::classAgreement(table(three_class$pred_na, three_class$obs))$kappa
 
-test_that('Three class', {
+test_that("Three class", {
   lst <- data_three_class()
   three_class <- lst$three_class
   three_class_tb <- lst$three_class_tb
@@ -51,7 +94,7 @@ test_that('Three class', {
 
 # sklearn compare --------------------------------------------------------------
 
-test_that('Two class - sklearn equivalent', {
+test_that("Two class - sklearn equivalent", {
   py_res <- read_pydata("py-kap")
   r_metric <- kap
 
@@ -61,7 +104,7 @@ test_that('Two class - sklearn equivalent', {
   )
 })
 
-test_that('Multi class - sklearn equivalent', {
+test_that("Multi class - sklearn equivalent", {
   py_res <- read_pydata("py-kap")
   r_metric <- kap
 
@@ -99,7 +142,7 @@ test_that("quadratic weighting - sklearn equivalent", {
   )
 })
 
-test_that('Two class case weighted - sklearn equivalent', {
+test_that("Two class case weighted - sklearn equivalent", {
   py_res <- read_pydata("py-kap")
   r_metric <- kap
 
@@ -111,7 +154,7 @@ test_that('Two class case weighted - sklearn equivalent', {
   )
 })
 
-test_that('Multi class case weighted - sklearn equivalent', {
+test_that("Multi class case weighted - sklearn equivalent", {
   py_res <- read_pydata("py-kap")
   r_metric <- kap
 

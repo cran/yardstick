@@ -1,19 +1,19 @@
-test_that('Two class', {
+test_that("Two class", {
   lst <- data_altman()
   pathology <- lst$pathology
   path_tbl <- lst$path_tbl
 
   expect_equal(
     mcc(pathology, truth = "pathology", estimate = "scan")[[".estimate"]],
-    ((231 * 54) - (32 * 27)) / sqrt((231 + 32)*(231 + 27) * (54 + 32) * (54 + 27))
+    ((231 * 54) - (32 * 27)) / sqrt((231 + 32) * (231 + 27) * (54 + 32) * (54 + 27))
   )
   expect_equal(
     mcc(path_tbl)[[".estimate"]],
-    ((231 * 54) - (32 * 27)) / sqrt((231 + 32)*(231 + 27) * (54 + 32) * (54 + 27))
+    ((231 * 54) - (32 * 27)) / sqrt((231 + 32) * (231 + 27) * (54 + 32) * (54 + 27))
   )
   expect_equal(
     mcc(pathology, truth = pathology, estimate = scan_na)[[".estimate"]],
-    ((230 * 53) - (32 * 26)) / sqrt((230 + 32)*(230 + 26) * (53 + 32) * (53 + 26))
+    ((230 * 53) - (32 * 26)) / sqrt((230 + 32) * (230 + 26) * (53 + 32) * (53 + 26))
   )
 })
 
@@ -39,9 +39,38 @@ test_that("doesn't integer overflow (#108)", {
   )
 })
 
+test_that("work with class_pred input", {
+  skip_if_not_installed("probably")
+
+  cp_truth <- probably::as_class_pred(two_class_example$truth, which = 1)
+  cp_estimate <- probably::as_class_pred(two_class_example$predicted, which = 2)
+
+  fct_truth <- two_class_example$truth
+  fct_truth[1] <- NA
+
+  fct_estimate <- two_class_example$predicted
+  fct_estimate[2] <- NA
+
+  expect_identical(
+    mcc_vec(fct_truth, cp_estimate),
+    mcc_vec(fct_truth, fct_estimate)
+  )
+
+  expect_identical(
+    mcc_vec(fct_truth, cp_estimate, na_rm = FALSE),
+    NA_real_
+  )
+
+  expect_snapshot(
+    error = TRUE,
+    mcc_vec(cp_truth, cp_estimate)
+  )
+})
+
+
 # sklearn compare --------------------------------------------------------------
 
-test_that('Two class - sklearn equivalent', {
+test_that("Two class - sklearn equivalent", {
   py_res <- read_pydata("py-mcc")
   r_metric <- mcc
 
@@ -51,7 +80,7 @@ test_that('Two class - sklearn equivalent', {
   )
 })
 
-test_that('Multi class - sklearn equivalent', {
+test_that("Multi class - sklearn equivalent", {
   py_res <- read_pydata("py-mcc")
   r_metric <- mcc
 
@@ -61,7 +90,7 @@ test_that('Multi class - sklearn equivalent', {
   )
 })
 
-test_that('Two class case weighted - sklearn equivalent', {
+test_that("Two class case weighted - sklearn equivalent", {
   py_res <- read_pydata("py-mcc")
   r_metric <- mcc
 
@@ -73,7 +102,7 @@ test_that('Two class case weighted - sklearn equivalent', {
   )
 })
 
-test_that('Multi class case weighted - sklearn equivalent', {
+test_that("Multi class case weighted - sklearn equivalent", {
   py_res <- read_pydata("py-mcc")
   r_metric <- mcc
 

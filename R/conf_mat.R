@@ -66,7 +66,7 @@
 #'   summarize(total = n()) %>%
 #'   left_join(cells_per_resample, by = "Resample") %>%
 #'   # Compute the proportions
-#'   mutate(prop = value/total) %>%
+#'   mutate(prop = value / total) %>%
 #'   group_by(name) %>%
 #'   # Average
 #'   summarize(prop = mean(prop))
@@ -102,23 +102,37 @@ conf_mat.data.frame <- function(data,
     warn_conf_mat_dots_deprecated()
   }
 
-  names <- names(data)
+  truth <- enquo(truth)
+  estimate <- enquo(estimate)
+  case_weights <- enquo(case_weights)
 
-  truth <- tidyselect::vars_pull(names, {{truth}})
+  truth <- yardstick_eval_select(
+    expr = truth,
+    data = data,
+    arg = "truth"
+  )
   truth <- data[[truth]]
 
-  estimate <- tidyselect::vars_pull(names, {{estimate}})
+  estimate <- yardstick_eval_select(
+    expr = estimate,
+    data = data,
+    arg = "estimate"
+  )
   estimate <- data[[estimate]]
 
-  case_weights <- enquo(case_weights)
   if (quo_is_null(case_weights)) {
     case_weights <- NULL
   } else {
-    case_weights <- tidyselect::vars_pull(names, !!case_weights)
+    case_weights <- yardstick_eval_select(
+      expr = case_weights,
+      data = data,
+      arg = "case_weights"
+    )
+
     case_weights <- data[[case_weights]]
   }
 
-  table <- yardstick_table(
+  table <- conf_mat_impl(
     truth = truth,
     estimate = estimate,
     case_weights = case_weights
@@ -142,37 +156,80 @@ conf_mat.grouped_df <- function(data,
     warn_conf_mat_dots_deprecated()
   }
 
-  names <- names(data)
-
-  truth <- tidyselect::vars_pull(names, {{truth}})
-  truth <- as.name(truth)
-
-  estimate <- tidyselect::vars_pull(names, {{estimate}})
-  estimate <- as.name(estimate)
-
+  truth <- enquo(truth)
+  estimate <- enquo(estimate)
   case_weights <- enquo(case_weights)
+
+  truth <- yardstick_eval_select(
+    expr = truth,
+    data = data,
+    arg = "truth"
+  )
+  estimate <- yardstick_eval_select(
+    expr = estimate,
+    data = data,
+    arg = "estimate"
+  )
+
   if (quo_is_null(case_weights)) {
-    case_weights <- NULL
+    group_case_weights <- NULL
   } else {
-    case_weights <- tidyselect::vars_pull(names, !!case_weights)
-    case_weights <- as.name(case_weights)
+    case_weights <- yardstick_eval_select(
+      expr = case_weights,
+      data = data,
+      arg = "case_weights",
+      error_call = error_call
+    )
   }
 
-  dplyr::summarise(
-    data,
-    conf_mat = {
-      table <- yardstick_table(
-        truth = !!truth,
-        estimate = !!estimate,
-        case_weights = !!case_weights
-      )
+  group_rows <- dplyr::group_rows(data)
+  group_keys <- dplyr::group_keys(data)
+  data <- dplyr::ungroup(data)
+  groups <- vec_chop(data, indices = group_rows)
+  out <- vector("list", length = length(groups))
 
-      dimnames <- dimnames(table)
-      names(dimnames) <- dnn
-      dimnames(table) <- dimnames
+  for (i in seq_along(groups)) {
+    group <- groups[[i]]
 
-      list(conf_mat.matrix(table))
+    group_truth <- group[[truth]]
+    group_estimate <- group[[estimate]]
+
+    if (is_string(case_weights)) {
+      group_case_weights <- group[[case_weights]]
     }
+
+    table <- conf_mat_impl(
+      truth = group_truth,
+      estimate = group_estimate,
+      case_weights = group_case_weights
+    )
+
+    dimnames <- dimnames(table)
+    names(dimnames) <- dnn
+    dimnames(table) <- dimnames
+
+    out[[i]] <- conf_mat.matrix(table)
+  }
+
+  out <- vec_cbind(group_keys, conf_mat = out)
+  out
+}
+
+conf_mat_impl <- function(truth, estimate, case_weights, call = caller_env()) {
+  abort_if_class_pred(truth)
+  estimate <- as_factor_from_class_pred(estimate)
+
+  estimator <- "not binary"
+  check_class_metric(truth, estimate, case_weights, estimator, call = call)
+
+  if (length(levels(truth)) < 2) {
+    abort("`truth` must have at least 2 factor levels.", call = call)
+  }
+
+  yardstick_table(
+    truth = truth,
+    estimate = estimate,
+    case_weights = case_weights
   )
 }
 
@@ -207,13 +264,11 @@ conf_mat.matrix <- function(data, ...) {
 }
 
 warn_conf_mat_dots_deprecated <- function() {
-  message <- c(
-    "The `...` argument of `conf_mat()` is deprecated as of yardstick 1.0.0.",
-    "This argument no longer has any effect, and is being ignored."
+  lifecycle::deprecate_warn(
+    when = "1.0.0",
+    what = I("The `...` argument of `conf_mat()`"),
+    details = "This argument no longer has any effect, and is being ignored."
   )
-  message <- paste0(message, collapse = "\n")
-
-  warn_deprecated(message)
 }
 
 #' @export
@@ -234,8 +289,9 @@ tidy.conf_mat <- function(x, ...) {
 
 flatten <- function(xtab) {
   p <- ncol(xtab)
-  if(nrow(xtab) != p)
+  if (nrow(xtab) != p) {
     stop("table must have equal dimensions")
+  }
   flat <- as.vector(xtab)
   names(flat) <- paste("cell", rep(1:p, p), rep(1:p, each = p), sep = "_")
   flat
@@ -301,7 +357,6 @@ summary.conf_mat <- function(object,
                              estimator = NULL,
                              event_level = yardstick_event_level(),
                              ...) {
-
   xtab <- object$table
 
   stats <- dplyr::bind_rows(
@@ -328,7 +383,7 @@ summary.conf_mat <- function(object,
 
 # Dynamically exported
 autoplot.conf_mat <- function(object, type = "mosaic", ...) {
-  type <- rlang::arg_match(type, conf_mat_plot_types)
+  type <- arg_match(type, conf_mat_plot_types)
 
   switch(type,
     mosaic = cm_mosaic(object),
@@ -382,7 +437,7 @@ cm_heat <- function(x) {
 }
 
 space_fun <- function(x, adjustment, rescale = FALSE) {
-  if(rescale) {
+  if (rescale) {
     x <- x / sum(x)
   }
 
@@ -399,8 +454,8 @@ space_y_fun <- function(data, id, x_data) {
 
   names(out) <- c("ymin", "ymax")
 
-  out$xmin = x_data[[id, 1]]
-  out$xmax = x_data[[id, 2]]
+  out$xmin <- x_data[[id, 1]]
+  out$xmax <- x_data[[id, 2]]
 
   out
 }

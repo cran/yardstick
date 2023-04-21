@@ -1,32 +1,41 @@
 #' Developer function for summarizing new metrics
 #'
-#' `metric_summarizer()` is useful alongside [metric_vec_template()] for
-#' implementing new custom metrics. `metric_summarizer()` calls the metric
-#' function inside `dplyr::summarise()`. `metric_vec_template()` is a
-#' generalized function that calls the core implementation of a metric function,
-#' and includes a number of checks on the types, lengths, and argument inputs.
-#' See [Custom performance
+#' `numeric_metric_summarizer()`, `class_metric_summarizer()`,
+#' `prob_metric_summarizer()`, `curve_metric_summarizer()`,
+#' `dynamic_survival_metric_summarizer()`, and
+#' `static_survival_metric_summarizer()` are useful alongside [check_metric] and
+#' [yardstick_remove_missing] for implementing new custom metrics. These
+#' functions call the metric function inside `dplyr::summarise()` or
+#' `dplyr::reframe()` for `curve_metric_summarizer()`. See [Custom performance
 #' metrics](https://www.tidymodels.org/learn/develop/metrics/) for more
 #' information.
 #'
 #' @details
 #'
-#' `metric_summarizer()` is generally called from the data frame version
-#' of your metric function. It knows how to call your metric over grouped data
-#' frames and returns a `tibble` consistent with other metrics.
+#' `numeric_metric_summarizer()`, `class_metric_summarizer()`,
+#' `prob_metric_summarizer()`, `curve_metric_summarizer()`,
+#' `dynamic_survival_metric_summarizer()`, and
+#' `dynamic_survival_metric_summarizer()` are generally called from the data
+#' frame version of your metric function. It knows how to call your metric over
+#' grouped data frames and returns a `tibble` consistent with other metrics.
 #'
+#' @inheritParams rlang::args_dots_empty
+#' @inheritParams rlang::args_error_context
 #'
-#' @param metric_nm A single character representing the name of the metric to
+#' @param name A single character representing the name of the metric to
 #' use in the `tibble` output. This will be modified to include the type
 #' of averaging if appropriate.
 #'
-#' @param metric_fn The vector version of your custom metric function. It
+#' @param fn The vector version of your custom metric function. It
 #' generally takes `truth`, `estimate`, `na_rm`, and any other extra arguments
 #' needed to calculate the metric.
 #'
-#' @param data The data frame with `truth` and `estimate` columns passed
-#' in from the data frame version of your metric function that called
-#' `metric_summarizer()`.
+#' @param data The data frame with `truth` and `estimate` columns passed in from
+#'   the data frame version of your metric function that called
+#'   `numeric_metric_summarizer()`, `class_metric_summarizer()`,
+#'   `prob_metric_summarizer()`, `curve_metric_summarizer()`,
+#'   `dynamic_survival_metric_summarizer()`, or
+#'   `static_survival_metric_summarizer()`.
 #'
 #' @param truth The unquoted column name corresponding to the `truth` column.
 #'
@@ -34,229 +43,694 @@
 #' the `estimate` column. For metrics that take multiple columns through `...`
 #' like class probability metrics, this is a result of [dots_to_estimate()].
 #'
-#' @param estimator For numeric metrics, this is left as `NULL` so averaging
-#' is not passed on to the metric function implementation. For classification
-#' metrics, this can either be `NULL` for the default auto-selection of
-#' averaging (`"binary"` or `"macro"`), or a single character to pass along
-#' to the metric implementation describing the kind of averaging to use.
+#' @param estimator This can either be `NULL` for the default auto-selection of
+#' averaging (`"binary"` or `"macro"`), or a single character to pass along to
+#' the metric implementation describing the kind of averaging to use.
 #'
 #' @param na_rm A `logical` value indicating whether `NA` values should be
 #' stripped before the computation proceeds. The removal is executed in
-#' `metric_vec_template()`.
+#' [yardstick_remove_missing()].
 #'
-#' @param event_level For numeric metrics, this is left as `NULL` to prevent
-#' it from being passed on to the metric function implementation. For
-#' classification metrics, this can either be `NULL` to use the default
-#' `event_level` value of the `metric_fn` or a single string of either
-#' `"first"` or `"second"` to pass along describing which level should be
-#' considered the "event".
+#' @param event_level This can either be `NULL` to use the default `event_level`
+#' value of the `fn` or a single string of either `"first"` or `"second"`
+#' to pass along describing which level should be considered the "event".
 #'
 #' @param case_weights For metrics supporting case weights, an unquoted
 #' column name corresponding to case weights can be passed here. If not `NULL`,
-#' the case weights will be passed on to `metric_fn` as the named argument
+#' the case weights will be passed on to `fn` as the named argument
 #' `case_weights`.
 #'
-#' @param ... Currently not used. Metric specific options are passed in
-#' through `metric_fn_options`.
-#'
-#' @param metric_fn_options A named list of metric specific options. These
+#' @param fn_options A named list of metric specific options. These
 #' are spliced into the metric function call using `!!!` from `rlang`. The
 #' default results in nothing being spliced into the call.
 #'
-#' @seealso [metric_vec_template()] [finalize_estimator()] [dots_to_estimate()]
+#' @seealso [check_metric] [yardstick_remove_missing] [finalize_estimator()] [dots_to_estimate()]
 #'
+#' @name metric-summarizers
+NULL
+
+#' @rdname metric-summarizers
 #' @export
-metric_summarizer <- function(metric_nm,
-                              metric_fn,
-                              data,
-                              truth,
-                              estimate,
-                              estimator = NULL,
-                              na_rm = TRUE,
-                              event_level = NULL,
-                              case_weights = NULL,
-                              ...,
-                              metric_fn_options = list()) {
+numeric_metric_summarizer <- function(name,
+                                      fn,
+                                      data,
+                                      truth,
+                                      estimate,
+                                      ...,
+                                      na_rm = TRUE,
+                                      case_weights = NULL,
+                                      fn_options = list(),
+                                      error_call = caller_env()) {
+  check_dots_empty(call = error_call)
+
   truth <- enquo(truth)
   estimate <- enquo(estimate)
   case_weights <- enquo(case_weights)
 
-  validate_not_missing(truth, "truth")
-  validate_not_missing(estimate, "estimate")
-
-  # Explicit handling of length 1 character vectors as column names
-  nms <- colnames(data)
-  truth <- handle_chr_names(truth, nms)
-  estimate <- handle_chr_names(estimate, nms)
-
-  finalize_estimator_expr <- rlang::expr(
-    finalize_estimator(!! truth, estimator, metric_nm)
+  truth <- yardstick_eval_select(
+    expr = truth,
+    data = data,
+    arg = "truth",
+    error_call = error_call
+  )
+  estimate <- yardstick_eval_select(
+    expr = estimate,
+    data = data,
+    arg = "estimate",
+    error_call = error_call
   )
 
-  metric_tbl <- dplyr::summarise(
-    data,
-    .metric = metric_nm,
-    .estimator = eval_tidy(finalize_estimator_expr),
-    .estimate = metric_fn(
-      truth = !! truth,
-      estimate = !! estimate,
-      !!! spliceable_estimator(estimator),
-      na_rm = na_rm,
-      !!! spliceable_event_level(event_level),
-      !!! spliceable_case_weights(case_weights),
-      !!! metric_fn_options
+  if (quo_is_null(case_weights)) {
+    group_case_weights <- NULL
+  } else {
+    case_weights <- yardstick_eval_select(
+      expr = case_weights,
+      data = data,
+      arg = "case_weights",
+      error_call = error_call
     )
+  }
+
+  group_rows <- dplyr::group_rows(data)
+  group_keys <- dplyr::group_keys(data)
+  data <- dplyr::ungroup(data)
+  groups <- vec_chop(data, indices = group_rows)
+  out <- vector("list", length = length(groups))
+
+  for (i in seq_along(groups)) {
+    group <- groups[[i]]
+
+    group_truth <- group[[truth]]
+    group_estimate <- group[[estimate]]
+
+    if (is_string(case_weights)) {
+      group_case_weights <- group[[case_weights]]
+    }
+
+    elt_out <- list(
+      .metric = name,
+      .estimator = finalize_estimator(
+        group_truth,
+        metric_class = name,
+        call = error_call
+      ),
+      .estimate = inject(
+        withCallingHandlers(
+          fn(
+            truth = group_truth,
+            estimate = group_estimate,
+            case_weights = group_case_weights,
+            na_rm = na_rm,
+            !!!fn_options
+          ),
+          error = function(cnd) {
+            cnd$call <- error_call
+            cnd_signal(cnd)
+          }
+        )
+      )
+    )
+
+    out[[i]] <- tibble::new_tibble(elt_out)
+  }
+
+  group_keys <- vec_rep_each(group_keys, times = list_sizes(out))
+  out <- vec_rbind(!!!out)
+  out <- vec_cbind(group_keys, out)
+
+  out
+}
+
+#' @rdname metric-summarizers
+#' @export
+class_metric_summarizer <- function(name,
+                                    fn,
+                                    data,
+                                    truth,
+                                    estimate,
+                                    ...,
+                                    estimator = NULL,
+                                    na_rm = TRUE,
+                                    event_level = NULL,
+                                    case_weights = NULL,
+                                    fn_options = list(),
+                                    error_call = caller_env()) {
+  check_dots_empty(call = error_call)
+
+  truth <- enquo(truth)
+  estimate <- enquo(estimate)
+  case_weights <- enquo(case_weights)
+
+  truth <- yardstick_eval_select(
+    expr = truth,
+    data = data,
+    arg = "truth",
+    error_call = error_call
+  )
+  estimate <- yardstick_eval_select(
+    expr = estimate,
+    data = data,
+    arg = "estimate",
+    error_call = error_call
   )
 
-  dplyr::as_tibble(metric_tbl)
+  if (quo_is_null(case_weights)) {
+    group_case_weights <- NULL
+  } else {
+    case_weights <- yardstick_eval_select(
+      expr = case_weights,
+      data = data,
+      arg = "case_weights",
+      error_call = error_call
+    )
+  }
+
+  group_rows <- dplyr::group_rows(data)
+  group_keys <- dplyr::group_keys(data)
+  data <- dplyr::ungroup(data)
+  groups <- vec_chop(data, indices = group_rows)
+  out <- vector("list", length = length(groups))
+
+  for (i in seq_along(groups)) {
+    group <- groups[[i]]
+
+    group_truth <- group[[truth]]
+    group_estimate <- group[[estimate]]
+
+    if (is_string(case_weights)) {
+      group_case_weights <- group[[case_weights]]
+    }
+
+    elt_out <- list(
+      .metric = name,
+      .estimator = finalize_estimator(
+        group_truth,
+        estimator,
+        name,
+        call = error_call
+      ),
+      .estimate = inject(
+        withCallingHandlers(
+          fn(
+            truth = group_truth,
+            estimate = group_estimate,
+            case_weights = group_case_weights,
+            na_rm = na_rm,
+            !!!spliceable_argument(estimator, "estimator"),
+            !!!spliceable_argument(event_level, "event_level"),
+            !!!fn_options
+          ),
+          error = function(cnd) {
+            cnd$call <- error_call
+            cnd_signal(cnd)
+          }
+        )
+      )
+    )
+
+    out[[i]] <- tibble::new_tibble(elt_out)
+  }
+
+  group_keys <- vec_rep_each(group_keys, times = list_sizes(out))
+  out <- vec_rbind(!!!out)
+  out <- vec_cbind(group_keys, out)
+
+  out
 }
 
-#' Developer function for calling new metrics
-#'
-#' `metric_vec_template()` is useful alongside [metric_summarizer()] for
-#' implementing new custom metrics. `metric_summarizer()` calls the metric
-#' function inside `dplyr::summarise()`. `metric_vec_template()` is a
-#' generalized function that calls the core implementation of a metric function,
-#' and includes a number of checks on the types, lengths, and argument inputs.
-#'
-#' @param metric_impl The core implementation function of your custom metric.
-#' This core implementation function is generally defined inside the vector
-#' method of your metric function.
-#'
-#' @param truth The realized vector of `truth`. This is either a factor
-#' or a numeric.
-#'
-#' @param estimate The realized `estimate` result. This is either a numeric
-#' vector, a factor vector, or a numeric matrix (in the case of multiple
-#' class probability columns) depending on your metric function.
-#'
-#' @param na_rm A `logical` value indicating whether `NA` values should be
-#' stripped before the computation proceeds. `NA` values are removed
-#' before getting to your core implementation function so you do not have to
-#' worry about handling them yourself. If `na_rm=FALSE` and any `NA` values
-#' exist, then `NA` is automatically returned.
-#'
-#' @param cls A character vector of length 1 or 2 corresponding to the
-#' class that `truth` and `estimate` should be, respectively. If `truth` and
-#' `estimate` are of the same class, just supply a vector of length 1. If
-#' they are different, supply a vector of length 2. For matrices, it is best
-#' to supply `"numeric"` as the class to check here.
-#'
-#' @param estimator The type of averaging to use. By this point, the averaging
-#' type should be finalized, so this should be a character vector of length 1\.
-#' By default, this character value is required to be one of: `"binary"`,
-#' `"macro"`, `"micro"`, or `"macro_weighted"`. If your metric allows more
-#' or less averaging methods, override this with `averaging_override`.
-#'
-#' @param case_weights Optionally, the realized case weights, as a numeric
-#' vector. This must be the same length as `truth`, and will be considered in
-#' the `na_rm` checks. If supplied, this will be passed on to `metric_impl` as
-#' the named argument `case_weights`.
-#'
-#' @param ... Extra arguments to your core metric function, `metric_impl`, can
-#' technically be passed here, but generally the extra args are added through
-#' R's scoping rules because the core metric function is created on the fly
-#' when the vector method is called.
-#'
-#' @details
-#'
-#' `metric_vec_template()` is called from the vector implementation of your
-#' metric. Also defined inside your vector implementation is a separate
-#' function performing the core implementation of the metric function. This
-#' core function is passed along to `metric_vec_template()` as `metric_impl`.
-#'
-#' @seealso [metric_summarizer()] [finalize_estimator()] [dots_to_estimate()]
-#'
+#' @rdname metric-summarizers
 #' @export
-metric_vec_template <- function(metric_impl,
-                                truth,
-                                estimate,
-                                na_rm = TRUE,
-                                cls = "numeric",
-                                estimator = NULL,
-                                case_weights = NULL,
-                                ...) {
-  if (is_class_pred(truth)) {
-    truth <- as_factor_from_class_pred(truth)
-  }
-  if (is_class_pred(estimate)) {
-    estimate <- as_factor_from_class_pred(estimate)
-  }
+prob_metric_summarizer <- function(name,
+                                   fn,
+                                   data,
+                                   truth,
+                                   ...,
+                                   estimator = NULL,
+                                   na_rm = TRUE,
+                                   event_level = NULL,
+                                   case_weights = NULL,
+                                   fn_options = list(),
+                                   error_call = caller_env()) {
+  truth <- enquo(truth)
+  case_weights <- enquo(case_weights)
 
-  validate_truth_estimate_checks(truth, estimate, cls, estimator)
-  validate_case_weights(case_weights, size = length(truth))
+  truth <- yardstick_eval_select(
+    expr = truth,
+    data = data,
+    arg = "truth",
+    error_call = error_call
+  )
+  estimate <- yardstick_eval_select_dots(
+    ...,
+    data = data,
+    error_call = error_call
+  )
 
-  has_case_weights <- !is.null(case_weights)
-
-  if (na_rm) {
-    complete_cases <- stats::complete.cases(truth, estimate, case_weights)
-    truth <- truth[complete_cases]
-
-    if (is.matrix(estimate)) {
-      estimate <- estimate[complete_cases, , drop = FALSE]
-    } else {
-      estimate <- estimate[complete_cases]
-    }
-
-    if (has_case_weights) {
-      case_weights <- case_weights[complete_cases]
-    }
+  if (quo_is_null(case_weights)) {
+    group_case_weights <- NULL
   } else {
-    any_na <-
-      anyNA(truth) ||
-      anyNA(estimate) ||
-      (has_case_weights && anyNA(case_weights))
+    case_weights <- yardstick_eval_select(
+      expr = case_weights,
+      data = data,
+      arg = "case_weights",
+      error_call = error_call
+    )
+  }
 
-    # return NA if any NA
-    if (any_na) {
-      return(NA_real_)
+  group_rows <- dplyr::group_rows(data)
+  group_keys <- dplyr::group_keys(data)
+  data <- dplyr::ungroup(data)
+  groups <- vec_chop(data, indices = group_rows)
+  out <- vector("list", length = length(groups))
+
+  for (i in seq_along(groups)) {
+    group <- groups[[i]]
+
+    group_truth <- group[[truth]]
+    group_estimate <- prob_estimate_convert(group[estimate])
+
+    if (is_string(case_weights)) {
+      group_case_weights <- group[[case_weights]]
     }
+
+    elt_out <- list(
+      .metric = name,
+      .estimator = finalize_estimator(
+        group_truth,
+        estimator,
+        name,
+        call = error_call
+      ),
+      .estimate = inject(
+        withCallingHandlers(
+          fn(
+            truth = group_truth,
+            estimate = group_estimate,
+            case_weights = group_case_weights,
+            na_rm = na_rm,
+            !!!spliceable_argument(estimator, "estimator"),
+            !!!spliceable_argument(event_level, "event_level"),
+            !!!fn_options
+          ),
+          error = function(cnd) {
+            cnd$call <- error_call
+            cnd_signal(cnd)
+          }
+        )
+      )
+    )
+
+    out[[i]] <- tibble::new_tibble(elt_out)
   }
 
-  if (has_case_weights) {
-    metric_impl(truth = truth, estimate = estimate, case_weights = case_weights, ...)
-  } else {
-    # Assume signature doesn't have `case_weights =`
-    metric_impl(truth = truth, estimate = estimate, ...)
-  }
+  group_keys <- vec_rep_each(group_keys, times = list_sizes(out))
+  out <- vec_rbind(!!!out)
+  out <- vec_cbind(group_keys, out)
+
+  out
 }
 
-validate_case_weights <- function(case_weights, size) {
-  if (is.null(case_weights)) {
-    return(invisible())
+#' @rdname metric-summarizers
+#' @export
+curve_metric_summarizer <- function(name,
+                                    fn,
+                                    data,
+                                    truth,
+                                    ...,
+                                    estimator = NULL,
+                                    na_rm = TRUE,
+                                    event_level = NULL,
+                                    case_weights = NULL,
+                                    fn_options = list(),
+                                    error_call = caller_env()) {
+  truth <- enquo(truth)
+  case_weights <- enquo(case_weights)
+
+  truth <- yardstick_eval_select(
+    expr = truth,
+    data = data,
+    arg = "truth",
+    error_call = error_call
+  )
+  estimate <- yardstick_eval_select_dots(
+    ...,
+    data = data,
+    error_call = error_call
+  )
+
+  if (quo_is_null(case_weights)) {
+    group_case_weights <- NULL
+  } else {
+    case_weights <- yardstick_eval_select(
+      expr = case_weights,
+      data = data,
+      arg = "case_weights",
+      error_call = error_call
+    )
   }
 
-  if (!is.integer(case_weights) && !is.double(case_weights)) {
-    abort("`case_weights` must be an integer or double vector.")
+  group_rows <- dplyr::group_rows(data)
+  group_keys <- dplyr::group_keys(data)
+  data <- dplyr::ungroup(data)
+  groups <- vec_chop(data, indices = group_rows)
+  out <- vector("list", length = length(groups))
+
+  for (i in seq_along(groups)) {
+    group <- groups[[i]]
+
+    group_truth <- group[[truth]]
+    group_estimate <- prob_estimate_convert(group[estimate])
+
+    if (is_string(case_weights)) {
+      group_case_weights <- group[[case_weights]]
+    }
+
+    elt_out <- list(
+      .metric = name,
+      .estimator = finalize_estimator(
+        group_truth,
+        estimator,
+        name,
+        call = error_call
+      ),
+      .estimate = inject(
+        withCallingHandlers(
+          fn(
+            truth = group_truth,
+            estimate = group_estimate,
+            case_weights = group_case_weights,
+            na_rm = na_rm,
+            !!!spliceable_argument(estimator, "estimator"),
+            !!!spliceable_argument(event_level, "event_level"),
+            !!!fn_options
+          ),
+          error = function(cnd) {
+            cnd$call <- error_call
+            cnd_signal(cnd)
+          }
+        )
+      )
+    )
+
+    elt_out <- vec_recycle_common(!!!elt_out)
+    out[[i]] <- tibble::new_tibble(elt_out)
   }
 
-  size_case_weights <- length(case_weights)
+  group_keys <- vec_rep_each(group_keys, times = list_sizes(out))
+  out <- vec_rbind(!!!out)
+  out <- vec_cbind(group_keys, out)
 
-  if (size_case_weights != size) {
-    abort(paste0(
-      "`case_weights` (", size_case_weights, ") must have the same ",
-      "length as `truth` (", size, ")."
-    ))
-  }
-
-  invisible()
+  out
 }
 
-handle_chr_names <- function(x, nms) {
-  x_expr <- get_expr(x)
+#' @rdname metric-summarizers
+#' @export
+dynamic_survival_metric_summarizer <- function(name,
+                                               fn,
+                                               data,
+                                               truth,
+                                               ...,
+                                               na_rm = TRUE,
+                                               case_weights = NULL,
+                                               fn_options = list(),
+                                               error_call = caller_env()) {
+  truth <- enquo(truth)
+  case_weights <- enquo(case_weights)
 
-  # Replace character with bare name
-  if(is.character(x_expr) && length(x_expr) == 1) {
-    # Only replace if it is actually a column name in `data`
-    if(x_expr %in% nms) {
-      # Replace the quosure with just the name
-      # Don't replace the quosure expression, this
-      # breaks with dplyr 0.8.0.1 and R <= 3.4.4
-      x <- as.name(x_expr)
-    }
+  truth <- yardstick_eval_select(
+    expr = truth,
+    data = data,
+    arg = "truth",
+    error_call = error_call
+  )
+  estimate <- yardstick_eval_select_dots(
+    ...,
+    data = data,
+    error_call = error_call
+  )
+
+  if (quo_is_null(case_weights)) {
+    group_case_weights <- NULL
+  } else {
+    case_weights <- yardstick_eval_select(
+      expr = case_weights,
+      data = data,
+      arg = "case_weights",
+      error_call = error_call
+    )
   }
 
-  x
+  group_rows <- dplyr::group_rows(data)
+  group_keys <- dplyr::group_keys(data)
+  data <- dplyr::ungroup(data)
+  groups <- vec_chop(data, indices = group_rows)
+  out <- vector("list", length = length(groups))
+
+  for (i in seq_along(groups)) {
+    group <- groups[[i]]
+
+    group_truth <- group[[truth]]
+    group_estimate <- group[[estimate]]
+
+    if (is_string(case_weights)) {
+      group_case_weights <- group[[case_weights]]
+    }
+
+    elt_out <- list(
+      .metric = name,
+      .estimator = finalize_estimator(
+        group_truth,
+        metric_class = name,
+        call = error_call
+      ),
+      .estimate = inject(
+        withCallingHandlers(
+          fn(
+            truth = group_truth,
+            estimate = group_estimate,
+            case_weights = group_case_weights,
+            na_rm = na_rm,
+            !!!fn_options
+          ),
+          error = function(cnd) {
+            cnd$call <- error_call
+            cnd_signal(cnd)
+          }
+        )
+      )
+    )
+
+    elt_out <- vec_recycle_common(!!!elt_out)
+    out[[i]] <- tibble::new_tibble(elt_out)
+  }
+
+  group_keys <- vec_rep_each(group_keys, times = list_sizes(out))
+  out <- vec_rbind(!!!out)
+  out <- vec_cbind(group_keys, out)
+
+  if (inherits(out$.estimate, "tbl_df")) {
+    out <- tidyr::unnest(out, .estimate)
+  }
+
+  out
+}
+
+#' @rdname metric-summarizers
+#' @export
+static_survival_metric_summarizer <- function(name,
+                                              fn,
+                                              data,
+                                              truth,
+                                              estimate,
+                                              ...,
+                                              na_rm = TRUE,
+                                              case_weights = NULL,
+                                              fn_options = list(),
+                                              error_call = caller_env()) {
+  check_dots_empty(call = error_call)
+
+  truth <- enquo(truth)
+  estimate <- enquo(estimate)
+  case_weights <- enquo(case_weights)
+
+  truth <- yardstick_eval_select(
+    expr = truth,
+    data = data,
+    arg = "truth",
+    error_call = error_call
+  )
+  estimate <- yardstick_eval_select(
+    expr = estimate,
+    data = data,
+    arg = "estimate",
+    error_call = error_call
+  )
+
+  if (quo_is_null(case_weights)) {
+    group_case_weights <- NULL
+  } else {
+    case_weights <- yardstick_eval_select(
+      expr = case_weights,
+      data = data,
+      arg = "case_weights",
+      error_call = error_call
+    )
+  }
+
+  group_rows <- dplyr::group_rows(data)
+  group_keys <- dplyr::group_keys(data)
+  data <- dplyr::ungroup(data)
+  groups <- vec_chop(data, indices = group_rows)
+  out <- vector("list", length = length(groups))
+
+  for (i in seq_along(groups)) {
+    group <- groups[[i]]
+
+    group_truth <- group[[truth]]
+    group_estimate <- group[[estimate]]
+
+    if (is_string(case_weights)) {
+      group_case_weights <- group[[case_weights]]
+    }
+
+    elt_out <- list(
+      .metric = name,
+      .estimator = finalize_estimator(
+        group_truth,
+        metric_class = name,
+        call = error_call
+      ),
+      .estimate = inject(
+        withCallingHandlers(
+          fn(
+            truth = group_truth,
+            estimate = group_estimate,
+            case_weights = group_case_weights,
+            na_rm = na_rm,
+            !!!fn_options
+          ),
+          error = function(cnd) {
+            cnd$call <- error_call
+            cnd_signal(cnd)
+          }
+        )
+      )
+    )
+
+    out[[i]] <- tibble::new_tibble(elt_out)
+  }
+
+  group_keys <- vec_rep_each(group_keys, times = list_sizes(out))
+  out <- vec_rbind(!!!out)
+  out <- vec_cbind(group_keys, out)
+
+  out
+}
+
+#' @rdname metric-summarizers
+#' @export
+curve_survival_metric_summarizer <- function(name,
+                                             fn,
+                                             data,
+                                             truth,
+                                             ...,
+                                             na_rm = TRUE,
+                                             case_weights = NULL,
+                                             fn_options = list(),
+                                             error_call = caller_env()) {
+  truth <- enquo(truth)
+  case_weights <- enquo(case_weights)
+
+  truth <- yardstick_eval_select(
+    expr = truth,
+    data = data,
+    arg = "truth",
+    error_call = error_call
+  )
+  estimate <- yardstick_eval_select_dots(
+    ...,
+    data = data,
+    error_call = error_call
+  )
+
+  if (quo_is_null(case_weights)) {
+    group_case_weights <- NULL
+  } else {
+    case_weights <- yardstick_eval_select(
+      expr = case_weights,
+      data = data,
+      arg = "case_weights",
+      error_call = error_call
+    )
+  }
+
+  group_rows <- dplyr::group_rows(data)
+  group_keys <- dplyr::group_keys(data)
+  data <- dplyr::ungroup(data)
+  groups <- vec_chop(data, indices = group_rows)
+  out <- vector("list", length = length(groups))
+
+  for (i in seq_along(groups)) {
+    group <- groups[[i]]
+
+    group_truth <- group[[truth]]
+    group_estimate <- prob_estimate_convert(group[estimate])
+
+    if (is_string(case_weights)) {
+      group_case_weights <- group[[case_weights]]
+    }
+
+    elt_out <- list(
+      .metric = name,
+      .estimator = finalize_estimator(
+        group_truth,
+        metric_class = name,
+        call = error_call
+      ),
+      .estimate = inject(
+        withCallingHandlers(
+          fn(
+            truth = group_truth,
+            estimate = group_estimate,
+            case_weights = group_case_weights,
+            na_rm = na_rm,
+            !!!fn_options
+          ),
+          error = function(cnd) {
+            cnd$call <- error_call
+            cnd_signal(cnd)
+          }
+        )
+      )
+    )
+
+    elt_out <- vec_recycle_common(!!!elt_out)
+    out[[i]] <- tibble::new_tibble(elt_out)
+  }
+
+  group_keys <- vec_rep_each(group_keys, times = list_sizes(out))
+  out <- vec_rbind(!!!out)
+  out <- vec_cbind(group_keys, out)
+
+  out
+}
+
+prob_estimate_convert <- function(estimate) {
+  if (!is.data.frame(estimate)) {
+    abort("`estimate` should be a data frame.", .internal = TRUE)
+  }
+
+  n_estimate <- ncol(estimate)
+
+  if (n_estimate == 0L) {
+    abort("`estimate` should have errored during tidy-selection.", .internal = TRUE)
+  } else if (n_estimate == 1L) {
+    # Unwrap single column `estimate`s
+    estimate[[1L]]
+  } else {
+    # Otherwise multiclass case requires a matrix
+    as.matrix(estimate)
+  }
 }
 
 metric_tibbler <- function(.metric, .estimator, .estimate) {
@@ -267,34 +741,55 @@ metric_tibbler <- function(.metric, .estimator, .estimate) {
   )
 }
 
-# if estimator = NULL, we don't want to pass it along
-# as an argument. (autoselection will do the work for us)
-# splicing in an empty list essentially is equivalent
-# to splicing in nothing.
-spliceable_estimator <- function(estimator) {
-  if (!is.null(estimator)) {
-    return(list(estimator = estimator))
-  }
-  else {
-    return(list())
-  }
-}
-
-spliceable_event_level <- function(event_level) {
-  if (!is.null(event_level)) {
-    return(list(event_level = event_level))
-  }
-  else {
-    return(list())
-  }
-}
-
-spliceable_case_weights <- function(case_weights) {
-  if (rlang::quo_is_null(case_weights)) {
+spliceable_argument <- function(x, name) {
+  if (is.null(x)) {
     return(list())
   }
 
-  list(case_weights = case_weights)
+  out <- list(x)
+  names(out) <- name
+
+  out
 }
 
+yardstick_eval_select <- function(expr,
+                                  data,
+                                  arg,
+                                  ...,
+                                  error_call = caller_env()) {
+  check_dots_empty(call = error_call)
 
+  out <- tidyselect::eval_select(
+    expr = expr,
+    data = data,
+    allow_predicates = FALSE,
+    allow_rename = FALSE,
+    allow_empty = FALSE,
+    error_call = error_call
+  )
+  out <- names(out)
+
+  if (length(out) != 1L) {
+    message <- paste0("`", arg, "` must select exactly 1 column from `data`.")
+    abort(message, call = error_call)
+  }
+
+  out
+}
+
+yardstick_eval_select_dots <- function(...,
+                                       data,
+                                       error_call = caller_env()) {
+  out <- tidyselect::eval_select(
+    expr = expr(c(...)),
+    data = data,
+    allow_predicates = FALSE,
+    allow_rename = FALSE,
+    allow_empty = FALSE,
+    error_call = error_call
+  )
+
+  out <- names(out)
+
+  out
+}

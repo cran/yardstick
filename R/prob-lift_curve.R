@@ -33,7 +33,7 @@
 #' y-axis of the lift chart.
 #'
 #' @family curve metrics
-#' @templateVar metric_fn lift_curve
+#' @templateVar fn lift_curve
 #' @template multiclass-curve
 #' @template event_first
 #'
@@ -98,14 +98,12 @@ lift_curve.data.frame <- function(data,
                                   na_rm = TRUE,
                                   event_level = yardstick_event_level(),
                                   case_weights = NULL) {
-  estimate <- dots_to_estimate(data, !!! enquos(...))
-
-  result <- metric_summarizer(
-    metric_nm = "lift_curve",
-    metric_fn = lift_curve_vec,
+  result <- curve_metric_summarizer(
+    name = "lift_curve",
+    fn = lift_curve_vec,
     data = data,
     truth = !!enquo(truth),
-    estimate = !!estimate,
+    ...,
     na_rm = na_rm,
     event_level = event_level,
     case_weights = !!enquo(case_weights)
@@ -120,6 +118,8 @@ lift_curve_vec <- function(truth,
                            event_level = yardstick_event_level(),
                            case_weights = NULL,
                            ...) {
+  # Doesn't validate inputs here since it is done in gain_curve_vec()
+
   # tibble result, possibly grouped
   res <- gain_curve_vec(
     truth = truth,
@@ -128,6 +128,10 @@ lift_curve_vec <- function(truth,
     event_level = event_level,
     case_weights = case_weights
   )
+
+  if (identical(res, NA_real_)) {
+    return(res)
+  }
 
   res <- dplyr::mutate(res, .lift = .percent_found / .percent_tested)
 
@@ -141,7 +145,6 @@ lift_curve_vec <- function(truth,
 # dynamically exported in .onLoad()
 
 autoplot.lift_df <- function(object, ...) {
-
   `%+%` <- ggplot2::`%+%`
 
   # Remove data before first event (is this okay?)
@@ -152,20 +155,17 @@ autoplot.lift_df <- function(object, ...) {
 
   # Grouped specific chart features
   if (dplyr::is_grouped_df(object)) {
-
     # Construct the color interaction group
     grps <- dplyr::groups(object)
     interact_expr <- list(
-      color = rlang::expr(interaction(!!! grps, sep = "_"))
+      color = expr(interaction(!!!grps, sep = "_"))
     )
 
     # Add group legend label
     grps_chr <- paste0(dplyr::group_vars(object), collapse = "_")
     chart <- chart %+%
       ggplot2::labs(color = grps_chr)
-
-  }
-  else {
+  } else {
     interact_expr <- list()
   }
 
@@ -187,7 +187,7 @@ autoplot.lift_df <- function(object, ...) {
       mapping = ggplot2::aes(
         x = !!.percent_tested,
         y = !!.lift,
-        !!! interact_expr
+        !!!interact_expr
       ),
       data = object
     ) %+%
@@ -218,4 +218,3 @@ autoplot.lift_df <- function(object, ...) {
 
   chart
 }
-

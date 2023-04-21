@@ -67,14 +67,17 @@ test_that("costs$truth can be factor", {
 })
 
 test_that("binary - requires 1 column of probabilities", {
-  expect_error(classification_cost(two_class_example, truth, Class1:Class2), "`binary` metric")
+  expect_snapshot(
+    error = TRUE,
+    classification_cost(two_class_example, truth, Class1:Class2)
+  )
 })
 
 # ------------------------------------------------------------------------------
 
 test_that("multiclass - uses equal costs by default", {
   df <- data.frame(
-    obs  = factor(c("A", "A", "A", "B", "B", "C")),
+    obs = factor(c("A", "A", "A", "B", "B", "C")),
     A = c(1, .80, .51, .1, .2, .3),
     B = c(0, .05, .29, .8, .6, .3),
     C = c(0, .15, .20, .1, .2, .4)
@@ -94,22 +97,22 @@ test_that("multiclass - uses equal costs by default", {
 
 test_that("multiclass - respects user defined costs", {
   df <- data.frame(
-    obs  = factor(c("A", "A", "A", "B", "B", "C")),
+    obs = factor(c("A", "A", "A", "B", "B", "C")),
     A = c(1, .80, .51, .1, .2, .3),
     B = c(0, .05, .29, .8, .6, .3),
     C = c(0, .15, .20, .1, .2, .4)
   )
   costs <- dplyr::tribble(
     ~truth, ~estimate, ~cost,
-    "A",    "A",          0,
-    "A",    "B",          1,
-    "A",    "C",          2,
-    "B",    "A",          3,
-    "B",    "B",          0,
-    "B",    "C",          4,
-    "C",    "A",          5,
-    "C",    "B",          6,
-    "C",    "C",          0,
+    "A", "A", 0,
+    "A", "B", 1,
+    "A", "C", 2,
+    "B", "A", 3,
+    "B", "B", 0,
+    "B", "C", 4,
+    "C", "A", 5,
+    "C", "B", 6,
+    "C", "C", 0,
   )
 
   exp_cost <-
@@ -128,34 +131,34 @@ test_that("multiclass - respects user defined costs", {
 
 test_that("multiclass - fills in missing combinations with zero cost", {
   df <- data.frame(
-    obs  = factor(c("A", "A", "A", "B", "B", "C")),
+    obs = factor(c("A", "A", "A", "B", "B", "C")),
     A = c(1, .80, .51, .1, .2, .3),
     B = c(0, .05, .29, .8, .6, .3),
     C = c(0, .15, .20, .1, .2, .4)
   )
   costs_partial <- dplyr::tribble(
     ~truth, ~estimate, ~cost,
-    "A",    "A",          0,
-    #"A",    "B",          1,
-    "A",    "C",          2,
-    "B",    "A",          3,
-    #"B",    "B",          0,
-    "B",    "C",          4,
-    "C",    "A",          5,
-    #"C",    "B",          6,
-    "C",    "C",          0,
+    "A", "A", 0,
+    # "A",    "B",          1,
+    "A", "C", 2,
+    "B", "A", 3,
+    # "B",    "B",          0,
+    "B", "C", 4,
+    "C", "A", 5,
+    # "C",    "B",          6,
+    "C", "C", 0,
   )
   costs <- dplyr::tribble(
     ~truth, ~estimate, ~cost,
-    "A",    "A",          0,
-    "A",    "B",          0,
-    "A",    "C",          2,
-    "B",    "A",          3,
-    "B",    "B",          0,
-    "B",    "C",          4,
-    "C",    "A",          5,
-    "C",    "B",          0,
-    "C",    "C",          0,
+    "A", "A", 0,
+    "A", "B", 0,
+    "A", "C", 2,
+    "B", "A", 3,
+    "B", "B", 0,
+    "B", "C", 4,
+    "C", "A", 5,
+    "C", "B", 0,
+    "C", "C", 0,
   )
 
   expect_identical(
@@ -172,9 +175,20 @@ test_that("costs must be a data frame with the right column names", {
     A = c(1, .80, .51)
   )
 
-  expect_error(classification_cost(df, obs, A, costs = 1), "`NULL` or a data.frame")
-  expect_error(classification_cost(df, obs, A, costs = data.frame()), "3 columns")
-  expect_error(classification_cost(df, obs, A, costs = data.frame(x = 1, y = 2, z = 3)), "'truth', 'estimate', and 'cost'")
+  expect_snapshot(
+    error = TRUE,
+    classification_cost(df, obs, A, costs = 1)
+  )
+
+  expect_snapshot(
+    error = TRUE,
+    classification_cost(df, obs, A, costs = data.frame())
+  )
+
+  expect_snapshot(
+    error = TRUE,
+    classification_cost(df, obs, A, costs = data.frame(x = 1, y = 2, z = 3))
+  )
 })
 
 test_that("costs$estimate must contain the right levels", {
@@ -189,7 +203,10 @@ test_that("costs$estimate must contain the right levels", {
     "B",    "A",       3
   )
 
-  expect_error(classification_cost(df, obs, A, costs = costs), "can only contain 'A', 'B'")
+  expect_snapshot(
+    error = TRUE,
+    classification_cost(df, obs, A, costs = costs)
+  )
 })
 
 test_that("costs$truth must contain the right levels", {
@@ -204,7 +221,10 @@ test_that("costs$truth must contain the right levels", {
     "B",    "A",       3
   )
 
-  expect_error(classification_cost(df, obs, A, costs = costs), "can only contain 'A', 'B'")
+  expect_snapshot(
+    error = TRUE,
+    classification_cost(df, obs, A, costs = costs)
+  )
 })
 
 test_that("costs$truth, costs$estimate, and costs$cost must have the right type", {
@@ -215,24 +235,33 @@ test_that("costs$truth, costs$estimate, and costs$cost must have the right type"
 
   costs <- dplyr::tribble(
     ~truth, ~estimate, ~cost,
-    1,    "B",       2,
-    2,    "A",       3
+    1, "B", 2,
+    2, "A", 3
   )
-  expect_error(classification_cost(df, obs, A, costs = costs), "character or factor")
+  expect_snapshot(
+    error = TRUE,
+    classification_cost(df, obs, A, costs = costs)
+  )
 
   costs <- dplyr::tribble(
     ~truth, ~estimate, ~cost,
-    "A",    1,       2,
-    "B",    2,       3
+    "A", 1, 2,
+    "B", 2, 3
   )
-  expect_error(classification_cost(df, obs, A, costs = costs), "character or factor")
+  expect_snapshot(
+    error = TRUE,
+    classification_cost(df, obs, A, costs = costs)
+  )
 
   costs <- dplyr::tribble(
     ~truth, ~estimate, ~cost,
     "A",    "B",       "1",
     "B",    "A",       "2"
   )
-  expect_error(classification_cost(df, obs, A, costs = costs), "numeric column")
+  expect_snapshot(
+    error = TRUE,
+    classification_cost(df, obs, A, costs = costs)
+  )
 })
 
 test_that("costs$truth and costs$estimate cannot contain duplicate pairs", {
@@ -247,9 +276,9 @@ test_that("costs$truth and costs$estimate cannot contain duplicate pairs", {
     "A",    "B",       3
   )
 
-  expect_error(
-    classification_cost(df, obs, A, costs = costs),
-    "cannot have duplicate 'truth' / 'estimate' combinations"
+  expect_snapshot(
+    error = TRUE,
+    classification_cost(df, obs, A, costs = costs)
   )
 })
 
@@ -283,7 +312,7 @@ test_that("binary - uses case weights", {
 
 test_that("multiclass - uses case weights", {
   df <- data.frame(
-    obs  = factor(c("A", "A", "A", "B", "B", "C")),
+    obs = factor(c("A", "A", "A", "B", "B", "C")),
     A = c(1, .80, .51, .1, .2, .3),
     B = c(0, .05, .29, .8, .6, .3),
     C = c(0, .15, .20, .1, .2, .4),
@@ -291,15 +320,15 @@ test_that("multiclass - uses case weights", {
   )
   costs <- dplyr::tribble(
     ~truth, ~estimate, ~cost,
-    "A",    "A",          0,
-    "A",    "B",          1,
-    "A",    "C",          2,
-    "B",    "A",          3,
-    "B",    "B",          0,
-    "B",    "C",          4,
-    "C",    "A",          5,
-    "C",    "B",          6,
-    "C",    "C",          0,
+    "A", "A", 0,
+    "A", "B", 1,
+    "A", "C", 2,
+    "B", "A", 3,
+    "B", "B", 0,
+    "B", "C", 4,
+    "C", "A", 5,
+    "C", "B", 6,
+    "C", "C", 0,
   )
 
   exp_cost <-
@@ -315,5 +344,20 @@ test_that("multiclass - uses case weights", {
   expect_equal(
     classification_cost(df, obs, A:C, costs = costs, case_weights = weight)[[".estimate"]],
     exp_cost
+  )
+})
+
+test_that("errors with class_pred input", {
+  skip_if_not_installed("probably")
+
+  cp_truth <- probably::as_class_pred(two_class_example$truth, which = 1)
+  fct_truth <- two_class_example$truth
+  fct_truth[1] <- NA
+
+  estimate <- two_class_example$Class1
+
+  expect_snapshot(
+    error = TRUE,
+    classification_cost_vec(cp_truth, estimate)
   )
 })
