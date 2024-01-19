@@ -28,14 +28,12 @@
 #'
 #' This method automatically groups by the `.eval_time` argument.
 #'
-#' Smaller values of the score are associated with better model performance.
+#' Larger values of the score are associated with better model performance.
 #'
 #' @seealso
 #' Compute the ROC survival curve with [roc_curve_survival()].
 #'
 #' @inheritParams brier_survival
-#'
-#' @param ... Not currently used.
 #'
 #' @author Emil Hvitfeldt
 #'
@@ -57,7 +55,6 @@
 #'     truth = surv_obj,
 #'     .pred
 #'   )
-#' @keywords internal
 #' @export
 roc_auc_survival <- function(data, ...) {
   UseMethod("roc_auc_survival")
@@ -94,7 +91,12 @@ roc_auc_survival_vec <- function(truth,
                                  case_weights = NULL,
                                  ...) {
   # No checking since roc_curve_survival_vec() does checking
-  curve <- roc_curve_survival_vec(truth, estimate)
+  curve <- roc_curve_survival_vec(
+    truth = truth,
+    estimate = estimate,
+    na_rm = na_rm,
+    case_weights = case_weights
+  )
 
   curve %>%
     dplyr::group_by(.eval_time) %>%

@@ -49,14 +49,13 @@
 #'
 #' @param case_weights The optional column identifier for case weights.
 #'   This should be an unquoted column name that evaluates to a numeric column
-#'   in `data`. For `_vec()` functions, a numeric vector.
+#'   in `data`. For `_vec()` functions, a numeric vector, 
+#'   [hardhat::importance_weights()], or [hardhat::frequency_weights()].
 #'
 #' @param event_level A single string. Either `"first"` or `"second"` to specify
 #'   which level of `truth` to consider as the "event". This argument is only
-#'   applicable when `estimator = "binary"`. The default uses an
-#'   internal helper that generally defaults to `"first"`, however, if the
-#'   deprecated global option `yardstick.event_first` is set, that will be
-#'   used instead with a warning.
+#'   applicable when `estimator = "binary"`. The default uses an internal helper
+#'   that defaults to `"first"`.
 #'
 #' @param ... Not currently used.
 #'
@@ -277,14 +276,20 @@ sens_multiclass <- function(data, estimator) {
 
 
 warn_sens_undefined_binary <- function(event, count) {
-  message <- paste0(
-    "While computing binary `sens()`, no true events were detected ",
-    "(i.e. `true_positive + false_negative = 0`). ",
-    "\n",
-    "Sensitivity is undefined in this case, and `NA` will be returned.",
-    "\n",
-    "Note that ", count, " predicted event(s) actually occured for the problematic ",
-    "event level, '", event, "'."
+  message <- c(
+    "While computing binary {.fn sens}, no true events were detected \\
+    (i.e. `true_positive + false_negative = 0`).",
+    "Sensitivity is undefined in this case, and `NA` will be returned."
+  )
+
+  message <- c(
+    message,
+    paste(
+      "Note that",
+      count,
+      "predicted event(s) actually occurred for the problematic event level,",
+      event
+    )
   )
 
   warn_sens_undefined(
@@ -296,15 +301,14 @@ warn_sens_undefined_binary <- function(event, count) {
 }
 
 warn_sens_undefined_multiclass <- function(events, counts) {
-  message <- paste0(
-    "While computing multiclass `sens()`, some levels had no true events ",
-    "(i.e. `true_positive + false_negative = 0`). ",
-    "\n",
-    "Sensitivity is undefined in this case, and those levels will be removed from the averaged result.",
-    "\n",
-    "Note that the following number of predicted events actually occured for each problematic event level:",
-    "\n",
-    paste0("'", events, "': ", counts, collapse = "\n")
+  message <- c(
+    "While computing multiclass {.fn sens}, some levels had no true events \\
+    (i.e. `true_positive + false_negative = 0`).",
+    "Sensitivity is undefined in this case, and those levels will be removed \\
+    from the averaged result.",
+    "Note that the following number of predicted events actually occurred for \\
+    each problematic event level:",
+    paste0("'", events, "': ", counts, collapse = ", ")
   )
 
   warn_sens_undefined(
@@ -316,7 +320,7 @@ warn_sens_undefined_multiclass <- function(events, counts) {
 }
 
 warn_sens_undefined <- function(message, events, counts, ..., class = character()) {
-  warn(
+  cli::cli_warn(
     message = message,
     class = c(class, "yardstick_warning_sens_undefined"),
     events = events,

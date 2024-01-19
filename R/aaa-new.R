@@ -66,7 +66,7 @@ new_static_survival_metric <- function(fn, direction) {
 
 new_metric <- function(fn, direction, class = NULL) {
   if (!is.function(fn)) {
-    abort("`fn` must be a function.")
+    cli::cli_abort("{.arg fn} must be a function.")
   }
 
   direction <- arg_match(
@@ -93,4 +93,42 @@ metric_direction <- function(x) {
 `metric_direction<-` <- function(x, value) {
   attr(x, "direction") <- value
   x
+}
+
+#' @noRd
+#' @export
+print.metric <- function(x, ...) {
+  cat(format(x), sep = "\n")
+  invisible(x)
+}
+
+#' @export
+format.metric <- function(x, ...) {
+  first_class <- class(x)[[1]]
+  metric_type <-
+    switch(
+      first_class,
+      "prob_metric" = "probability metric",
+      "class_metric" = "class metric",
+      "numeric_metric" = "numeric metric",
+      "dynamic_survival_metric" = "dynamic survival metric",
+      "static_survival_metric" = "static survival metric",
+      "integrated_survival_metric" = "integrated survival metric",
+      "metric"
+    )
+
+  metric_desc <- "direction: {.field {attr(x, 'direction')}}"
+
+  by_attr <- attr(x, "by")
+  if (!is.null(by_attr)) {
+    metric_desc <-
+      c(
+        metric_desc,
+        ", group-wise on: {.field {as.character(by_attr)}}"
+      )
+  }
+
+  cli::cli_format_method(
+    cli::cli_text(c("A {metric_type} | ", metric_desc))
+  )
 }

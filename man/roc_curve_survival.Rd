@@ -15,10 +15,10 @@ roc_curve_survival(data, ...)
 
 \item{...}{The column identifier for the survival probabilities this
 should be a list column of data.frames corresponding to the output given when
-predicting with {censored} model. This should be an unquoted column name
-although this argument is passed by expression and supports
-\link[rlang:topic-inject]{quasiquotation} (you can unquote column names). For
-\verb{_vec()} functions, a numeric vector. See Details below.}
+predicting with \href{https://censored.tidymodels.org/}{censored} model. This
+should be an unquoted column name although this argument is passed by
+expression and supports \link[rlang:topic-inject]{quasiquotation} (you can
+unquote column names). For \verb{_vec()} functions, the dots are not used.}
 
 \item{truth}{The column identifier for the true survival result (that
 is created using \code{\link[survival:Surv]{survival::Surv()}}.). This should be an unquoted column name
@@ -31,7 +31,8 @@ values should be stripped before the computation proceeds.}
 
 \item{case_weights}{The optional column identifier for case weights.
 This should be an unquoted column name that evaluates to a numeric column
-in \code{data}. For \verb{_vec()} functions, a numeric vector.}
+in \code{data}. For \verb{_vec()} functions, a numeric vector,
+\code{\link[hardhat:importance_weights]{hardhat::importance_weights()}}, or \code{\link[hardhat:frequency_weights]{hardhat::frequency_weights()}}.}
 }
 \value{
 A tibble with class \code{roc_survival_df}, \code{grouped_roc_survival_df} having
@@ -107,4 +108,3 @@ Compute the area under the ROC survival curve with \code{\link[=roc_auc_survival
 Emil Hvitfeldt
 }
 \concept{survival curve metrics}
-\keyword{internal}

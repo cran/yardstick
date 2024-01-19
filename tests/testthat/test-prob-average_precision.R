@@ -24,7 +24,7 @@ test_that("known corner cases are correct", {
   df <- data.frame(truth, estimate)
 
   expect_snapshot(out <- average_precision(df, truth, estimate)$.estimate)
-  expect_identical(out, NA_real_)
+  expect_identical(out, NaN)
 
   # Same as pr_auc()
   expect_snapshot(out <- average_precision(df, truth, estimate)$.estimate)
@@ -89,6 +89,21 @@ test_that("Multiclass weighted average precision matches sklearn", {
   expect_equal(
     average_precision(hpc_cv, obs, VF:L, estimator = "macro_weighted", case_weights = weight)[[".estimate"]],
     py$case_weight$macro_weighted
+  )
+})
+
+test_that("works with hardhat case weights", {
+  df <- two_class_example
+
+  imp_wgt <- hardhat::importance_weights(seq_len(nrow(df)))
+  freq_wgt <- hardhat::frequency_weights(seq_len(nrow(df)))
+
+  expect_no_error(
+    average_precision_vec(df$truth, df$Class1, case_weights = imp_wgt)
+  )
+
+  expect_no_error(
+    average_precision_vec(df$truth, df$Class1, case_weights = freq_wgt)
   )
 })
 

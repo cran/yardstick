@@ -51,7 +51,6 @@
 #'     truth = surv_obj,
 #'     .pred
 #'   )
-#' @keywords internal
 #' @export
 brier_survival_integrated <- function(data, ...) {
   UseMethod("brier_survival_integrated")
@@ -91,6 +90,14 @@ brier_survival_integrated_vec <- function(truth,
     truth, estimate, case_weights
   )
 
+  num_eval_times <- get_unique_eval_times(estimate)
+  if (num_eval_times < 2) {
+    cli::cli_abort(
+      "At least 2 evaluation times are required. \\
+      Only {num_eval_times} unique time was given."
+    )
+  }
+
   if (na_rm) {
     result <- yardstick_remove_missing(
       truth, seq_along(estimate), case_weights
@@ -109,6 +116,11 @@ brier_survival_integrated_vec <- function(truth,
   }
 
   brier_survival_integrated_impl(truth, estimate, case_weights)
+}
+
+get_unique_eval_times <- function(x) {
+  # Since validate_surv_truth_list_estimate() makes sure they are all the same
+  length(x[[1]]$.eval_time)
 }
 
 brier_survival_integrated_impl <- function(truth,

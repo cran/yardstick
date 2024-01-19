@@ -21,6 +21,45 @@ test_that("roc_curve_auc() calculations", {
   )
 })
 
+# case weights -----------------------------------------------------------------
+
+test_that("case weights are applied", {
+  wts_res <- lung_surv %>%
+    dplyr::mutate(wts = hardhat::frequency_weights(rep(1:0, c(128, 100)))) %>%
+    roc_auc_survival(
+      truth = surv_obj,
+      .pred,
+      case_weights = wts
+    )
+
+  subset_res <- lung_surv %>%
+    dplyr::slice(1:128) %>%
+    roc_auc_survival(
+      truth = surv_obj,
+      .pred
+    )
+
+  expect_identical(subset_res, wts_res)
+})
+
+test_that("works with hardhat case weights", {
+  lung_surv <- data_lung_surv()
+  lung_surv$case_wts <- rep(2, nrow(lung_surv))
+
+  df <- lung_surv
+
+  df$imp_wgt <- hardhat::importance_weights(lung_surv$case_wts)
+  df$freq_wgt <- hardhat::frequency_weights(lung_surv$case_wts)
+
+  expect_no_error(
+    roc_auc_survival(df, truth = surv_obj, .pred, case_weights = imp_wgt)
+  )
+
+  expect_no_error(
+    roc_auc_survival(df, truth = surv_obj, .pred, case_weights = freq_wgt)
+  )
+})
+
 # self checking ----------------------------------------------------------------
 
 test_that("snapshot equivalent", {

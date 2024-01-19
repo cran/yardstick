@@ -16,7 +16,12 @@ roc_auc_survival_vec(truth, estimate, na_rm = TRUE, case_weights = NULL, ...)
 \item{data}{A \code{data.frame} containing the columns specified by \code{truth} and
 \code{...}.}
 
-\item{...}{Not currently used.}
+\item{...}{The column identifier for the survival probabilities this
+should be a list column of data.frames corresponding to the output given when
+predicting with \href{https://censored.tidymodels.org/}{censored} model. This
+should be an unquoted column name although this argument is passed by
+expression and supports \link[rlang:topic-inject]{quasiquotation} (you can
+unquote column names). For \verb{_vec()} functions, the dots are not used.}
 
 \item{truth}{The column identifier for the true survival result (that
 is created using \code{\link[survival:Surv]{survival::Surv()}}.). This should be an unquoted column name
@@ -29,12 +34,12 @@ values should be stripped before the computation proceeds.}
 
 \item{case_weights}{The optional column identifier for case weights.
 This should be an unquoted column name that evaluates to a numeric column
-in \code{data}. For \verb{_vec()} functions, a numeric vector.}
+in \code{data}. For \verb{_vec()} functions, a numeric vector,
+\code{\link[hardhat:importance_weights]{hardhat::importance_weights()}}, or \code{\link[hardhat:frequency_weights]{hardhat::frequency_weights()}}.}
 
-\item{estimate}{If \code{truth} is binary, a numeric vector of class probabilities
-corresponding to the "relevant" class. Otherwise, a matrix with as many
-columns as factor levels of \code{truth}. \emph{It is assumed that these are in the
-same order as the levels of \code{truth}.}}
+\item{estimate}{A list column of data.frames corresponding to the output
+given when predicting with \href{https://censored.tidymodels.org/}{censored}
+model. See the details for more information regarding format.}
 }
 \value{
 A \code{tibble} with columns \code{.metric}, \code{.estimator}, and \code{.estimate}.
@@ -71,7 +76,7 @@ internal data set \code{lung_surv} shows an example of the format.
 
 This method automatically groups by the \code{.eval_time} argument.
 
-Smaller values of the score are associated with better model performance.
+Larger values of the score are associated with better model performance.
 }
 \examples{
 library(dplyr)
@@ -102,4 +107,3 @@ Other dynamic survival metrics:
 Emil Hvitfeldt
 }
 \concept{dynamic survival metrics}
-\keyword{internal}

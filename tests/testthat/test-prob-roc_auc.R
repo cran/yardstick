@@ -78,9 +78,8 @@ test_that("`roc_auc()` hand-till method ignores levels with 0 observations with 
   colnames(estimate) <- c("x", "y", "z")
 
   # HandTill2001::auc(HandTill2001::multcap(truth, estimate))
-  expect_warning(
-    expect_identical(roc_auc_vec(truth, estimate), 0.5),
-    "No observations were detected in `truth` for level[(]s[)]: 'y'"
+  expect_snapshot(
+    expect_identical(roc_auc_vec(truth, estimate), 0.5)
   )
 })
 
@@ -380,6 +379,21 @@ test_that("roc_auc() - `options` is deprecated", {
       truth = two_class_example$truth,
       estimate = two_class_example$Class1
     )
+  )
+})
+
+test_that("works with hardhat case weights", {
+  df <- two_class_example
+
+  imp_wgt <- hardhat::importance_weights(seq_len(nrow(df)))
+  freq_wgt <- hardhat::frequency_weights(seq_len(nrow(df)))
+
+  expect_no_error(
+    roc_auc_vec(df$truth, df$Class1, case_weights = imp_wgt)
+  )
+
+  expect_no_error(
+    roc_auc_vec(df$truth, df$Class1, case_weights = freq_wgt)
   )
 })
 

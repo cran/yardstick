@@ -90,6 +90,26 @@
       ! Can't subset columns with `TRUE`.
       x `TRUE` must be numeric or character, not `TRUE`.
 
+---
+
+    Code
+      prob_metric_summarizer(name = "roc_auc", fn = roc_auc_vec, data = hpc_f1,
+        truth = obs, estimate = VF:L)
+    Condition
+      Error:
+      x This metric doesn't use the `estimate` argument.
+      i Specify the columns without `estimate = `.
+
+# curve_metric_summarizer()'s na_rm argument work
+
+    Code
+      curve_metric_summarizer(name = "roc_curve", fn = roc_curve_vec, data = hpc_f1_na,
+        truth = obs, VF:L, na_rm = FALSE, case_weights = NULL)
+    Condition
+      Error:
+      x Missing values were detected and `na_ra = FALSE`.
+      i Not able to perform calculations.
+
 # curve_metric_summarizer()'s errors when wrong things are passes
 
     Code
@@ -120,6 +140,16 @@
       ! Can't subset columns with `TRUE`.
       x `TRUE` must be numeric or character, not `TRUE`.
 
+---
+
+    Code
+      curve_metric_summarizer(name = "roc_curve", fn = roc_curve_vec, data = hpc_f1,
+        truth = obs, estimate = VF:L)
+    Condition
+      Error:
+      x This metric doesn't use the `estimate` argument.
+      i Specify the columns without `estimate = `.
+
 # dynamic_survival_metric_summarizer()'s errors with bad input
 
     Code
@@ -127,7 +157,7 @@
         data = lung_surv, truth = .pred_time, .pred)
     Condition
       Error:
-      ! `truth` should be a Surv object, not a `numeric`.
+      ! `truth` should be a Surv object, not a a double vector.
 
 ---
 
@@ -136,7 +166,17 @@
         data = lung_surv, truth = surv_obj, surv_obj)
     Condition
       Error:
-      ! `estimate` should be a list, not a `Surv`.
+      ! `estimate` should be a list, not a a <Surv> object.
+
+---
+
+    Code
+      dynamic_survival_metric_summarizer(name = "brier_survival", fn = brier_survival_vec,
+        data = lung_surv, truth = surv_obj, estimate = .pred)
+    Condition
+      Error:
+      x This metric doesn't use the `estimate` argument.
+      i Specify the columns without `estimate = `.
 
 # static_survival_metric_summarizer()'s errors with bad input
 
@@ -164,7 +204,7 @@
         data = lung_surv, truth = surv_obj, estimate = list)
     Condition
       Error:
-      ! `estimate` should be a numeric, not a `list`.
+      ! `estimate` should be a numeric, not a list.
 
 ---
 
@@ -177,6 +217,16 @@
       x Problematic argument:
       * obviouslywrong = TRUE
 
+# curve_survival_metric_summarizer()'s na_rm argument works
+
+    Code
+      curve_survival_metric_summarizer(name = "roc_curve_survival", fn = roc_curve_survival_vec,
+        data = lung_surv, truth = surv_obj, .pred, na_rm = FALSE, case_weights = NULL)
+    Condition
+      Error:
+      x Missing values were detected and `na_ra = FALSE`.
+      i Not able to perform calculations.
+
 # curve_survival_metric_summarizer()'s errors with bad input
 
     Code
@@ -184,7 +234,7 @@
         data = lung_surv, truth = .pred_time, .pred)
     Condition
       Error:
-      ! `truth` should be a Surv object, not a `numeric`.
+      ! `truth` should be a Surv object, not a a double vector.
 
 ---
 
@@ -193,5 +243,15 @@
         data = lung_surv, truth = surv_obj, surv_obj)
     Condition
       Error:
-      ! `estimate` should be a list, not a `Surv`.
+      ! `estimate` should be a list, not a a <Surv> object.
+
+---
+
+    Code
+      curve_survival_metric_summarizer(name = "roc_curve_survival", fn = roc_curve_survival_vec,
+        data = lung_surv, truth = surv_obj, estimate = .pred)
+    Condition
+      Error:
+      x This metric doesn't use the `estimate` argument.
+      i Specify the columns without `estimate = `.
 

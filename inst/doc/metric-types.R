@@ -4,7 +4,7 @@ knitr::opts_chunk$set(
   comment = "#>"
 )
 
-## ---- warning = FALSE, message = FALSE----------------------------------------
+## ----warning = FALSE, message = FALSE-----------------------------------------
 library(yardstick)
 library(dplyr)
 data("hpc_cv")
@@ -30,7 +30,7 @@ hpc_cv %>%
   group_by(Resample) %>%
   class_metrics(obs, estimate = pred)
 
-## ---- echo=FALSE, warning=FALSE, message=FALSE, results='asis'----------------
+## ----echo=FALSE, warning=FALSE, message=FALSE, results='asis'-----------------
 library(knitr)
 library(dplyr)
 

@@ -707,6 +707,17 @@ test_that("prob_metric_summarizer()'s errors when wrong things are passes", {
       obviouslywrong = TRUE
     )
   )
+
+  expect_snapshot(
+    error = TRUE,
+    prob_metric_summarizer(
+      name = "roc_auc",
+      fn = roc_auc_vec,
+      data = hpc_f1,
+      truth = obs,
+      estimate = VF:L
+    )
+  )
 })
 
 test_that("prob_metric_summarizer() deals with characters in truth", {
@@ -888,23 +899,18 @@ test_that("curve_metric_summarizer()'s na_rm argument work", {
 
   expect_identical(roc_curve_res, roc_curve_exp)
 
-  roc_curve_res <- curve_metric_summarizer(
-    name = "roc_curve",
-    fn = roc_curve_vec,
-    data = hpc_f1_na,
-    truth = obs,
-    VF:L,
-    na_rm = FALSE,
-    case_weights = NULL
+  expect_snapshot(
+    error = TRUE,
+    curve_metric_summarizer(
+      name = "roc_curve",
+      fn = roc_curve_vec,
+      data = hpc_f1_na,
+      truth = obs,
+      VF:L,
+      na_rm = FALSE,
+      case_weights = NULL
+    )
   )
-
-  roc_curve_exp <- dplyr::tibble(
-    .metric = "roc_curve",
-    .estimator = "multiclass",
-    .estimate = na_dbl
-  )
-
-  expect_identical(roc_curve_res, roc_curve_exp)
 })
 
 test_that("curve_metric_summarizer()'s case_weights argument work", {
@@ -968,6 +974,17 @@ test_that("curve_metric_summarizer()'s errors when wrong things are passes", {
       truth = obs,
       VF:L,
       obviouslywrong = TRUE
+    )
+  )
+
+  expect_snapshot(
+    error = TRUE,
+    curve_metric_summarizer(
+      name = "roc_curve",
+      fn = roc_curve_vec,
+      data = hpc_f1,
+      truth = obs,
+      estimate = VF:L
     )
   )
 })
@@ -1203,6 +1220,17 @@ test_that("dynamic_survival_metric_summarizer()'s errors with bad input", {
       data = lung_surv,
       truth = surv_obj,
       surv_obj
+    )
+  )
+
+  expect_snapshot(
+    error = TRUE,
+    dynamic_survival_metric_summarizer(
+      name = "brier_survival",
+      fn = brier_survival_vec,
+      data = lung_surv,
+      truth = surv_obj,
+      estimate = .pred
     )
   )
 })
@@ -1580,23 +1608,18 @@ test_that("curve_survival_metric_summarizer()'s na_rm argument works", {
 
   expect_identical(roc_curve_survival_res, roc_curve_survival_exp)
 
-  roc_curve_survival_res <- curve_survival_metric_summarizer(
-    name = "roc_curve_survival",
-    fn = roc_curve_survival_vec,
-    data = lung_surv,
-    truth = surv_obj,
-    .pred,
-    na_rm = FALSE,
-    case_weights = NULL
+  expect_snapshot(
+    error = TRUE,
+    curve_survival_metric_summarizer(
+      name = "roc_curve_survival",
+      fn = roc_curve_survival_vec,
+      data = lung_surv,
+      truth = surv_obj,
+      .pred,
+      na_rm = FALSE,
+      case_weights = NULL
+    )
   )
-
-  roc_curve_survival_exp <- dplyr::tibble(
-    .metric = "roc_curve_survival",
-    .estimator = "standard",
-    .estimate = na_dbl
-  )
-
-  expect_identical(roc_curve_survival_res, roc_curve_survival_exp)
 })
 
 test_that("curve_survival_metric_summarizer()'s case_weights argument works", {
@@ -1660,6 +1683,17 @@ test_that("curve_survival_metric_summarizer()'s errors with bad input", {
       surv_obj
     )
   )
+
+  expect_snapshot(
+    error = TRUE,
+    curve_survival_metric_summarizer(
+      name = "roc_curve_survival",
+      fn = roc_curve_survival_vec,
+      data = lung_surv,
+      truth = surv_obj,
+      estimate = .pred
+    )
+  )
 })
 
 test_that("curve_survival_metric_summarizer() deals with characters in truth and estimate", {
@@ -1718,4 +1752,13 @@ test_that("curve_survival_metric_summarizer() handles column name collisions", {
   )
 
   expect_identical(roc_survival_curve_res, roc_survival_curve_exp)
+})
+
+test_that("known selections don't affect selection without tune", {
+  # yardstick's CI reliably does not have tune installed
+  skip_if(rlang::is_installed("tune"), "tune is installed")
+
+  expect_silent({
+    test_res <- rmse(solubility_test, solubility, prediction)
+  })
 })

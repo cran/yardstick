@@ -1,8 +1,9 @@
 #' General Function to Estimate Performance
 #'
-#' This function estimates one or more common performance
-#'  estimates depending on the class of `truth` (see **Value**
-#'  below) and returns them in a three column tibble.
+#' This function estimates one or more common performance estimates depending 
+#' on the class of `truth` (see **Value** below) and returns them in a three 
+#' column tibble. If you wish to modify the metrics used or how they are used
+#' see [metric_set()].
 #'
 #' @inheritParams roc_auc
 #'
@@ -80,7 +81,7 @@ metrics.data.frame <- function(data,
 
   truth <- tidyselect::vars_pull(names, {{ truth }})
   estimate <- tidyselect::vars_pull(names, {{ estimate }})
-  probs <- unname(tidyselect::vars_select(names, ...))
+  probs <- names(tidyselect::eval_select(rlang::expr(c(...)), data))
 
   is_class <- is.factor(data[[truth]]) || is_class_pred(data[[truth]])
 
@@ -269,18 +270,47 @@ metric_set <- function(...) {
   )) {
     make_survival_metric_function(fns)
   } else {
-    abort(paste0(
-      "Internal error: `validate_function_class()` should have ",
-      "errored on unknown classes."
-    ))
+    cli::cli_abort(
+      "{.fn validate_function_class} should have errored on unknown classes.",
+      .internal = TRUE
+    )
   }
 }
 
 #' @export
 print.metric_set <- function(x, ...) {
-  info <- dplyr::as_tibble(x)
-  print(info)
+  cat(format(x), sep = "\n")
   invisible(x)
+}
+
+#' @export
+format.metric_set <- function(x, ...) {
+  metrics <- attributes(x)$metrics
+  names <- names(metrics)
+
+  cli::cli_format_method({
+    cli::cli_text("A metric set, consisting of:")
+
+    metric_formats <- vapply(metrics, format, character(1))
+    metric_formats <- strsplit(metric_formats, " | ", fixed = TRUE)
+
+    metric_names <- names(metric_formats)
+    metric_types <- vapply(metric_formats, `[`, character(1), 1, USE.NAMES = FALSE)
+    metric_descs <- vapply(metric_formats, `[`, character(1), 2)
+    metric_nchars <- nchar(metric_names) + nchar(metric_types)
+    metric_desc_paddings <- max(metric_nchars) - metric_nchars
+    # see r-lib/cli#506
+    metric_desc_paddings <- lapply(metric_desc_paddings, rep, x = "\u00a0")
+    metric_desc_paddings <- vapply(metric_desc_paddings, paste, character(1), collapse = "")
+
+    for (i in seq_along(metrics)) {
+      cli::cli_text(
+        "- {.fun {metric_names[i]}}, \\
+           {tolower(metric_types[i])}{metric_desc_paddings[i]} | \\
+           {metric_descs[i]}"
+      )
+    }
+  })
 }
 
 #' @export
@@ -315,7 +345,10 @@ get_quo_label <- function(quo) {
   out <- as_label(quo)
 
   if (length(out) != 1L) {
-    abort("Internal error: `as_label(quo)` resulted in a character vector of length >1.")
+    cli::cli_abort(
+      "{.code as_label(quo)} resulted in a character vector of length >1.",
+      .internal = TRUE
+    )
   }
 
   is_namespaced <- grepl("::", out, fixed = TRUE)
@@ -538,24 +571,23 @@ make_survival_metric_function <- function(fns) {
   metric_function
 }
 
-validate_not_empty <- function(x) {
+validate_not_empty <- function(x, call = caller_env()) {
   if (is_empty(x)) {
-    abort("`metric_set()` requires at least 1 function supplied to `...`.")
+    cli::cli_abort("At least 1 function supplied to `...`.", call = call)
   }
 }
 
-validate_inputs_are_functions <- function(fns) {
+validate_inputs_are_functions <- function(fns, call = caller_env()) {
   # Check that the user supplied all functions
   is_fun_vec <- vapply(fns, is_function, logical(1))
   all_fns <- all(is_fun_vec)
 
   if (!all_fns) {
     not_fn <- which(!is_fun_vec)
-    not_fn <- paste(not_fn, collapse = ", ")
-    stop(
-      "All inputs to `metric_set()` must be functions. ",
-      "These inputs are not: (", not_fn, ").",
-      call. = FALSE
+    cli::cli_abort(
+      "All inputs to {.fn metric_set} must be functions. \\
+      These inputs are not: {not_fn}.",
+      call = call
     )
   }
 }
@@ -624,6 +656,19 @@ validate_function_class <- function(fns) {
     }
   }
 
+  # Special case unevaluated groupwise metric factories
+  if ("metric_factory" %in% fn_cls) {
+    factories <- fn_cls[fn_cls == "metric_factory"]
+    cli::cli_abort(
+      c("{cli::qty(factories)}The input{?s} {.arg {names(factories)}} \\
+         {?is a/are} {.help [groupwise metric](yardstick::new_groupwise_metric)} \\
+         {?factory/factories} and must be passed a data-column before
+         addition to a metric set.",
+        "i" = "Did you mean to type e.g. `{names(factories)[1]}(col_name)`?"),
+      call = rlang::call2("metric_set")
+    )
+  }
+
   # Each element of the list contains the names of the fns
   # that inherit that specific class
   fn_bad_names <- lapply(fn_cls_unique, function(x) {
@@ -665,14 +710,12 @@ validate_function_class <- function(fns) {
     USE.NAMES = FALSE
   )
 
-  fn_pastable <- paste0(fn_pastable, collapse = "\n")
-
-  abort(paste0(
-    "\nThe combination of metric functions must be:\n",
-    "- only numeric metrics\n",
-    "- a mix of class metrics and class probability metrics\n\n",
-    "- a mix of dynamic and static survival metrics\n\n",
-    "The following metric function types are being mixed:\n",
+  cli::cli_abort(c(
+    "x" = "The combination of metric functions must be:",
+    "*" = "only numeric metrics.",
+    "*" = "a mix of class metrics and class probability metrics.",
+    "*" = "a mix of dynamic and static survival metrics.",
+    "i" = "The following metric function types are being mixed:",
     fn_pastable
   ))
 }
@@ -685,8 +728,11 @@ eval_safely <- function(expr, expr_nm, data = NULL, env = caller_env()) {
       eval_tidy(expr, data = data, env = env)
     },
     error = function(cnd) {
-      message <- paste0("Failed to compute `", expr_nm, "()`.")
-      abort(message, parent = cnd, call = call("metric_set"))
+      cli::cli_abort(
+        "Failed to compute {.fn {expr_nm}}.",
+        parent = cnd,
+        call = call("metric_set")
+      )
     }
   )
 }

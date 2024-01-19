@@ -19,10 +19,14 @@
 #'
 #' @param ... The column identifier for the survival probabilities this
 #' should be a list column of data.frames corresponding to the output given when
-#' predicting with {censored} model. This should be an unquoted column name
-#' although this argument is passed by expression and supports
-#' [quasiquotation][rlang::quasiquotation] (you can unquote column names). For
-#' `_vec()` functions, a numeric vector. See Details below.
+#' predicting with [censored](https://censored.tidymodels.org/) model. This 
+#' should be an unquoted column name although this argument is passed by 
+#' expression and supports [quasiquotation][rlang::quasiquotation] (you can 
+#' unquote column names). For `_vec()` functions, the dots are not used.
+#' 
+#' @param estimate A list column of data.frames corresponding to the output 
+#' given when predicting with [censored](https://censored.tidymodels.org/) 
+#' model. See the details for more information regarding format.
 #'
 #' @details
 #'
@@ -63,7 +67,6 @@
 #'     truth = surv_obj,
 #'     .pred
 #'   )
-#' @keywords internal
 #' @export
 brier_survival <- function(data, ...) {
   UseMethod("brier_survival")
@@ -138,6 +141,7 @@ brier_survival_impl <- function(truth,
   surv_status <- .extract_surv_status(truth)
 
   if (!is.null(case_weights)) {
+    case_weights <- vec_cast(case_weights, to = double())
     norm_const <- sum(case_weights)
   } else {
     case_weights <- rep(1, length(estimate))
