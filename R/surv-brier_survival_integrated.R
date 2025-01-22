@@ -43,7 +43,7 @@
 #' and comparison of prognostic classification schemes for survival data,”
 #' Statistics in Medicine, vol. 18, no. 17-18, pp. 2529–2545, 1999.
 #'
-#' @examples
+#' @examplesIf rlang::is_installed(c("tidyr"))
 #' library(dplyr)
 #'
 #' lung_surv %>%
@@ -93,7 +93,7 @@ brier_survival_integrated_vec <- function(truth,
   num_eval_times <- get_unique_eval_times(estimate)
   if (num_eval_times < 2) {
     cli::cli_abort(
-      "At least 2 evaluation times are required. \\
+      "At least 2 evaluation times are required.
       Only {num_eval_times} unique time was given."
     )
   }

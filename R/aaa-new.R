@@ -64,14 +64,14 @@ new_static_survival_metric <- function(fn, direction) {
   new_metric(fn, direction, class = "static_survival_metric")
 }
 
-new_metric <- function(fn, direction, class = NULL) {
-  if (!is.function(fn)) {
-    cli::cli_abort("{.arg fn} must be a function.")
-  }
+#' @include import-standalone-types-check.R
+new_metric <- function(fn, direction, class = NULL, call = caller_env()) {
+  check_function(fn, call = call)
 
   direction <- arg_match(
     direction,
-    values = c("maximize", "minimize", "zero")
+    values = c("maximize", "minimize", "zero"), 
+    error_call = call
   )
 
   class <- c(class, "metric", "function")

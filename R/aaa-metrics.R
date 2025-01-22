@@ -1,7 +1,7 @@
 #' General Function to Estimate Performance
 #'
-#' This function estimates one or more common performance estimates depending 
-#' on the class of `truth` (see **Value** below) and returns them in a three 
+#' This function estimates one or more common performance estimates depending
+#' on the class of `truth` (see **Value** below) and returns them in a three
 #' column tibble. If you wish to modify the metrics used or how they are used
 #' see [metric_set()].
 #'
@@ -270,6 +270,7 @@ metric_set <- function(...) {
   )) {
     make_survival_metric_function(fns)
   } else {
+    # should not be reachable
     cli::cli_abort(
       "{.fn validate_function_class} should have errored on unknown classes.",
       .internal = TRUE
@@ -305,8 +306,8 @@ format.metric_set <- function(x, ...) {
 
     for (i in seq_along(metrics)) {
       cli::cli_text(
-        "- {.fun {metric_names[i]}}, \\
-           {tolower(metric_types[i])}{metric_desc_paddings[i]} | \\
+        "- {.fun {metric_names[i]}},
+           {tolower(metric_types[i])}{metric_desc_paddings[i]} |
            {metric_descs[i]}"
       )
     }
@@ -345,6 +346,7 @@ get_quo_label <- function(quo) {
   out <- as_label(quo)
 
   if (length(out) != 1L) {
+    # should not be reachable
     cli::cli_abort(
       "{.code as_label(quo)} resulted in a character vector of length >1.",
       .internal = TRUE
@@ -573,7 +575,9 @@ make_survival_metric_function <- function(fns) {
 
 validate_not_empty <- function(x, call = caller_env()) {
   if (is_empty(x)) {
-    cli::cli_abort("At least 1 function supplied to `...`.", call = call)
+    cli::cli_abort(
+      "At least 1 function must be supplied to {.code ...}.", call = call
+    )
   }
 }
 
@@ -585,7 +589,7 @@ validate_inputs_are_functions <- function(fns, call = caller_env()) {
   if (!all_fns) {
     not_fn <- which(!is_fun_vec)
     cli::cli_abort(
-      "All inputs to {.fn metric_set} must be functions. \\
+      "All inputs to {.fn metric_set} must be functions.
       These inputs are not: {not_fn}.",
       call = call
     )
@@ -660,8 +664,8 @@ validate_function_class <- function(fns) {
   if ("metric_factory" %in% fn_cls) {
     factories <- fn_cls[fn_cls == "metric_factory"]
     cli::cli_abort(
-      c("{cli::qty(factories)}The input{?s} {.arg {names(factories)}} \\
-         {?is a/are} {.help [groupwise metric](yardstick::new_groupwise_metric)} \\
+      c("{cli::qty(factories)}The input{?s} {.arg {names(factories)}}
+         {?is a/are} {.help [groupwise metric](yardstick::new_groupwise_metric)}
          {?factory/factories} and must be passed a data-column before
          addition to a metric set.",
         "i" = "Did you mean to type e.g. `{names(factories)[1]}(col_name)`?"),
@@ -717,7 +721,8 @@ validate_function_class <- function(fns) {
     "*" = "a mix of dynamic and static survival metrics.",
     "i" = "The following metric function types are being mixed:",
     fn_pastable
-  ))
+  ),
+  call = rlang::call2("metric_set"))
 }
 
 # Safely evaluate metrics in such a way that we can capture the

@@ -4,7 +4,7 @@
       validate_numeric_truth_numeric_estimate("1", 1)
     Condition
       Error:
-      ! `truth` should be a numeric, not a string.
+      ! `truth` should be a numeric vector, not a string.
 
 ---
 
@@ -12,7 +12,7 @@
       validate_numeric_truth_numeric_estimate(1, "1")
     Condition
       Error:
-      ! `estimate` should be a numeric, not a string.
+      ! `estimate` should be a numeric vector, not a string.
 
 ---
 
@@ -188,7 +188,7 @@
         .pred_time))
     Condition
       Error:
-      ! `estimate` should be a numeric, not a character vector.
+      ! `estimate` should be a numeric vector, not a character vector.
 
 ---
 
@@ -248,6 +248,14 @@
     Condition
       Error:
       ! `estimate` should be a list, not a a double vector.
+
+---
+
+    Code
+      validate_surv_truth_list_estimate(lung_surv$surv_obj[1:5, ], lung_surv$.pred)
+    Condition
+      Error:
+      ! `truth` (5) and `estimate` (228) must be the same length.
 
 ---
 

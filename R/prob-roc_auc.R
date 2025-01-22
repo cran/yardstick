@@ -163,6 +163,7 @@ roc_auc_estimator_impl <- function(truth,
     roc_auc_binary(truth, estimate, event_level, case_weights)
   } else if (estimator == "hand_till") {
     if (!is.null(case_weights)) {
+      # should be unreachable
       cli::cli_abort(
         "{.arg case_weights} should be `NULL` at this point for hand-till.",
         .internal = TRUE
@@ -262,7 +263,7 @@ finalize_estimator_roc_auc <- function(x,
     } else {
       # Manually chose hand-till and specified case weights. Not compatible!
       cli::cli_abort(
-        "Can't specify both {.code estimator = 'hand_till'} and \\
+        "Can't specify both {.code estimator = 'hand_till'} and
         {.code case_weights}."
       )
     }
@@ -315,7 +316,7 @@ roc_auc_hand_till <- function(truth, estimate) {
     lvls_missing <- lvls[indicator_missing]
 
     cli::cli_warn(c(
-      x = "No observations were detected in {.arg truth} for level{?s}: \\
+      x = "No observations were detected in {.arg truth} for level{?s}:
           {lvls_missing}.",
       i = "Computation will proceed by ignoring those levels."
     ))
@@ -399,7 +400,8 @@ warn_roc_truth_no_control <- function(control) {
 stop_roc_truth_no_control <- function(control) {
   cli::cli_abort(
     msg_roc_truth_no_control(control),
-    class = "yardstick_error_roc_truth_no_control"
+    class = "yardstick_error_roc_truth_no_control",
+    call = call("roc_curve")
   )
 }
 
@@ -415,9 +417,10 @@ warn_roc_truth_no_event <- function(event) {
     class = "yardstick_warning_roc_truth_no_event"
   )
 }
-stop_roc_truth_no_event <- function(event) {
+stop_roc_truth_no_event <- function(event, call = caller_env()) {
   cli::cli_abort(
     msg_roc_truth_no_event(event),
-    class = "yardstick_error_roc_truth_no_event"
+    class = "yardstick_error_roc_truth_no_event",
+    call = call
   )
 }

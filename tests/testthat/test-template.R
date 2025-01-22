@@ -14,6 +14,17 @@ test_that("missing values in case weights are considered by `na_rm`", {
   )
 })
 
+test_that("errors are thrown if truth or estimate selects more than 1 column", {
+  expect_snapshot(
+    error = TRUE,
+    rmse(mtcars, mpg, tidyselect::starts_with("d"))
+  )
+  expect_snapshot(
+    error = TRUE,
+    rmse(mtcars, tidyselect::starts_with("d"), mpg)
+  )
+})
+
 ## numeric_metric_summarizer --------------------------------------------------
 
 test_that("numeric_metric_summarizer() works as expected", {
@@ -1044,6 +1055,8 @@ test_that("curve_metric_summarizer() handles column name collisions", {
 ## dynamic_survival_metric_summarizer -----------------------------------------
 
 test_that("dynamic_survival_metric_summarizer() works as expected", {
+  skip_if_not_installed("tidyr")
+
   lung_surv <- data_lung_surv()
 
   brier_survival_res <- dynamic_survival_metric_summarizer(
@@ -1071,6 +1084,8 @@ test_that("dynamic_survival_metric_summarizer() works as expected", {
 })
 
 test_that("dynamic_survival_metric_summarizer() works with grouped input", {
+  skip_if_not_installed("tidyr")
+
   lung_surv <- data_lung_surv()
   lung_surv$group <- rep(1:2, length.out = nrow(lung_surv))
 
@@ -1107,6 +1122,8 @@ test_that("dynamic_survival_metric_summarizer() works with grouped input", {
 })
 
 test_that("dynamic_survival_metric_summarizer()'s na_rm argument works", {
+  skip_if_not_installed("tidyr")
+
   lung_surv <- data_lung_surv()
   lung_surv[1:5, 3] <- NA
 
@@ -1160,6 +1177,8 @@ test_that("dynamic_survival_metric_summarizer()'s na_rm argument works", {
 })
 
 test_that("dynamic_survival_metric_summarizer()'s case_weights argument works", {
+  skip_if_not_installed("tidyr")
+
   lung_surv <- data_lung_surv()
   lung_surv$wts <- seq_len(nrow(lung_surv))
 
@@ -1189,6 +1208,8 @@ test_that("dynamic_survival_metric_summarizer()'s case_weights argument works", 
 })
 
 test_that("dynamic_survival_metric_summarizer()'s errors with bad input", {
+  skip_if_not_installed("tidyr")
+
   lung_surv <- data_lung_surv()
 
   brier_survival_res <- dynamic_survival_metric_summarizer(
@@ -1236,6 +1257,8 @@ test_that("dynamic_survival_metric_summarizer()'s errors with bad input", {
 })
 
 test_that("dynamic_survival_metric_summarizer() deals with characters in truth and estimate", {
+  skip_if_not_installed("tidyr")
+
   lung_surv <- data_lung_surv()
 
   brier_survival_res <- dynamic_survival_metric_summarizer(
@@ -1263,6 +1286,8 @@ test_that("dynamic_survival_metric_summarizer() deals with characters in truth a
 })
 
 test_that("dynamic_survival_metric_summarizer() handles column name collisions", {
+  skip_if_not_installed("tidyr")
+
   lung_surv <- data_lung_surv()
 
   new_lung_surv <- lung_surv
@@ -1521,6 +1546,8 @@ test_that("static_survival_metric_summarizer() deals with characters in truth an
 ## curve_survival_metric_summarizer -----------------------------------------
 
 test_that("curve_survival_metric_summarizer() works as expected", {
+  skip_if_not_installed("tidyr")
+
   lung_surv <- data_lung_surv()
 
   roc_curve_survival_res <- curve_survival_metric_summarizer(
@@ -1546,6 +1573,8 @@ test_that("curve_survival_metric_summarizer() works as expected", {
 })
 
 test_that("curve_survival_metric_summarizer() works with grouped input", {
+  skip_if_not_installed("tidyr")
+
   lung_surv <- data_lung_surv()
   lung_surv$group <- rep(1:2, length.out = nrow(lung_surv))
 
@@ -1577,6 +1606,8 @@ test_that("curve_survival_metric_summarizer() works with grouped input", {
 })
 
 test_that("curve_survival_metric_summarizer()'s na_rm argument works", {
+  skip_if_not_installed("tidyr")
+
   lung_surv <- data_lung_surv()
   lung_surv[1:5, 3] <- NA
 
@@ -1623,6 +1654,8 @@ test_that("curve_survival_metric_summarizer()'s na_rm argument works", {
 })
 
 test_that("curve_survival_metric_summarizer()'s case_weights argument works", {
+  skip_if_not_installed("tidyr")
+
   lung_surv <- data_lung_surv()
   lung_surv$wts <- seq_len(nrow(lung_surv))
 
@@ -1650,6 +1683,8 @@ test_that("curve_survival_metric_summarizer()'s case_weights argument works", {
 })
 
 test_that("curve_survival_metric_summarizer()'s errors with bad input", {
+  skip_if_not_installed("tidyr")
+
   lung_surv <- data_lung_surv()
 
   roc_curve_survival_res <- curve_survival_metric_summarizer(
@@ -1696,7 +1731,9 @@ test_that("curve_survival_metric_summarizer()'s errors with bad input", {
   )
 })
 
-test_that("curve_survival_metric_summarizer() deals with characters in truth and estimate", {
+test_that("curve_survival_metric_summarizer() deals with characters n truth and estimate", {
+  skip_if_not_installed("tidyr")
+
   lung_surv <- data_lung_surv()
 
   roc_curve_survival_res <- curve_survival_metric_summarizer(
@@ -1722,6 +1759,8 @@ test_that("curve_survival_metric_summarizer() deals with characters in truth and
 })
 
 test_that("curve_survival_metric_summarizer() handles column name collisions", {
+  skip_if_not_installed("tidyr")
+
   lung_surv <- data_lung_surv()
 
   new_lung_surv <- lung_surv

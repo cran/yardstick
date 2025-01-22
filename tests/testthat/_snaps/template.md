@@ -1,3 +1,19 @@
+# errors are thrown truth or estimate selects more than 1 column
+
+    Code
+      rmse(mtcars, mpg, tidyselect::starts_with("d"))
+    Condition
+      Error in `rmse()`:
+      ! `estimate` must select exactly 1 column from `data`, not 2.
+
+---
+
+    Code
+      rmse(mtcars, tidyselect::starts_with("d"), mpg)
+    Condition
+      Error in `rmse()`:
+      ! `truth` must select exactly 1 column from `data`, not 2.
+
 # numeric_metric_summarizer()'s errors when wrong things are passes
 
     Code
@@ -204,7 +220,7 @@
         data = lung_surv, truth = surv_obj, estimate = list)
     Condition
       Error:
-      ! `estimate` should be a numeric, not a list.
+      ! `estimate` should be a numeric vector, not a list.
 
 ---
 

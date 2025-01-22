@@ -39,7 +39,7 @@
 #' [summary.conf_mat()] for computing a large number of metrics from one
 #' confusion matrix.
 #'
-#' @examples
+#' @examplesIf rlang::is_installed(c("tidyr", "ggplot2"))
 #' library(dplyr)
 #' data("hpc_cv")
 #'
@@ -216,8 +216,8 @@ conf_mat.grouped_df <- function(data,
 }
 
 conf_mat_impl <- function(truth, estimate, case_weights, call = caller_env()) {
-  abort_if_class_pred(truth)
-  estimate <- as_factor_from_class_pred(estimate)
+  abort_if_class_pred(truth, call = call)
+  estimate <- as_factor_from_class_pred(estimate, call = call)
 
   estimator <- "not binary"
   check_class_metric(truth, estimate, case_weights, estimator, call = call)
@@ -297,7 +297,7 @@ flatten <- function(xtab, call = caller_env()) {
   n_row <- nrow(xtab)
   if (n_row != n_col) {
     cli::cli_abort(
-      "{.arg x} must have equal dimensions. \\
+      "{.arg x} must have equal dimensions.
       {.arg x} has {n_col} columns and {n_row} rows.",
       call = call
     )
@@ -342,7 +342,7 @@ flatten <- function(xtab, call = caller_env()) {
 #'
 #' [conf_mat()]
 #'
-#' @examples
+#' @examplesIf rlang::is_installed(c("tidyr"))
 #' data("two_class_example")
 #'
 #' cmat <- conf_mat(two_class_example, truth = "truth", estimate = "predicted")
