@@ -8,10 +8,20 @@
 #'
 #' @family numeric metrics
 #' @family accuracy metrics
+#' @seealso [All numeric metrics][numeric-metrics]
 #' @templateVar fn mape
 #' @template return
 #'
 #' @inheritParams rmse
+#'
+#' @details
+#' MAPE is a metric that should be `r attr(mape, "direction")`d. The output
+#' ranges from `r metric_range_chr(mape, 1)` to `r metric_range_chr(mape, 2)`, with
+#' `r metric_optimal(mape)` indicating perfect predictions.
+#'
+#' The formula for MAPE is:
+#'
+#' \deqn{\text{MAPE} = \frac{100}{n} \sum_{i=1}^{n} \left| \frac{\text{truth}_i - \text{estimate}_i}{\text{truth}_i} \right|}
 #'
 #' @author Max Kuhn
 #'
@@ -24,17 +34,20 @@ mape <- function(data, ...) {
 }
 mape <- new_numeric_metric(
   mape,
-  direction = "minimize"
+  direction = "minimize",
+  range = c(0, Inf)
 )
 
 #' @rdname mape
 #' @export
-mape.data.frame <- function(data,
-                            truth,
-                            estimate,
-                            na_rm = TRUE,
-                            case_weights = NULL,
-                            ...) {
+mape.data.frame <- function(
+  data,
+  truth,
+  estimate,
+  na_rm = TRUE,
+  case_weights = NULL,
+  ...
+) {
   numeric_metric_summarizer(
     name = "mape",
     fn = mape_vec,
@@ -48,11 +61,8 @@ mape.data.frame <- function(data,
 
 #' @export
 #' @rdname mape
-mape_vec <- function(truth,
-                     estimate,
-                     na_rm = TRUE,
-                     case_weights = NULL,
-                     ...) {
+mape_vec <- function(truth, estimate, na_rm = TRUE, case_weights = NULL, ...) {
+  check_bool(na_rm)
   check_numeric_metric(truth, estimate, case_weights)
 
   if (na_rm) {

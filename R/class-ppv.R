@@ -11,16 +11,37 @@
 #'
 #' @family class metrics
 #' @family sensitivity metrics
+#' @seealso [All class metrics][class-metrics]
 #' @templateVar fn ppv
 #' @template event_first
 #' @template multiclass
 #' @template return
-#' @template table-positive
 #'
 #' @inheritParams sens
 #'
 #' @param prevalence A numeric value for the rate of the
 #'  "positive" class of the data.
+#'
+#' @details
+#' Suppose a 2x2 table with notation:
+#'
+#' \tabular{rcc}{ \tab Reference \tab \cr Predicted \tab Positive \tab Negative
+#' \cr Positive \tab A \tab B \cr Negative \tab C \tab D \cr }
+#'
+#' The formulas used here are:
+#'
+#' \deqn{\text{Sensitivity} = \frac{A}{A + C}}
+#'
+#' \deqn{\text{Specificity} = \frac{D}{B + D}}
+#'
+#' \deqn{\text{Prevalence} = \frac{A + C}{A + B + C + D}}
+#'
+#' \deqn{\text{PPV} = \frac{\text{Sensitivity} \cdot \text{Prevalence}}{(\text{Sensitivity} \cdot \text{Prevalence}) + ((1 - \text{Specificity}) \cdot (1 - \text{Prevalence}))}}
+#'
+#' PPV is a metric that should be `r attr(ppv, "direction")`d. The output
+#' ranges from `r metric_range_chr(ppv, 1)` to `r metric_range_chr(ppv, 2)`, with
+#' `r metric_optimal(ppv)` indicating all predicted positives are true
+#' positives.
 #'
 #' @author Max Kuhn
 #'
@@ -32,6 +53,15 @@
 #'
 #' @template examples-class
 #' @examples
+#' # Using a different value of 'prevalence'... if you are adding the metric to a
+#' # metric set, you can create a new metric function with the updated argument
+#' # value:
+#'
+#' ppv_alt_prev  <- metric_tweak("ppv_alt_prev", ppv, prevalence = 0.40)
+#' multi_metrics <- metric_set(ppv, ppv_alt_prev)
+#' multi_metrics(two_class_example, truth, estimate = predicted)
+#'
+#' @examples
 #' # But what if we think that Class 1 only occurs 40% of the time?
 #' ppv(two_class_example, truth, predicted, prevalence = 0.40)
 #'
@@ -41,20 +71,23 @@ ppv <- function(data, ...) {
 }
 ppv <- new_class_metric(
   ppv,
-  direction = "maximize"
+  direction = "maximize",
+  range = c(0, 1)
 )
 
 #' @rdname ppv
 #' @export
-ppv.data.frame <- function(data,
-                           truth,
-                           estimate,
-                           prevalence = NULL,
-                           estimator = NULL,
-                           na_rm = TRUE,
-                           case_weights = NULL,
-                           event_level = yardstick_event_level(),
-                           ...) {
+ppv.data.frame <- function(
+  data,
+  truth,
+  estimate,
+  prevalence = NULL,
+  estimator = NULL,
+  na_rm = TRUE,
+  case_weights = NULL,
+  event_level = yardstick_event_level(),
+  ...
+) {
   class_metric_summarizer(
     name = "ppv",
     fn = ppv_vec,
@@ -70,11 +103,13 @@ ppv.data.frame <- function(data,
 }
 
 #' @export
-ppv.table <- function(data,
-                      prevalence = NULL,
-                      estimator = NULL,
-                      event_level = yardstick_event_level(),
-                      ...) {
+ppv.table <- function(
+  data,
+  prevalence = NULL,
+  estimator = NULL,
+  event_level = yardstick_event_level(),
+  ...
+) {
   check_table(data)
   estimator <- finalize_estimator(data, estimator)
 
@@ -91,11 +126,13 @@ ppv.table <- function(data,
 }
 
 #' @export
-ppv.matrix <- function(data,
-                       prevalence = NULL,
-                       estimator = NULL,
-                       event_level = yardstick_event_level(),
-                       ...) {
+ppv.matrix <- function(
+  data,
+  prevalence = NULL,
+  estimator = NULL,
+  event_level = yardstick_event_level(),
+  ...
+) {
   data <- as.table(data)
 
   ppv.table(
@@ -108,14 +145,18 @@ ppv.matrix <- function(data,
 
 #' @export
 #' @rdname ppv
-ppv_vec <- function(truth,
-                    estimate,
-                    prevalence = NULL,
-                    estimator = NULL,
-                    na_rm = TRUE,
-                    case_weights = NULL,
-                    event_level = yardstick_event_level(),
-                    ...) {
+ppv_vec <- function(
+  truth,
+  estimate,
+  prevalence = NULL,
+  estimator = NULL,
+  na_rm = TRUE,
+  case_weights = NULL,
+  event_level = yardstick_event_level(),
+  ...
+) {
+  check_bool(na_rm)
+  check_number_decimal(prevalence, min = 0, max = 1, allow_null = TRUE)
   abort_if_class_pred(truth)
   estimate <- as_factor_from_class_pred(estimate)
 
@@ -147,10 +188,7 @@ ppv_vec <- function(truth,
   ppv_table_impl(data, estimator, event_level, prevalence = prevalence)
 }
 
-ppv_table_impl <- function(data,
-                           estimator,
-                           event_level,
-                           prevalence = NULL) {
+ppv_table_impl <- function(data, estimator, event_level, prevalence = NULL) {
   if (is_binary(estimator)) {
     ppv_binary(data, event_level, prevalence)
   } else {

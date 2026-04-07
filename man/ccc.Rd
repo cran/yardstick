@@ -64,6 +64,14 @@ Calculate the concordance correlation coefficient.
 \code{\link[=ccc]{ccc()}} is a metric of both consistency/correlation and accuracy,
 while metrics such as \code{\link[=rmse]{rmse()}} are strictly for accuracy and metrics
 such as \code{\link[=rsq]{rsq()}} are strictly for consistency/correlation
+
+CCC is a metric that should be maximized. The output
+ranges from -1 to 1, with
+1 indicating perfect agreement.
+
+The formula for CCC is:
+
+\deqn{\text{CCC} = \frac{2 \cdot \text{cov}(\text{truth}, \text{estimate})}{\text{var}(\text{truth}) + \text{var}(\text{estimate}) + (\bar{\text{truth}} - \bar{\text{estimate}})^2}}
 }
 \examples{
 # Supply truth and predictions as bare column names
@@ -86,15 +94,23 @@ solubility_resampled <- bind_rows(
 )
 
 # Compute the metric by group
-metric_results <- solubility_resampled \%>\%
-  group_by(resample) \%>\%
+metric_results <- solubility_resampled |>
+  group_by(resample) |>
   ccc(solubility, prediction)
 
 metric_results
 
 # Resampled mean estimate
-metric_results \%>\%
+metric_results |>
   summarise(avg_estimate = mean(.estimate))
+# Using a different value of 'bias'... if you are adding the metric to a
+# metric set, you can create a new metric function with the updated argument
+# value:
+
+ccc_bias <- metric_tweak("ccc_bias", ccc, bias = TRUE)
+multi_metrics <- metric_set(ccc, ccc_bias)
+multi_metrics(solubility_test, solubility, prediction)
+
 }
 \references{
 Lin, L. (1989). A concordance correlation
@@ -106,7 +122,10 @@ coefficient to evaluate reproducibility". \emph{Biometrics}, 53(4),
 1503-1507.
 }
 \seealso{
+\link[=numeric-metrics]{All numeric metrics}
+
 Other numeric metrics: 
+\code{\link{gini_coef}()},
 \code{\link{huber_loss}()},
 \code{\link{huber_loss_pseudo}()},
 \code{\link{iic}()},
@@ -115,8 +134,10 @@ Other numeric metrics:
 \code{\link{mase}()},
 \code{\link{mpe}()},
 \code{\link{msd}()},
+\code{\link{mse}()},
 \code{\link{poisson_log_loss}()},
 \code{\link{rmse}()},
+\code{\link{rmse_relative}()},
 \code{\link{rpd}()},
 \code{\link{rpiq}()},
 \code{\link{rsq}()},
@@ -138,8 +159,10 @@ Other accuracy metrics:
 \code{\link{mase}()},
 \code{\link{mpe}()},
 \code{\link{msd}()},
+\code{\link{mse}()},
 \code{\link{poisson_log_loss}()},
 \code{\link{rmse}()},
+\code{\link{rmse_relative}()},
 \code{\link{smape}()}
 }
 \author{

@@ -6,6 +6,7 @@
 #' This is equivalent to `roc_auc(estimator = "macro_weighted")`.
 #'
 #' @family class probability metrics
+#' @seealso [All probability metrics][prob-metrics]
 #' @templateVar fn roc_aunp
 #' @template return
 #' @template event_first
@@ -31,6 +32,19 @@
 #' comparison of performance measures for classification". _Pattern Recognition
 #' Letters_. 30 (1), pp 27-38.
 #'
+#' @details
+#' ROC AUNP is a metric that should be `r attr(roc_aunp, "direction")`d. The
+#' output ranges from `r metric_range_chr(roc_aunp, 1)` to
+#' `r metric_range_chr(roc_aunp, 2)`, with `r metric_optimal(roc_aunp)` indicating
+#' perfect discrimination.
+#'
+#' The formula used here is:
+#'
+#' \deqn{\text{ROC AUNP} = \sum_{k=1}^{K} p_k \cdot \text{AUC}_k}
+#'
+#' where \eqn{p_k} is the proportion of observations in class \eqn{k} and
+#' \eqn{\text{AUC}_k} is the binary ROC AUC for class \eqn{k} versus the rest.
+#'
 #' @seealso
 #'
 #' [roc_aunu()] for computing the area under the ROC curve of each class against
@@ -48,26 +62,26 @@
 #'
 #' # You can use the col1:colN tidyselect syntax
 #' library(dplyr)
-#' hpc_cv %>%
-#'   filter(Resample == "Fold01") %>%
+#' hpc_cv |>
+#'   filter(Resample == "Fold01") |>
 #'   roc_aunp(obs, VF:L)
 #'
 #' # Change the first level of `obs` from `"VF"` to `"M"` to alter the
 #' # event of interest. The class probability columns should be supplied
 #' # in the same order as the levels.
-#' hpc_cv %>%
-#'   filter(Resample == "Fold01") %>%
-#'   mutate(obs = relevel(obs, "M")) %>%
+#' hpc_cv |>
+#'   filter(Resample == "Fold01") |>
+#'   mutate(obs = relevel(obs, "M")) |>
 #'   roc_aunp(obs, M, VF:L)
 #'
 #' # Groups are respected
-#' hpc_cv %>%
-#'   group_by(Resample) %>%
+#' hpc_cv |>
+#'   group_by(Resample) |>
 #'   roc_aunp(obs, VF:L)
 #'
 #' # Vector version
 #' # Supply a matrix of class probabilities
-#' fold1 <- hpc_cv %>%
+#' fold1 <- hpc_cv |>
 #'   filter(Resample == "Fold01")
 #'
 #' roc_aunp_vec(
@@ -83,17 +97,20 @@ roc_aunp <- function(data, ...) {
 }
 roc_aunp <- new_prob_metric(
   roc_aunp,
-  direction = "maximize"
+  direction = "maximize",
+  range = c(0, 1)
 )
 
 #' @export
 #' @rdname roc_aunp
-roc_aunp.data.frame <- function(data,
-                                truth,
-                                ...,
-                                na_rm = TRUE,
-                                case_weights = NULL,
-                                options = list()) {
+roc_aunp.data.frame <- function(
+  data,
+  truth,
+  ...,
+  na_rm = TRUE,
+  case_weights = NULL,
+  options = list()
+) {
   check_roc_options_deprecated("roc_aunp", options)
 
   prob_metric_summarizer(
@@ -111,12 +128,15 @@ roc_aunp.data.frame <- function(data,
 
 #' @rdname roc_aunp
 #' @export
-roc_aunp_vec <- function(truth,
-                         estimate,
-                         na_rm = TRUE,
-                         case_weights = NULL,
-                         options = list(),
-                         ...) {
+roc_aunp_vec <- function(
+  truth,
+  estimate,
+  na_rm = TRUE,
+  case_weights = NULL,
+  options = list(),
+  ...
+) {
+  check_bool(na_rm)
   abort_if_class_pred(truth)
 
   check_roc_options_deprecated("roc_aunp_vec", options)

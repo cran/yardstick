@@ -3,12 +3,32 @@
 #' Balanced accuracy is computed here as the average of [sens()] and [spec()].
 #'
 #' @family class metrics
+#' @seealso [All class metrics][class-metrics]
 #' @templateVar fn bal_accuracy
 #' @template event_first
 #' @template multiclass
 #' @template return
 #'
 #' @inheritParams sens
+#'
+#' @details
+#' Suppose a 2x2 table with notation:
+#'
+#' \tabular{rcc}{ \tab Reference \tab \cr Predicted \tab Positive \tab Negative
+#' \cr Positive \tab A \tab B \cr Negative \tab C \tab D \cr }
+#'
+#' The formulas used here are:
+#'
+#' \deqn{\text{Sensitivity} = \frac{A}{A + C}}
+#'
+#' \deqn{\text{Specificity} = \frac{D}{B + D}}
+#'
+#' \deqn{\text{Balanced Accuracy} = \frac{\text{Sensitivity} + \text{Specificity}}{2}}
+#'
+#' Balanced accuracy is a metric that should be
+#' `r attr(bal_accuracy, "direction")`d. The output ranges from
+#' `r metric_range_chr(bal_accuracy, 1)` to `r metric_range_chr(bal_accuracy, 2)`, with
+#' `r metric_optimal(bal_accuracy)` indicating perfect predictions.
 #'
 #' @author Max Kuhn
 #'
@@ -20,19 +40,22 @@ bal_accuracy <- function(data, ...) {
 }
 bal_accuracy <- new_class_metric(
   bal_accuracy,
-  direction = "maximize"
+  direction = "maximize",
+  range = c(0, 1)
 )
 
 #' @export
 #' @rdname bal_accuracy
-bal_accuracy.data.frame <- function(data,
-                                    truth,
-                                    estimate,
-                                    estimator = NULL,
-                                    na_rm = TRUE,
-                                    case_weights = NULL,
-                                    event_level = yardstick_event_level(),
-                                    ...) {
+bal_accuracy.data.frame <- function(
+  data,
+  truth,
+  estimate,
+  estimator = NULL,
+  na_rm = TRUE,
+  case_weights = NULL,
+  event_level = yardstick_event_level(),
+  ...
+) {
   class_metric_summarizer(
     name = "bal_accuracy",
     fn = bal_accuracy_vec,
@@ -47,10 +70,12 @@ bal_accuracy.data.frame <- function(data,
 }
 
 #' @export
-bal_accuracy.table <- function(data,
-                               estimator = NULL,
-                               event_level = yardstick_event_level(),
-                               ...) {
+bal_accuracy.table <- function(
+  data,
+  estimator = NULL,
+  event_level = yardstick_event_level(),
+  ...
+) {
   check_table(data)
   estimator <- finalize_estimator(data, estimator)
 
@@ -62,23 +87,28 @@ bal_accuracy.table <- function(data,
 }
 
 #' @export
-bal_accuracy.matrix <- function(data,
-                                estimator = NULL,
-                                event_level = yardstick_event_level(),
-                                ...) {
+bal_accuracy.matrix <- function(
+  data,
+  estimator = NULL,
+  event_level = yardstick_event_level(),
+  ...
+) {
   data <- as.table(data)
   bal_accuracy.table(data, estimator, event_level)
 }
 
 #' @export
 #' @rdname bal_accuracy
-bal_accuracy_vec <- function(truth,
-                             estimate,
-                             estimator = NULL,
-                             na_rm = TRUE,
-                             case_weights = NULL,
-                             event_level = yardstick_event_level(),
-                             ...) {
+bal_accuracy_vec <- function(
+  truth,
+  estimate,
+  estimator = NULL,
+  na_rm = TRUE,
+  case_weights = NULL,
+  event_level = yardstick_event_level(),
+  ...
+) {
+  check_bool(na_rm)
   abort_if_class_pred(truth)
   estimate <- as_factor_from_class_pred(estimate)
 

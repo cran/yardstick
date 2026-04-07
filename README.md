@@ -1,13 +1,13 @@
 
-# yardstick <img src="man/figures/logo.png" align="right"/>
+# yardstick <a href="https://yardstick.tidymodels.org"><img src="man/figures/logo.png" align="right" height="138" alt="yardstick website" /></a>
 
 <!-- badges: start -->
 
-[![Coverage
-Status](https://img.shields.io/codecov/c/github/tidymodels/yardstick/main.svg)](https://app.codecov.io/github/tidymodels/yardstick?branch=main)
 [![CRAN_Status_Badge](https://www.r-pkg.org/badges/version/yardstick)](https://CRAN.R-project.org/package=yardstick)
 [![Downloads](https://cranlogs.r-pkg.org/badges/yardstick)](https://CRAN.R-project.org/package=yardstick)
 [![R-CMD-check](https://github.com/tidymodels/yardstick/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/tidymodels/yardstick/actions/workflows/R-CMD-check.yaml)
+[![Codecov test
+coverage](https://codecov.io/gh/tidymodels/yardstick/graph/badge.svg)](https://app.codecov.io/gh/tidymodels/yardstick)
 <!-- badges: end -->
 
 ## Overview
@@ -61,7 +61,7 @@ metrics(two_class_example, truth, predicted)
 
 # or
 
-two_class_example %>%
+two_class_example |>
   roc_auc(truth, Class1)
 #> # A tibble: 1 × 3
 #>   .metric .estimator .estimate
@@ -119,8 +119,8 @@ This calculates multiclass ROC AUC using the method described in Hand,
 Till (2001), and does it across all 10 resamples at once.
 
 ``` r
-hpc_cv %>%
-  group_by(Resample) %>%
+hpc_cv |>
+  group_by(Resample) |>
   roc_auc(obs, VF:L)
 #> # A tibble: 10 × 4
 #>    Resample .metric .estimator .estimate
@@ -146,9 +146,9 @@ powerful and easy visualization.
 ``` r
 library(ggplot2)
 
-hpc_cv %>%
-  group_by(Resample) %>%
-  roc_curve(obs, VF:L) %>%
+hpc_cv |>
+  group_by(Resample) |>
+  roc_curve(obs, VF:L) |>
   autoplot()
 ```
 

@@ -62,9 +62,9 @@ test_that("can tweak a class prob metric", {
 
 test_that("can tweak a class prob metric that doesn't use `estimator`", {
   costs <- dplyr::tribble(
-    ~truth,   ~estimate, ~cost,
-    "Class1", "Class2",  1,
-    "Class2", "Class1",  2
+    ~truth   , ~estimate , ~cost ,
+    "Class1" , "Class2"  ,     1 ,
+    "Class2" , "Class1"  ,     2
   )
 
   classification_cost2 <- metric_tweak(
@@ -77,7 +77,9 @@ test_that("can tweak a class prob metric that doesn't use `estimator`", {
 
   expect_identical(
     result[[".estimate"]],
-    classification_cost(two_class_example, truth, Class1, costs = costs)[[".estimate"]]
+    classification_cost(two_class_example, truth, Class1, costs = costs)[[
+      ".estimate"
+    ]]
   )
 
   expect_identical(
@@ -88,7 +90,7 @@ test_that("can tweak a class prob metric that doesn't use `estimator`", {
 
 test_that("can combine tweaked metrics into a metric set", {
   f_meas2 <- metric_tweak("f_meas2", f_meas, beta = 2)
-  ppv2 <- metric_tweak("ppv2", ppv, prevalence = .4)
+  ppv2 <- metric_tweak("ppv2", ppv, prevalence = 0.4)
   roc_auc2 <- metric_tweak("roc_auc2", roc_auc)
 
   set <- metric_set(f_meas2, ppv2, roc_auc2)
@@ -111,7 +113,11 @@ test_that("can set `na_rm` in the tweaked metric", {
 })
 
 test_that("can set `estimator` in the tweaked metric", {
-  roc_auc_mw <- metric_tweak("roc_auc_mw", roc_auc, estimator = "macro_weighted")
+  roc_auc_mw <- metric_tweak(
+    "roc_auc_mw",
+    roc_auc,
+    estimator = "macro_weighted"
+  )
 
   expect_identical(
     roc_auc_mw(hpc_cv, obs, VF:L)[[".estimate"]],
@@ -144,7 +150,11 @@ test_that("`name` must be a string", {
 test_that("`fn` must be a metric function", {
   expect_snapshot(
     error = TRUE,
-    metric_tweak("foo", function() {}, beta = 2)
+    metric_tweak(
+      "foo",
+      function() {},
+      beta = 2
+    )
   )
 })
 
@@ -153,4 +163,18 @@ test_that("All `...` must be named", {
     error = TRUE,
     metric_tweak("foo", accuracy, 1)
   )
+})
+
+test_that("range attribute is preserved", {
+  metric_with_range <- new_numeric_metric(
+    function(data, truth, estimate, na_rm = TRUE, mult = 1) {
+      data[[rlang::as_name(rlang::enquo(estimate))]] * mult
+    },
+    "minimize",
+    range = c(0, 1)
+  )
+
+  tweaked <- metric_tweak("tweaked", metric_with_range, mult = 2)
+
+  expect_identical(metric_range(tweaked), c(0, 1))
 })

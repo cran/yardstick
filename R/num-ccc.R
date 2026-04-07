@@ -9,6 +9,7 @@
 #' @family numeric metrics
 #' @family consistency metrics
 #' @family accuracy metrics
+#' @seealso [All numeric metrics][numeric-metrics]
 #' @templateVar fn ccc
 #' @template return
 #'
@@ -16,6 +17,15 @@
 #'
 #' @param bias A `logical`; should the biased estimate of variance
 #' be used (as is Lin (1989))?
+#'
+#' @details
+#' CCC is a metric that should be `r attr(ccc, "direction")`d. The output
+#' ranges from `r metric_range_chr(ccc, 1)` to `r metric_range_chr(ccc, 2)`, with
+#' `r metric_optimal(ccc)` indicating perfect agreement.
+#'
+#' The formula for CCC is:
+#'
+#' \deqn{\text{CCC} = \frac{2 \cdot \text{cov}(\text{truth}, \text{estimate})}{\text{var}(\text{truth}) + \text{var}(\text{estimate}) + (\bar{\text{truth}} - \bar{\text{estimate}})^2}}
 #'
 #' @author Max Kuhn
 #'
@@ -31,6 +41,14 @@
 #'
 #'
 #' @template examples-numeric
+#' @examples
+#' # Using a different value of 'bias'... if you are adding the metric to a
+#' # metric set, you can create a new metric function with the updated argument
+#' # value:
+#'
+#' ccc_bias <- metric_tweak("ccc_bias", ccc, bias = TRUE)
+#' multi_metrics <- metric_set(ccc, ccc_bias)
+#' multi_metrics(solubility_test, solubility, prediction)
 #'
 #' @export
 #'
@@ -39,18 +57,21 @@ ccc <- function(data, ...) {
 }
 ccc <- new_numeric_metric(
   ccc,
-  direction = "maximize"
+  direction = "maximize",
+  range = c(-1, 1)
 )
 
 #' @rdname ccc
 #' @export
-ccc.data.frame <- function(data,
-                           truth,
-                           estimate,
-                           bias = FALSE,
-                           na_rm = TRUE,
-                           case_weights = NULL,
-                           ...) {
+ccc.data.frame <- function(
+  data,
+  truth,
+  estimate,
+  bias = FALSE,
+  na_rm = TRUE,
+  case_weights = NULL,
+  ...
+) {
   numeric_metric_summarizer(
     name = "ccc",
     fn = ccc_vec,
@@ -66,12 +87,16 @@ ccc.data.frame <- function(data,
 
 #' @export
 #' @rdname ccc
-ccc_vec <- function(truth,
-                    estimate,
-                    bias = FALSE,
-                    na_rm = TRUE,
-                    case_weights = NULL,
-                    ...) {
+ccc_vec <- function(
+  truth,
+  estimate,
+  bias = FALSE,
+  na_rm = TRUE,
+  case_weights = NULL,
+  ...
+) {
+  check_bool(na_rm)
+  check_bool(bias)
   check_numeric_metric(truth, estimate, case_weights)
 
   if (na_rm) {
@@ -87,10 +112,7 @@ ccc_vec <- function(truth,
   ccc_impl(truth, estimate, bias, case_weights)
 }
 
-ccc_impl <- function(truth,
-                     estimate,
-                     bias,
-                     case_weights) {
+ccc_impl <- function(truth, estimate, bias, case_weights) {
   case_weights <- vec_cast(case_weights, to = double())
 
   truth_mean <- yardstick_mean(truth, case_weights = case_weights)
@@ -116,7 +138,9 @@ ccc_impl <- function(truth,
   }
 
   numerator <- 2 * covariance
-  denominator <- truth_variance + estimate_variance + (truth_mean - estimate_mean)^2
+  denominator <- truth_variance +
+    estimate_variance +
+    (truth_mean - estimate_mean)^2
 
   numerator / denominator
 }

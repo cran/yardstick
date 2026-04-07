@@ -20,10 +20,20 @@
 #'
 #' @family numeric metrics
 #' @family consistency metrics
+#' @seealso [All numeric metrics][numeric-metrics]
 #' @templateVar fn rpd
 #' @template return
 #'
 #' @inheritParams rmse
+#'
+#' @details
+#' RPD is a metric that should be `r attr(rpd, "direction")`d. The output
+#' ranges from `r metric_range_chr(rpd, 1)` to `r metric_range_chr(rpd, 2)`, with higher
+#' values indicating better model performance.
+#'
+#' The formula for RPD is:
+#'
+#' \deqn{\text{RPD} = \frac{\text{sd}(\text{truth})}{\text{RMSE}}}
 #'
 #' @author Pierre Roudier
 #'
@@ -52,17 +62,20 @@ rpd <- function(data, ...) {
 }
 rpd <- new_numeric_metric(
   rpd,
-  direction = "maximize"
+  direction = "maximize",
+  range = c(0, Inf)
 )
 
 #' @rdname rpd
 #' @export
-rpd.data.frame <- function(data,
-                           truth,
-                           estimate,
-                           na_rm = TRUE,
-                           case_weights = NULL,
-                           ...) {
+rpd.data.frame <- function(
+  data,
+  truth,
+  estimate,
+  na_rm = TRUE,
+  case_weights = NULL,
+  ...
+) {
   numeric_metric_summarizer(
     name = "rpd",
     fn = rpd_vec,
@@ -76,11 +89,8 @@ rpd.data.frame <- function(data,
 
 #' @export
 #' @rdname rpd
-rpd_vec <- function(truth,
-                    estimate,
-                    na_rm = TRUE,
-                    case_weights = NULL,
-                    ...) {
+rpd_vec <- function(truth, estimate, na_rm = TRUE, case_weights = NULL, ...) {
+  check_bool(na_rm)
   check_numeric_metric(truth, estimate, case_weights)
 
   if (na_rm) {

@@ -1,6 +1,7 @@
 #' Matthews correlation coefficient
 #'
 #' @family class metrics
+#' @seealso [All class metrics][class-metrics]
 #' @templateVar fn mcc
 #' @template event_first
 #' @template return
@@ -12,6 +13,22 @@
 #' of this, no averaging methods are provided.
 #'
 #' @inheritParams sens
+#'
+#' @details
+#' Suppose a 2x2 table with notation:
+#'
+#' \tabular{rcc}{ \tab Reference \tab \cr Predicted \tab Positive \tab Negative
+#' \cr Positive \tab A \tab B \cr Negative \tab C \tab D \cr }
+#'
+#' The formula used here is:
+#'
+#' \deqn{\text{MCC} = \frac{(A \cdot D) - (B \cdot C)}{\sqrt{(A + B)(A + C)(D + B)(D + C)}}}
+#'
+#' MCC is a metric that should be `r attr(mcc, "direction")`d. The output
+#' ranges from `r metric_range_chr(mcc, 1)` to `r metric_range_chr(mcc, 2)`, with
+#' `r metric_optimal(mcc)` indicating perfect predictions. A value of 0
+#' indicates no better than random prediction, and negative values indicate
+#' inverse prediction.
 #'
 #' @author Max Kuhn
 #'
@@ -29,30 +46,33 @@
 #'
 #' # Multiclass
 #' # mcc() has a natural multiclass extension
-#' hpc_cv %>%
-#'   filter(Resample == "Fold01") %>%
+#' hpc_cv |>
+#'   filter(Resample == "Fold01") |>
 #'   mcc(obs, pred)
 #'
 #' # Groups are respected
-#' hpc_cv %>%
-#'   group_by(Resample) %>%
+#' hpc_cv |>
+#'   group_by(Resample) |>
 #'   mcc(obs, pred)
 mcc <- function(data, ...) {
   UseMethod("mcc")
 }
 mcc <- new_class_metric(
   mcc,
-  direction = "maximize"
+  direction = "maximize",
+  range = c(-1, 1)
 )
 
 #' @export
 #' @rdname mcc
-mcc.data.frame <- function(data,
-                           truth,
-                           estimate,
-                           na_rm = TRUE,
-                           case_weights = NULL,
-                           ...) {
+mcc.data.frame <- function(
+  data,
+  truth,
+  estimate,
+  na_rm = TRUE,
+  case_weights = NULL,
+  ...
+) {
   class_metric_summarizer(
     name = "mcc",
     fn = mcc_vec,
@@ -92,11 +112,8 @@ mcc.matrix <- function(data, ...) {
 
 #' @export
 #' @rdname mcc
-mcc_vec <- function(truth,
-                    estimate,
-                    na_rm = TRUE,
-                    case_weights = NULL,
-                    ...) {
+mcc_vec <- function(truth, estimate, na_rm = TRUE, case_weights = NULL, ...) {
+  check_bool(na_rm)
   abort_if_class_pred(truth)
   estimate <- as_factor_from_class_pred(estimate)
 
@@ -162,10 +179,12 @@ mcc_multiclass_impl <- function(C) {
 check_mcc_data <- function(data) {
   if (!is.double(data) && !is.matrix(data)) {
     # should not be reachable
+    # nocov start
     cli::cli_abort(
       "{.arg data} should be a double matrix at this point.",
       .internal = TRUE
     )
+    # nocov end
   }
   invisible()
 }

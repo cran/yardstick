@@ -96,6 +96,18 @@ For \code{roc_auc_vec()}, a single \code{numeric} value (or \code{NA}).
 \code{\link[=roc_curve]{roc_curve()}} for the full curve.
 }
 \details{
+ROC AUC is a metric that should be maximized. The
+output ranges from 0 to
+1, with 1 indicating
+perfect discrimination.
+
+The area under the ROC curve is computed using the trapezoidal rule:
+
+\deqn{\text{AUC} = \sum_{i=1}^{n-1} (x_{i+1} - x_i) \cdot \frac{y_i + y_{i+1}}{2}}
+
+where \eqn{x} is the false positive rate (1 - specificity) and \eqn{y} is
+the true positive rate (sensitivity) at each threshold.
+
 Generally, an ROC AUC value is between \code{0.5} and \code{1}, with \code{1} being a
 perfect prediction model. If your value is between \code{0} and \code{0.5}, then
 this implies that you have meaningful information in your model, but it
@@ -156,31 +168,31 @@ data(hpc_cv)
 
 # You can use the col1:colN tidyselect syntax
 library(dplyr)
-hpc_cv \%>\%
-  filter(Resample == "Fold01") \%>\%
+hpc_cv |>
+  filter(Resample == "Fold01") |>
   roc_auc(obs, VF:L)
 
 # Change the first level of `obs` from `"VF"` to `"M"` to alter the
 # event of interest. The class probability columns should be supplied
 # in the same order as the levels.
-hpc_cv \%>\%
-  filter(Resample == "Fold01") \%>\%
-  mutate(obs = relevel(obs, "M")) \%>\%
+hpc_cv |>
+  filter(Resample == "Fold01") |>
+  mutate(obs = relevel(obs, "M")) |>
   roc_auc(obs, M, VF:L)
 
 # Groups are respected
-hpc_cv \%>\%
-  group_by(Resample) \%>\%
+hpc_cv |>
+  group_by(Resample) |>
   roc_auc(obs, VF:L)
 
 # Weighted macro averaging
-hpc_cv \%>\%
-  group_by(Resample) \%>\%
+hpc_cv |>
+  group_by(Resample) |>
   roc_auc(obs, VF:L, estimator = "macro_weighted")
 
 # Vector version
 # Supply a matrix of class probabilities
-fold1 <- hpc_cv \%>\%
+fold1 <- hpc_cv |>
   filter(Resample == "Fold01")
 
 roc_auc_vec(
@@ -205,6 +217,8 @@ estimation trees", CeDER Working Paper #IS-00-04, Stern School of Business,
 New York University, NY, NY 10012.
 }
 \seealso{
+\link[=prob-metrics]{All probability metrics}
+
 \code{\link[=roc_curve]{roc_curve()}} for computing the full ROC curve.
 
 Other class probability metrics: 
@@ -214,6 +228,7 @@ Other class probability metrics:
 \code{\link{gain_capture}()},
 \code{\link{mn_log_loss}()},
 \code{\link{pr_auc}()},
+\code{\link{ranked_prob_score}()},
 \code{\link{roc_aunp}()},
 \code{\link{roc_aunu}()}
 }

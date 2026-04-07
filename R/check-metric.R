@@ -12,16 +12,21 @@
 #'   - For `check_numeric_metric()`, a numeric vector.
 #'   - For `check_class_metric()`, a factor.
 #'   - For `check_prob_metric()`, a factor.
+#'   - For `check_ordered_prob_metric()`, an ordered factor.
 #'   - For `check_dynamic_survival_metric()`, a Surv object.
 #'   - For `check_static_survival_metric()`, a Surv object.
+#'   - For `check_quantile_metric()`, a numeric vector.
 #'
 #' @param estimate The realized `estimate` result.
 #'   - For `check_numeric_metric()`, a numeric vector.
 #'   - For `check_class_metric()`, a factor.
 #'   - For `check_prob_metric()`, a numeric vector for binary `truth`,
 #'     a numeric matrix for multic-class `truth`.
+#'   - For `check_ordered_prob_metric()`, a numeric vector for binary `truth`,
+#'     a numeric matrix for multic-class `truth`.
 #'   - For `check_dynamic_survival_metric()`, list-column of data.frames.
 #'   - For `check_static_survival_metric()`, a numeric vector.
+#'   - For `check_quantile_metric()`, a `hardhat::quantile_pred` vector.
 #'
 #' @param case_weights The realized case weights, as a numeric vector. This must
 #'   be the same length as `truth`.
@@ -37,21 +42,25 @@ NULL
 
 #' @rdname check_metric
 #' @export
-check_numeric_metric <- function(truth,
-                                 estimate,
-                                 case_weights,
-                                 call = caller_env()) {
+check_numeric_metric <- function(
+  truth,
+  estimate,
+  case_weights,
+  call = caller_env()
+) {
   validate_case_weights(case_weights, size = length(truth), call = call)
   validate_numeric_truth_numeric_estimate(truth, estimate, call = call)
 }
 
 #' @rdname check_metric
 #' @export
-check_class_metric <- function(truth,
-                               estimate,
-                               case_weights,
-                               estimator,
-                               call = caller_env()) {
+check_class_metric <- function(
+  truth,
+  estimate,
+  case_weights,
+  estimator,
+  call = caller_env()
+) {
   validate_case_weights(case_weights, size = length(truth), call = call)
   validate_factor_truth_factor_estimate(truth, estimate, call = call)
   validate_binary_estimator(truth, estimator, call = call)
@@ -59,11 +68,13 @@ check_class_metric <- function(truth,
 
 #' @rdname check_metric
 #' @export
-check_prob_metric <- function(truth,
-                              estimate,
-                              case_weights,
-                              estimator,
-                              call = caller_env()) {
+check_prob_metric <- function(
+  truth,
+  estimate,
+  case_weights,
+  estimator,
+  call = caller_env()
+) {
   validate_case_weights(case_weights, size = length(truth), call = call)
   validate_factor_truth_matrix_estimate(truth, estimate, estimator, call = call)
   validate_binary_estimator(truth, estimator, call = call)
@@ -71,20 +82,67 @@ check_prob_metric <- function(truth,
 
 #' @rdname check_metric
 #' @export
-check_dynamic_survival_metric <- function(truth,
-                                          estimate,
-                                          case_weights,
-                                          call = caller_env()) {
+check_ordered_prob_metric <- function(
+  truth,
+  estimate,
+  case_weights,
+  estimator,
+  call = caller_env()
+) {
+  validate_case_weights(case_weights, size = length(truth), call = call)
+  validate_ordered_truth_matrix_estimate(
+    truth,
+    estimate,
+    estimator,
+    call = call
+  )
+  validate_binary_estimator(truth, estimator, call = call)
+}
+
+#' @rdname check_metric
+#' @export
+check_dynamic_survival_metric <- function(
+  truth,
+  estimate,
+  case_weights,
+  call = caller_env()
+) {
   validate_surv_truth_list_estimate(truth, estimate, call = call)
   validate_case_weights(case_weights, size = nrow(truth), call = call)
 }
 
 #' @rdname check_metric
 #' @export
-check_static_survival_metric <- function(truth,
-                                         estimate,
-                                         case_weights,
-                                         call = caller_env()) {
+check_static_survival_metric <- function(
+  truth,
+  estimate,
+  case_weights,
+  call = caller_env()
+) {
   validate_case_weights(case_weights, size = nrow(truth), call = call)
   validate_surv_truth_numeric_estimate(truth, estimate, call = call)
+}
+
+#' @rdname check_metric
+#' @export
+check_linear_pred_survival_metric <- function(
+  truth,
+  estimate,
+  case_weights,
+  call = caller_env()
+) {
+  validate_case_weights(case_weights, size = nrow(truth), call = call)
+  validate_surv_truth_numeric_estimate(truth, estimate, call = call)
+}
+
+#' @rdname check_metric
+#' @export
+check_quantile_metric <- function(
+  truth,
+  estimate,
+  case_weights,
+  call = caller_env()
+) {
+  validate_numeric_truth_quantile_estimate(truth, estimate, call = call)
+  validate_case_weights(case_weights, size = length(truth), call = call)
 }

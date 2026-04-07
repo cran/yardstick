@@ -5,6 +5,18 @@
 #' [roc_curve()] for the full curve.
 #'
 #' @details
+#' ROC AUC is a metric that should be `r attr(roc_auc, "direction")`d. The
+#' output ranges from `r metric_range_chr(roc_auc, 1)` to
+#' `r metric_range_chr(roc_auc, 2)`, with `r metric_optimal(roc_auc)` indicating
+#' perfect discrimination.
+#'
+#' The area under the ROC curve is computed using the trapezoidal rule:
+#'
+#' \deqn{\text{AUC} = \sum_{i=1}^{n-1} (x_{i+1} - x_i) \cdot \frac{y_i + y_{i+1}}{2}}
+#'
+#' where \eqn{x} is the false positive rate (1 - specificity) and \eqn{y} is
+#' the true positive rate (sensitivity) at each threshold.
+#'
 #' Generally, an ROC AUC value is between `0.5` and `1`, with `1` being a
 #' perfect prediction model. If your value is between `0` and `0.5`, then
 #' this implies that you have meaningful information in your model, but it
@@ -14,6 +26,7 @@
 #' Note that you can't combine `estimator = "hand_till"` with `case_weights`.
 #'
 #' @family class probability metrics
+#' @seealso [All probability metrics][prob-metrics]
 #' @templateVar fn roc_auc
 #' @template return
 #' @template event_first
@@ -74,19 +87,22 @@ roc_auc <- function(data, ...) {
 }
 roc_auc <- new_prob_metric(
   roc_auc,
-  direction = "maximize"
+  direction = "maximize",
+  range = c(0, 1)
 )
 
 #' @export
 #' @rdname roc_auc
-roc_auc.data.frame <- function(data,
-                               truth,
-                               ...,
-                               estimator = NULL,
-                               na_rm = TRUE,
-                               event_level = yardstick_event_level(),
-                               case_weights = NULL,
-                               options = list()) {
+roc_auc.data.frame <- function(
+  data,
+  truth,
+  ...,
+  estimator = NULL,
+  na_rm = TRUE,
+  event_level = yardstick_event_level(),
+  case_weights = NULL,
+  options = list()
+) {
   check_roc_options_deprecated("roc_auc", options)
 
   case_weights_quo <- enquo(case_weights)
@@ -114,14 +130,17 @@ roc_auc.data.frame <- function(data,
 
 #' @rdname roc_auc
 #' @export
-roc_auc_vec <- function(truth,
-                        estimate,
-                        estimator = NULL,
-                        na_rm = TRUE,
-                        event_level = yardstick_event_level(),
-                        case_weights = NULL,
-                        options = list(),
-                        ...) {
+roc_auc_vec <- function(
+  truth,
+  estimate,
+  estimator = NULL,
+  na_rm = TRUE,
+  event_level = yardstick_event_level(),
+  case_weights = NULL,
+  options = list(),
+  ...
+) {
+  check_bool(na_rm)
   abort_if_class_pred(truth)
 
   check_roc_options_deprecated("roc_auc_vec", options)
@@ -154,20 +173,24 @@ roc_auc_vec <- function(truth,
   )
 }
 
-roc_auc_estimator_impl <- function(truth,
-                                   estimate,
-                                   estimator,
-                                   event_level,
-                                   case_weights) {
+roc_auc_estimator_impl <- function(
+  truth,
+  estimate,
+  estimator,
+  event_level,
+  case_weights
+) {
   if (is_binary(estimator)) {
     roc_auc_binary(truth, estimate, event_level, case_weights)
   } else if (estimator == "hand_till") {
     if (!is.null(case_weights)) {
       # should be unreachable
+      # nocov start
       cli::cli_abort(
         "{.arg case_weights} should be `NULL` at this point for hand-till.",
         .internal = TRUE
       )
+      # nocov end
     }
 
     roc_auc_hand_till(truth, estimate)
@@ -181,10 +204,7 @@ roc_auc_estimator_impl <- function(truth,
   }
 }
 
-roc_auc_binary <- function(truth,
-                           estimate,
-                           event_level,
-                           case_weights) {
+roc_auc_binary <- function(truth, estimate, event_level, case_weights) {
   lvls <- levels(truth)
 
   if (!is_event_first(event_level)) {
@@ -225,9 +245,7 @@ roc_auc_binary <- function(truth,
   )
 }
 
-roc_auc_multiclass <- function(truth,
-                               estimate,
-                               case_weights) {
+roc_auc_multiclass <- function(truth, estimate, case_weights) {
   results <- one_vs_all_impl(
     fn = roc_auc_binary,
     truth = truth,
@@ -240,10 +258,12 @@ roc_auc_multiclass <- function(truth,
 
 # ------------------------------------------------------------------------------
 
-finalize_estimator_roc_auc <- function(x,
-                                       estimator,
-                                       metric_class,
-                                       case_weights) {
+finalize_estimator_roc_auc <- function(
+  x,
+  estimator,
+  metric_class,
+  case_weights
+) {
   # This is the `roc_auc_vec()` side of the hack we have to do to go from
   # hand_till -> macro when case weights are supplied. See
   # `roc_auc_adjust_result_estimator()` for all of the details.
@@ -272,9 +292,7 @@ finalize_estimator_roc_auc <- function(x,
   estimator
 }
 
-roc_auc_adjust_result_estimator <- function(out,
-                                            estimator,
-                                            case_weights_quo) {
+roc_auc_adjust_result_estimator <- function(out, estimator, case_weights_quo) {
   # This is a horrible hack that we have to do to support the fact that
   # `"hand_till"` can be chosen automatically, but doesn't support case weights.
   # In that case, `roc_auc_vec()` will switch to `"macro"`, but we need that
@@ -283,8 +301,8 @@ roc_auc_adjust_result_estimator <- function(out,
   # `case_weights` just for this one metric, and that seemed like too much work.
   automatically_chose_hand_till_but_also_used_case_weights <-
     is.null(estimator) &&
-      !quo_is_null(case_weights_quo) &&
-      identical(out[[".estimator"]][[1]], "hand_till")
+    !quo_is_null(case_weights_quo) &&
+    identical(out[[".estimator"]][[1]], "hand_till")
 
   if (automatically_chose_hand_till_but_also_used_case_weights) {
     # `roc_auc_vec()` actually "automatically" used `"macro"` weighting here
@@ -315,11 +333,13 @@ roc_auc_hand_till <- function(truth, estimate) {
 
     lvls_missing <- lvls[indicator_missing]
 
-    cli::cli_warn(c(
-      x = "No observations were detected in {.arg truth} for level{?s}:
+    cli::cli_warn(
+      c(
+        x = "No observations were detected in {.arg truth} for level{?s}:
           {lvls_missing}.",
-      i = "Computation will proceed by ignoring those levels."
-    ))
+        i = "Computation will proceed by ignoring those levels."
+      )
+    )
 
     # Proceed with non-missing levels
     lvls <- lvls[!indicator_missing]
@@ -388,7 +408,9 @@ compute_n_occurrences <- function(x, what) {
 msg_roc_truth_no_control <- function(control) {
   paste0(
     "No control observations were detected in {.arg truth} ",
-    "with control level '", control, "'."
+    "with control level '",
+    control,
+    "'."
   )
 }
 warn_roc_truth_no_control <- function(control) {
@@ -408,7 +430,9 @@ stop_roc_truth_no_control <- function(control) {
 msg_roc_truth_no_event <- function(event) {
   paste0(
     "No event observations were detected in {.arg truth} ",
-    "with event level '", event, "'."
+    "with event level '",
+    event,
+    "'."
   )
 }
 warn_roc_truth_no_event <- function(event) {

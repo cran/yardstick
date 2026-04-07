@@ -1,4 +1,4 @@
-test_that("roc_curve_survival works", {
+test_that("Calculations are correct", {
   skip_if_not_installed("tidyr")
 
   result <- roc_curve_survival(
@@ -39,21 +39,19 @@ test_that("roc_curve_survival works", {
   }
 })
 
-# case weights -----------------------------------------------------------------
-
-test_that("case weights are applied", {
+test_that("Case weights calculations are correct", {
   skip_if_not_installed("tidyr")
 
-  wts_res <- lung_surv %>%
-    dplyr::mutate(wts = hardhat::frequency_weights(rep(1:0, c(128, 100)))) %>%
+  wts_res <- lung_surv |>
+    dplyr::mutate(wts = hardhat::frequency_weights(rep(1:0, c(128, 100)))) |>
     roc_curve_survival(
       truth = surv_obj,
       .pred,
       case_weights = wts
     )
 
-  subset_res <- lung_surv %>%
-    dplyr::slice(1:128) %>%
+  subset_res <- lung_surv |>
+    dplyr::slice(1:128) |>
     roc_curve_survival(
       truth = surv_obj,
       .pred
@@ -62,14 +60,13 @@ test_that("case weights are applied", {
   expect_identical(subset_res, wts_res)
 })
 
-# self checking ----------------------------------------------------------------
-
 test_that("snapshot equivalent", {
+  # self checking to avoid breakage over time
   skip_if_not_installed("tidyr")
 
   snapshot_res <- readRDS(test_path("data/ref_roc_curve_survival.rds"))
 
-  yardstick_res <- readRDS(test_path("data/tidy_churn.rds")) %>%
+  yardstick_res <- readRDS(test_path("data/tidy_churn.rds")) |>
     roc_curve_survival(
       truth = surv_obj,
       .pred
@@ -96,16 +93,14 @@ test_that("snapshot equivalent", {
   )
 })
 
-# Manual checking --------------------------------------------------------------
-
 test_that("hand calculated equivalent", {
   skip_if_not_installed("tidyr")
 
   my_eval_time <- 300
 
-  lung_surv0 <- lung_surv %>%
-    dplyr::slice(-14) %>%
-    tidyr::unnest(.pred) %>%
+  lung_surv0 <- lung_surv |>
+    dplyr::slice(-14) |>
+    tidyr::unnest(.pred) |>
     dplyr::filter(.eval_time == my_eval_time)
 
   thresholds <- sort(lung_surv0$.pred_survival)
@@ -114,13 +109,21 @@ test_that("hand calculated equivalent", {
   calc_sensitivity <- function(threshold, data, eval_time) {
     delta <- .extract_surv_status(data$surv_obj)
     event_time <- .extract_surv_time(data$surv_obj)
-    res <- dplyr::tibble(.threshold = sort(unique(c(-Inf, data$.pred_survival, Inf)), decreasing = TRUE))
+    res <- dplyr::tibble(
+      .threshold = sort(
+        unique(c(-Inf, data$.pred_survival, Inf)),
+        decreasing = TRUE
+      )
+    )
 
     obs_time_le_time <- event_time <= data$.eval_time
     obs_time_gt_time <- event_time > data$.eval_time
     n <- nrow(data)
 
-    sensitivity_denom <- sum(obs_time_le_time * delta * data$.weight_censored, na.rm = TRUE)
+    sensitivity_denom <- sum(
+      obs_time_le_time * delta * data$.weight_censored,
+      na.rm = TRUE
+    )
 
     data_df <- data.frame(
       le_time = obs_time_le_time,
@@ -147,12 +150,12 @@ test_that("hand calculated equivalent", {
 
   exp_sens <- calc_sensitivity(thresholds, lung_surv0, my_eval_time)
 
-  yardstick_res <- lung_surv %>%
-    dplyr::slice(-14) %>%
+  yardstick_res <- lung_surv |>
+    dplyr::slice(-14) |>
     roc_curve_survival(
       truth = surv_obj,
       .pred
-    ) %>%
+    ) |>
     dplyr::filter(.eval_time == my_eval_time)
 
   expect_equal(
@@ -164,12 +167,20 @@ test_that("hand calculated equivalent", {
   calc_specificity <- function(threshold, data, eval_time) {
     event_time <- yardstick:::.extract_surv_time(data$surv_obj)
 
-    res <- dplyr::tibble(.threshold = sort(unique(c(-Inf, data$.pred_survival, Inf)), decreasing = TRUE))
+    res <- dplyr::tibble(
+      .threshold = sort(
+        unique(c(-Inf, data$.pred_survival, Inf)),
+        decreasing = TRUE
+      )
+    )
 
     obs_time_gt_time <- event_time > data$.eval_time
     n <- nrow(data)
 
-    specificity_denom <- sum(obs_time_gt_time * data$.weight_censored, na.rm = TRUE)
+    specificity_denom <- sum(
+      obs_time_gt_time * data$.weight_censored,
+      na.rm = TRUE
+    )
 
     data_df <- data.frame(
       ge_time = obs_time_gt_time,
@@ -195,16 +206,23 @@ test_that("hand calculated equivalent", {
 
   exp_spec <- calc_specificity(thresholds, lung_surv0, my_eval_time)
 
-  yardstick_res <- lung_surv %>%
-    dplyr::slice(-14) %>%
+  yardstick_res <- lung_surv |>
+    dplyr::slice(-14) |>
     roc_curve_survival(
       truth = surv_obj,
       .pred
-    ) %>%
+    ) |>
     dplyr::filter(.eval_time == my_eval_time)
 
   expect_equal(
     yardstick_res$specificity,
     exp_spec
+  )
+})
+
+test_that("na_rm argument check", {
+  expect_snapshot(
+    error = TRUE,
+    roc_auc_survival_vec(1, 1, na_rm = "yes")
   )
 })

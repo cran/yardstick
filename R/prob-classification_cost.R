@@ -6,6 +6,22 @@
 #' probabilities and the mean cost is returned.
 #'
 #' @details
+#' Classification cost is a metric that should be
+#' `r attr(classification_cost, "direction")`d. The output ranges from
+#' `r metric_range_chr(classification_cost, 1)` to
+#' `r metric_range_chr(classification_cost, 2)`, with
+#' `r metric_optimal(classification_cost)` indicating perfect predictions (when
+#' costs for correct predictions are zero).
+#'
+#' The formula used here is:
+#'
+#' \deqn{\text{Cost} = \frac{1}{N} \sum_{i=1}^{N} \sum_{j=1}^{K} c_{t_i, j} \cdot p_{ij}}
+#'
+#' where \eqn{N} is the number of observations, \eqn{K} is the number of classes,
+#' \eqn{c_{t_i, j}} is the cost of predicting class \eqn{j} when the true class
+#' is \eqn{t_i}, and \eqn{p_{ij}} is the predicted probability of observation
+#' \eqn{i} for class \eqn{j}.
+#'
 #' As an example, suppose that there are three classes: `"A"`, `"B"`, and `"C"`.
 #' Suppose there is a truly `"A"` observation with class probabilities `A = 0.3
 #' / B = 0.3 / C = 0.4`. Suppose that, when the true result is class `"A"`, the
@@ -15,6 +31,7 @@
 #' calculation is done for each sample and the individual costs are averaged.
 #'
 #' @family class probability metrics
+#' @seealso [All probability metrics][prob-metrics]
 #' @templateVar fn class_cost
 #' @template return
 #'
@@ -25,7 +42,7 @@
 #' `"truth"` and `"estimate"` should be character columns containing unique
 #' combinations of the levels of the `truth` factor.
 #'
-#' `"costs"` should be a numeric column representing the cost that should
+#' `"cost"` should be a numeric column representing the cost that should
 #' be applied when the `"estimate"` is predicted, but the true result is
 #' `"truth"`.
 #'
@@ -92,31 +109,42 @@
 #' )
 #'
 #' # You can use the col1:colN tidyselect syntax
-#' hpc_cv %>%
-#'   filter(Resample == "Fold01") %>%
+#' hpc_cv |>
+#'   filter(Resample == "Fold01") |>
 #'   classification_cost(obs, VF:L, costs = hpc_costs)
 #'
 #' # Groups are respected
-#' hpc_cv %>%
-#'   group_by(Resample) %>%
+#' hpc_cv |>
+#'   group_by(Resample) |>
 #'   classification_cost(obs, VF:L, costs = hpc_costs)
+#'
+#' # If this metric will be used in a metric set, you can create a new metric
+#' # function with the updated argument value:
+#'
+#' class_costs  <- metric_tweak("class_costs", classification_cost, costs = hpc_costs)
+#' multi_metrics <- metric_set(class_costs, roc_auc)
+#' multi_metrics(hpc_cv, obs, VF:L)
+#'
 classification_cost <- function(data, ...) {
   UseMethod("classification_cost")
 }
 classification_cost <- new_prob_metric(
   fn = classification_cost,
-  direction = "minimize"
+  direction = "minimize",
+  range = c(0, Inf)
 )
 
 #' @rdname classification_cost
 #' @export
-classification_cost.data.frame <- function(data,
-                                           truth,
-                                           ...,
-                                           costs = NULL,
-                                           na_rm = TRUE,
-                                           event_level = yardstick_event_level(),
-                                           case_weights = NULL) {
+classification_cost.data.frame <- function(
+  data,
+  truth,
+  ...,
+  costs = NULL,
+  na_rm = TRUE,
+  event_level = yardstick_event_level(),
+  case_weights = NULL
+) {
   prob_metric_summarizer(
     name = "classification_cost",
     fn = classification_cost_vec,
@@ -133,13 +161,16 @@ classification_cost.data.frame <- function(data,
 
 #' @rdname classification_cost
 #' @export
-classification_cost_vec <- function(truth,
-                                    estimate,
-                                    costs = NULL,
-                                    na_rm = TRUE,
-                                    event_level = yardstick_event_level(),
-                                    case_weights = NULL,
-                                    ...) {
+classification_cost_vec <- function(
+  truth,
+  estimate,
+  costs = NULL,
+  na_rm = TRUE,
+  event_level = yardstick_event_level(),
+  case_weights = NULL,
+  ...
+) {
+  check_bool(na_rm)
   abort_if_class_pred(truth)
 
   estimator <- finalize_estimator(truth, metric_class = "classification_cost")
@@ -166,24 +197,34 @@ classification_cost_vec <- function(truth,
   )
 }
 
-classification_cost_estimator_impl <- function(truth,
-                                               estimate,
-                                               costs,
-                                               estimator,
-                                               event_level,
-                                               case_weights) {
+classification_cost_estimator_impl <- function(
+  truth,
+  estimate,
+  costs,
+  estimator,
+  event_level,
+  case_weights
+) {
   if (is_binary(estimator)) {
-    classification_cost_binary(truth, estimate, costs, event_level, case_weights)
+    classification_cost_binary(
+      truth,
+      estimate,
+      costs,
+      event_level,
+      case_weights
+    )
   } else {
     classification_cost_multiclass(truth, estimate, costs, case_weights)
   }
 }
 
-classification_cost_binary <- function(truth,
-                                       estimate,
-                                       costs,
-                                       event_level,
-                                       case_weights) {
+classification_cost_binary <- function(
+  truth,
+  estimate,
+  costs,
+  event_level,
+  case_weights
+) {
   if (is_event_first(event_level)) {
     level1 <- estimate
     level2 <- 1 - estimate
@@ -198,7 +239,12 @@ classification_cost_binary <- function(truth,
   classification_cost_multiclass(truth, estimate, costs, case_weights)
 }
 
-classification_cost_multiclass <- function(truth, estimate, costs, case_weights) {
+classification_cost_multiclass <- function(
+  truth,
+  estimate,
+  costs,
+  case_weights
+) {
   levels <- levels(truth)
 
   costs <- validate_costs(costs, levels)
@@ -255,7 +301,7 @@ validate_costs <- function(costs, levels) {
     cli::cli_abort(
       "{.code costs$estimate} must be a character or factor column,
       not {.obj_type_friendly {costs$estimate}}."
-      )
+    )
   }
 
   if (!is.numeric(costs$cost)) {

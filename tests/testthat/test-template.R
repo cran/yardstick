@@ -129,7 +129,10 @@ test_that("numeric_metric_summarizer()'s case_weights argument work", {
   rmse_exp <- dplyr::tibble(
     .metric = "rmse",
     .estimator = "standard",
-    .estimate = rmse_vec(mtcars$mpg[mtcars$vs == 1], mtcars$disp[mtcars$vs == 1])
+    .estimate = rmse_vec(
+      mtcars$mpg[mtcars$vs == 1],
+      mtcars$disp[mtcars$vs == 1]
+    )
   )
 
   expect_identical(rmse_res, rmse_exp)
@@ -179,7 +182,6 @@ test_that("numeric_metric_summarizer() deals with characters in truth and estima
     truth = "mpg",
     estimate = "disp"
   )
-
 
   rmse_exp <- dplyr::tibble(
     .metric = "rmse",
@@ -453,7 +455,6 @@ test_that("class_metric_summarizer() deals with characters in truth and estimate
     estimate = "pred"
   )
 
-
   accuracy_exp <- dplyr::tibble(
     .metric = "accuracy",
     .estimator = "multiclass",
@@ -528,7 +529,11 @@ test_that("prob_metric_summarizer() works as expected", {
   roc_auc_exp <- dplyr::tibble(
     .metric = "roc_auc",
     .estimator = "macro",
-    .estimate = roc_auc_vec(hpc_f1$obs, as.matrix(hpc_f1[3:6]), estimator = "macro")
+    .estimate = roc_auc_vec(
+      hpc_f1$obs,
+      as.matrix(hpc_f1[3:6]),
+      estimator = "macro"
+    )
   )
 
   expect_identical(roc_auc_res, roc_auc_exp)
@@ -566,7 +571,8 @@ test_that("prob_metric_summarizer() works with grouped input", {
 
 test_that("class_metric_summarizer()'s event_level works as expected", {
   hpc_f1 <- data_hpc_fold1()
-  hpc_f1$obs <- factor(hpc_f1$obs == "VF",
+  hpc_f1$obs <- factor(
+    hpc_f1$obs == "VF",
     levels = c(TRUE, FALSE),
     labels = c("VF", "nVF")
   )
@@ -783,6 +789,236 @@ test_that("prob_metric_summarizer() handles column name collisions", {
   expect_identical(roc_auc_res, roc_auc_exp)
 })
 
+## quantile_metric_summarizer --------------------------------------------------
+
+test_that("quantile_metric_summarizer() works as expected", {
+  example <- dplyr::tibble(
+    preds = hardhat::quantile_pred(rbind(1:4, 8:11), c(0.2, 0.4, 0.6, 0.8)),
+    truth = c(3.3, 7.1)
+  )
+
+  wis_res <- quantile_metric_summarizer(
+    name = "weighted_interval_score",
+    fn = weighted_interval_score_vec,
+    data = example,
+    truth = truth,
+    estimate = preds,
+    na_rm = TRUE,
+    case_weights = NULL
+  )
+
+  wis_exp <- dplyr::tibble(
+    .metric = "weighted_interval_score",
+    .estimator = "standard",
+    .estimate = weighted_interval_score_vec(example$truth, example$preds)
+  )
+
+  expect_identical(wis_res, wis_exp)
+})
+
+test_that("quantile_metric_summarizer() works with grouped input", {
+  example <- dplyr::tibble(
+    preds = hardhat::quantile_pred(rbind(1:4, 8:11), c(0.2, 0.4, 0.6, 0.8)),
+    truth = c(3.3, 7.1),
+    group = c(1, 2)
+  )
+
+  wis_res <- quantile_metric_summarizer(
+    name = "weighted_interval_score",
+    fn = weighted_interval_score_vec,
+    data = dplyr::group_by(example, group),
+    truth = truth,
+    estimate = preds,
+    na_rm = TRUE,
+    case_weights = NULL
+  )
+
+  example_split <- vctrs::vec_split(example, example$group)
+
+  wis_exp <- dplyr::tibble(
+    group = example_split$key,
+    .metric = "weighted_interval_score",
+    .estimator = "standard",
+    .estimate = vapply(
+      example_split$val,
+      function(x) weighted_interval_score_vec(x$truth, x$preds),
+      FUN.VALUE = numeric(1)
+    )
+  )
+
+  expect_identical(wis_res, wis_exp)
+})
+
+test_that("quantile_metric_summarizer()'s na_rm argument work", {
+  example <- dplyr::tibble(
+    preds = hardhat::quantile_pred(rbind(1:4, 8:11), c(0.2, 0.4, 0.6, 0.8)),
+    truth = c(3.3, NA)
+  )
+
+  wis_res <- quantile_metric_summarizer(
+    name = "weighted_interval_score",
+    fn = weighted_interval_score_vec,
+    data = example,
+    truth = truth,
+    estimate = preds,
+    na_rm = TRUE,
+    case_weights = NULL
+  )
+
+  wis_exp <- dplyr::tibble(
+    .metric = "weighted_interval_score",
+    .estimator = "standard",
+    .estimate = weighted_interval_score_vec(
+      example$truth[-2],
+      example$preds[-2]
+    )
+  )
+
+  expect_identical(wis_res, wis_exp)
+
+  wis_res <- quantile_metric_summarizer(
+    name = "weighted_interval_score",
+    fn = weighted_interval_score_vec,
+    data = example,
+    truth = truth,
+    estimate = preds,
+    na_rm = FALSE,
+    case_weights = NULL
+  )
+
+  wis_exp <- dplyr::tibble(
+    .metric = "weighted_interval_score",
+    .estimator = "standard",
+    .estimate = na_dbl
+  )
+
+  expect_identical(wis_res, wis_exp)
+})
+
+test_that("quantile_metric_summarizer()'s case_weights argument work", {
+  example <- dplyr::tibble(
+    preds = hardhat::quantile_pred(rbind(1:4, 8:11), c(0.2, 0.4, 0.6, 0.8)),
+    truth = c(3.3, 7.1),
+    wts = c(1, 2)
+  )
+
+  wis_res <- quantile_metric_summarizer(
+    name = "weighted_interval_score",
+    fn = weighted_interval_score_vec,
+    data = example,
+    truth = truth,
+    estimate = preds,
+    na_rm = TRUE,
+    case_weights = wts
+  )
+
+  wis_exp <- dplyr::tibble(
+    .metric = "weighted_interval_score",
+    .estimator = "standard",
+    .estimate = weighted_interval_score_vec(
+      example$truth,
+      example$preds,
+      case_weights = example$wts
+    )
+  )
+
+  expect_identical(wis_res, wis_exp)
+})
+
+test_that("quantile_metric_summarizer()'s errors when wrong things are passes", {
+  example <- dplyr::tibble(
+    preds = hardhat::quantile_pred(rbind(1:4, 8:11), c(0.2, 0.4, 0.6, 0.8)),
+    truth = c(3.3, 7.1)
+  )
+
+  expect_snapshot(
+    error = TRUE,
+    quantile_metric_summarizer(
+      name = "weighted_interval_score",
+      fn = weighted_interval_score_vec,
+      data = example,
+      truth = not_a_real_column_name,
+      estimate = preds
+    )
+  )
+
+  expect_snapshot(
+    error = TRUE,
+    quantile_metric_summarizer(
+      name = "weighted_interval_score",
+      fn = weighted_interval_score_vec,
+      data = example,
+      truth = truth,
+      estimate = not_a_real_column_name
+    )
+  )
+
+  expect_snapshot(
+    error = TRUE,
+    quantile_metric_summarizer(
+      name = "weighted_interval_score",
+      fn = weighted_interval_score_vec,
+      data = example,
+      truth = truth,
+      estimate = preds,
+      obviouslywrong = TRUE
+    )
+  )
+})
+
+test_that("quantile_metric_summarizer() deals with characters in truth and estimate", {
+  example <- dplyr::tibble(
+    preds = hardhat::quantile_pred(rbind(1:4, 8:11), c(0.2, 0.4, 0.6, 0.8)),
+    truth = c(3.3, 7.1)
+  )
+
+  wis_res <- quantile_metric_summarizer(
+    name = "weighted_interval_score",
+    fn = weighted_interval_score_vec,
+    data = example,
+    truth = "truth",
+    estimate = "preds"
+  )
+
+  wis_exp <- dplyr::tibble(
+    .metric = "weighted_interval_score",
+    .estimator = "standard",
+    .estimate = weighted_interval_score_vec(example$truth, example$preds)
+  )
+
+  expect_identical(wis_res, wis_exp)
+})
+
+test_that("quantile_metric_summarizer() handles column name collisions", {
+  example <- dplyr::tibble(
+    preds = hardhat::quantile_pred(rbind(1:4, 8:11), c(0.2, 0.4, 0.6, 0.8)),
+    truth = c(3.3, 7.1)
+  )
+
+  example$name <- example$truth
+  example$estimator <- example$truth
+  example$event_level <- example$truth
+  example$na_rm <- example$truth
+  example$estimate <- example$truth
+
+  wis_res <- quantile_metric_summarizer(
+    name = "weighted_interval_score",
+    fn = weighted_interval_score_vec,
+    data = example,
+    truth = truth,
+    estimate = preds
+  )
+
+  wis_exp <- dplyr::tibble(
+    .metric = "weighted_interval_score",
+    .estimator = "standard",
+    .estimate = weighted_interval_score_vec(example$truth, example$preds)
+  )
+
+  expect_identical(wis_res, wis_exp)
+})
+
+
 ## curve_metric_summarizer --------------------------------------------------
 
 test_that("curve_metric_summarizer() works as expected", {
@@ -840,7 +1076,8 @@ test_that("curve_metric_summarizer() works with grouped input", {
 
 test_that("class_metric_summarizer()'s event_level works as expected", {
   hpc_f1 <- data_hpc_fold1()
-  hpc_f1$obs <- factor(hpc_f1$obs == "VF",
+  hpc_f1$obs <- factor(
+    hpc_f1$obs == "VF",
     levels = c(TRUE, FALSE),
     labels = c("VF", "nVF")
   )
@@ -905,7 +1142,10 @@ test_that("curve_metric_summarizer()'s na_rm argument work", {
   roc_curve_exp <- dplyr::tibble(
     .metric = "roc_curve",
     .estimator = "multiclass",
-    .estimate = roc_curve_vec(hpc_f1$obs[-(1:5)], as.matrix(hpc_f1[-(1:5), 3:6]))
+    .estimate = roc_curve_vec(
+      hpc_f1$obs[-(1:5)],
+      as.matrix(hpc_f1[-(1:5), 3:6])
+    )
   )
 
   expect_identical(roc_curve_res, roc_curve_exp)
@@ -1341,7 +1581,8 @@ test_that("static_survival_metric_summarizer() works as expected", {
     .metric = "concordance_survival",
     .estimator = "standard",
     .estimate = concordance_survival_vec(
-      lung_surv$surv_obj, lung_surv$.pred_time
+      lung_surv$surv_obj,
+      lung_surv$.pred_time
     )
   )
 
@@ -1447,7 +1688,8 @@ test_that("static_survival_metric_summarizer()'s case_weights argument works", {
     .metric = "concordance_survival",
     .estimator = "standard",
     .estimate = concordance_survival_vec(
-      lung_surv$surv_obj, lung_surv$.pred_time,
+      lung_surv$surv_obj,
+      lung_surv$.pred_time,
       case_weights = lung_surv$wts
     )
   )
@@ -1536,7 +1778,8 @@ test_that("static_survival_metric_summarizer() deals with characters in truth an
     .metric = "concordance_survival",
     .estimator = "standard",
     .estimate = concordance_survival_vec(
-      lung_surv$surv_obj, lung_surv$.pred_time
+      lung_surv$surv_obj,
+      lung_surv$.pred_time
     )
   )
 

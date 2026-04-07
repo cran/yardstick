@@ -93,6 +93,14 @@ required and known, it can be passed through in the \code{mae_train} argument
 and it will be used instead. If the in-sample data is available, the
 naive mean absolute error can easily be computed with
 \code{mae(data, truth, lagged_truth)}.
+
+MASE is a metric that should be minimized. The output
+ranges from 0 to Inf, with
+0 indicating perfect predictions.
+
+The formula for MASE is:
+
+\deqn{\text{MASE} = \frac{1}{n} \sum_{i=1}^{n} \frac{|\text{truth}_i - \text{estimate}_i|}{\text{MAE}_{naive}}}
 }
 \examples{
 # Supply truth and predictions as bare column names
@@ -115,14 +123,14 @@ solubility_resampled <- bind_rows(
 )
 
 # Compute the metric by group
-metric_results <- solubility_resampled \%>\%
-  group_by(resample) \%>\%
+metric_results <- solubility_resampled |>
+  group_by(resample) |>
   mase(solubility, prediction)
 
 metric_results
 
 # Resampled mean estimate
-metric_results \%>\%
+metric_results |>
   summarise(avg_estimate = mean(.estimate))
 }
 \references{
@@ -130,8 +138,11 @@ Rob J. Hyndman (2006). ANOTHER LOOK AT FORECAST-ACCURACY METRICS FOR
 INTERMITTENT DEMAND. \emph{Foresight}, 4, 46.
 }
 \seealso{
+\link[=numeric-metrics]{All numeric metrics}
+
 Other numeric metrics: 
 \code{\link{ccc}()},
+\code{\link{gini_coef}()},
 \code{\link{huber_loss}()},
 \code{\link{huber_loss_pseudo}()},
 \code{\link{iic}()},
@@ -139,8 +150,10 @@ Other numeric metrics:
 \code{\link{mape}()},
 \code{\link{mpe}()},
 \code{\link{msd}()},
+\code{\link{mse}()},
 \code{\link{poisson_log_loss}()},
 \code{\link{rmse}()},
+\code{\link{rmse_relative}()},
 \code{\link{rpd}()},
 \code{\link{rpiq}()},
 \code{\link{rsq}()},
@@ -156,8 +169,10 @@ Other accuracy metrics:
 \code{\link{mape}()},
 \code{\link{mpe}()},
 \code{\link{msd}()},
+\code{\link{mse}()},
 \code{\link{poisson_log_loss}()},
 \code{\link{rmse}()},
+\code{\link{rmse_relative}()},
 \code{\link{smape}()}
 }
 \author{

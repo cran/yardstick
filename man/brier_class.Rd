@@ -8,9 +8,23 @@
 \usage{
 brier_class(data, ...)
 
-\method{brier_class}{data.frame}(data, truth, ..., na_rm = TRUE, case_weights = NULL)
+\method{brier_class}{data.frame}(
+  data,
+  truth,
+  ...,
+  na_rm = TRUE,
+  event_level = yardstick_event_level(),
+  case_weights = NULL
+)
 
-brier_class_vec(truth, estimate, na_rm = TRUE, case_weights = NULL, ...)
+brier_class_vec(
+  truth,
+  estimate,
+  na_rm = TRUE,
+  event_level = yardstick_event_level(),
+  case_weights = NULL,
+  ...
+)
 }
 \arguments{
 \item{data}{A \code{data.frame} containing the columns specified by \code{truth} and
@@ -31,6 +45,11 @@ names). For \verb{_vec()} functions, a \code{factor} vector.}
 
 \item{na_rm}{A \code{logical} value indicating whether \code{NA}
 values should be stripped before the computation proceeds.}
+
+\item{event_level}{A single string. Either \code{"first"} or \code{"second"} to specify
+which level of \code{truth} to consider as the "event". This argument is only
+applicable when \code{estimator = "binary"}. The default uses an internal helper
+that defaults to \code{"first"}.}
 
 \item{case_weights}{The optional column identifier for case weights.
 This should be an unquoted column name that evaluates to a numeric column
@@ -55,9 +74,23 @@ For \code{brier_class_vec()}, a single \code{numeric} value (or \code{NA}).
 Compute the Brier score for a classification model.
 }
 \details{
+Brier score is a metric that should be minimized.
+The output ranges from 0 to
+1, with 0
+indicating perfect predictions.
+
 The Brier score is analogous to the mean squared error in regression models.
 The difference between a binary indicator for a class and its corresponding
 class probability are squared and averaged.
+
+The formula used here is:
+
+\deqn{\text{Brier} = \frac{1}{2N} \sum_{i=1}^{N} \sum_{j=1}^{K} (y_{ij} - p_{ij})^2}
+
+where \eqn{N} is the number of observations, \eqn{K} is the number of classes,
+\eqn{y_{ij}} is 1 if observation \eqn{i} belongs to class \eqn{j} and 0
+otherwise, and \eqn{p_{ij}} is the predicted probability of observation
+\eqn{i} for class \eqn{j}.
 
 This function uses the convention in Kruppa \emph{et al} (2014) and divides the
 result by two.
@@ -70,6 +103,19 @@ Brier scores can be computed in the same way for any number of classes.
 Because of this, no averaging types are supported.
 }
 
+\section{Relevant Level}{
+
+
+There is no common convention on which factor level should
+automatically be considered the "event" or "positive" result
+when computing binary classification metrics. In \code{yardstick}, the default
+is to use the \emph{first} level. To alter this, change the argument
+\code{event_level} to \code{"second"} to consider the \emph{last} level of the factor the
+level of interest. For multiclass extensions involving one-vs-all
+comparisons (such as macro averaging), this option is ignored and
+the "one" level is always the relevant result.
+}
+
 \examples{
 # Two class
 data("two_class_example")
@@ -80,13 +126,13 @@ library(dplyr)
 data(hpc_cv)
 
 # You can use the col1:colN tidyselect syntax
-hpc_cv \%>\%
-  filter(Resample == "Fold01") \%>\%
+hpc_cv |>
+  filter(Resample == "Fold01") |>
   brier_class(obs, VF:L)
 
 # Groups are respected
-hpc_cv \%>\%
-  group_by(Resample) \%>\%
+hpc_cv |>
+  group_by(Resample) |>
   brier_class(obs, VF:L)
 
 }
@@ -97,12 +143,15 @@ learning methods for dichotomous and multicategory outcome: Applications.
 Biometrical Journal, 56 (4): 564-583.
 }
 \seealso{
+\link[=prob-metrics]{All probability metrics}
+
 Other class probability metrics: 
 \code{\link{average_precision}()},
 \code{\link{classification_cost}()},
 \code{\link{gain_capture}()},
 \code{\link{mn_log_loss}()},
 \code{\link{pr_auc}()},
+\code{\link{ranked_prob_score}()},
 \code{\link{roc_auc}()},
 \code{\link{roc_aunp}()},
 \code{\link{roc_aunu}()}

@@ -38,15 +38,6 @@
       Error:
       ! `truth` (4) and `estimate` (5) must be the same length.
 
----
-
-    Code
-      validate_binary_estimator(factor(c("a", "b", "a"), levels = c("a", "b", "c")),
-      estimator = "binary")
-    Condition
-      Error:
-      ! `estimator` is binary, only two class `truth` factors are allowed. A factor with 3 levels was provided.
-
 # validate_factor_truth_factor_estimate errors as expected
 
     Code
@@ -173,6 +164,86 @@
       Error:
       ! The number of levels in `truth` (2) must match the number of columns supplied in `...` (5).
 
+# validate_ordered_truth_matrix_estimate errors as expected for binary
+
+    Code
+      validate_ordered_truth_matrix_estimate(c("a", "b", "a"), 1:3, estimator = "binary")
+    Condition
+      Error:
+      ! `truth` should be a ordered factor, not a a character vector.
+
+---
+
+    Code
+      validate_ordered_truth_matrix_estimate(ordered(c("a", "b", "a"), levels = c("a",
+        "b")), c("a", "b", "a"), estimator = "binary")
+    Condition
+      Error:
+      ! `estimate` should be a numeric vector, not a character vector.
+
+---
+
+    Code
+      validate_ordered_truth_matrix_estimate(ordered(character(), levels = c("a", "b")),
+      matrix(1:6, ncol = 2), estimator = "binary")
+    Condition
+      Error:
+      ! You are using a binary metric but have passed multiple columns to `...`.
+
+---
+
+    Code
+      validate_ordered_truth_matrix_estimate(ordered(c("a", "b", "a"), levels = c("a",
+        "b", "c")), 1:3, estimator = "binary")
+    Condition
+      Error:
+      ! `estimator` is binary, only two class `truth` factors are allowed. A factor with 3 levels was provided.
+
+# validate_ordered_truth_matrix_estimate errors as expected for non-binary
+
+    Code
+      validate_ordered_truth_matrix_estimate(c("a", "b", "a"), matrix(1:6, ncol = 2),
+      estimator = "non binary")
+    Condition
+      Error:
+      ! `truth` should be a ordered factor, not a a character vector.
+
+---
+
+    Code
+      validate_ordered_truth_matrix_estimate(ordered(c("a", "b", "a"), levels = c("a",
+        "b")), 1:3, estimator = "non binary")
+    Condition
+      Error:
+      ! The number of levels in `truth` (2) must match the number of columns supplied in `...` (1).
+
+---
+
+    Code
+      validate_ordered_truth_matrix_estimate(ordered(c("a", "b", "a"), levels = c("a",
+        "b")), matrix(as.character(1:6), ncol = 2), estimator = "non binary")
+    Condition
+      Error:
+      ! The columns supplied in `...` should be numerics, not <cls>.
+
+---
+
+    Code
+      validate_ordered_truth_matrix_estimate(ordered(c("a", "b", "a"), levels = c("a",
+        "b")), matrix(1:15, ncol = 5), estimator = "non binary")
+    Condition
+      Error:
+      ! The number of levels in `truth` (2) must match the number of columns supplied in `...` (5).
+
+# validate_binary_estimator errors as expected
+
+    Code
+      validate_binary_estimator(factor(c("a", "b", "a"), levels = c("a", "b", "c")),
+      estimator = "binary")
+    Condition
+      Error:
+      ! `estimator` is binary, only two class `truth` factors are allowed. A factor with 3 levels was provided.
+
 # validate_surv_truth_numeric_estimate errors as expected
 
     Code
@@ -260,16 +331,6 @@
 ---
 
     Code
-      validate_surv_truth_list_estimate(lung_surv_not_all_same$surv_obj,
-      lung_surv_not_all_same$.pred)
-    Condition
-      Error:
-      x All the .eval_time columns of `estimate` must be identical.
-      i The folllowing index differed from the first: 5, 10, and 14.
-
----
-
-    Code
       validate_surv_truth_list_estimate(lung_surv_neg$surv_obj, lung_surv_neg$.pred)
     Condition
       Error:
@@ -308,4 +369,30 @@
     Condition
       Error:
       ! `truth` (11) and `case_weights` (10) must be the same length.
+
+# validate_numeric_truth_quantile_estimate errors as expected
+
+    Code
+      validate_numeric_truth_quantile_estimate("4", hardhat::quantile_pred(rbind(1:4),
+      c(0.2, 0.4, 0.6, 0.8)))
+    Condition
+      Error:
+      ! `truth` should be a numeric vector, not a string.
+
+---
+
+    Code
+      validate_numeric_truth_quantile_estimate(3.3, 3.4)
+    Condition
+      Error:
+      ! `estimate` should be a <quantile_pred> object, not a number.
+
+---
+
+    Code
+      validate_numeric_truth_quantile_estimate(c(3.3, 7.1, 1), hardhat::quantile_pred(
+        rbind(1:4, 8:11), c(0.2, 0.4, 0.6, 0.8)))
+    Condition
+      Error:
+      ! `truth` (3) and `estimate` (2) must be the same length.
 

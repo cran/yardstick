@@ -58,6 +58,16 @@ their formula. The former guarantees a value on (0, 1) while the
 latter can generate inaccurate values when the model is
 non-informative (see the examples). Both are measures of
 consistency/correlation and not of accuracy.
+
+Traditional R squared is a metric that should be
+maximized. The output ranges from
+0 to 1, with
+1 indicating perfect predictions. Negative values
+can occur when the model is non-informative.
+
+The formula for traditional R squared is:
+
+\deqn{\text{rsq\_trad} = 1 - \frac{SS_{res}}{SS_{tot}} = 1 - \frac{\sum_{i=1}^{n}(\text{truth}_i - \text{estimate}_i)^2}{\sum_{i=1}^{n}(\text{truth}_i - \bar{\text{truth}})^2}}
 }
 \examples{
 # Supply truth and predictions as bare column names
@@ -80,14 +90,14 @@ solubility_resampled <- bind_rows(
 )
 
 # Compute the metric by group
-metric_results <- solubility_resampled \%>\%
-  group_by(resample) \%>\%
+metric_results <- solubility_resampled |>
+  group_by(resample) |>
   rsq_trad(solubility, prediction)
 
 metric_results
 
 # Resampled mean estimate
-metric_results \%>\%
+metric_results |>
   summarise(avg_estimate = mean(.estimate))
 # With uninformitive data, the traditional version of R^2 can return
 # negative values.
@@ -102,8 +112,11 @@ Kvalseth. Cautionary note about \eqn{R^2}.
 American Statistician (1985) vol. 39 (4) pp. 279-285.
 }
 \seealso{
+\link[=numeric-metrics]{All numeric metrics}
+
 Other numeric metrics: 
 \code{\link{ccc}()},
+\code{\link{gini_coef}()},
 \code{\link{huber_loss}()},
 \code{\link{huber_loss_pseudo}()},
 \code{\link{iic}()},
@@ -112,8 +125,10 @@ Other numeric metrics:
 \code{\link{mase}()},
 \code{\link{mpe}()},
 \code{\link{msd}()},
+\code{\link{mse}()},
 \code{\link{poisson_log_loss}()},
 \code{\link{rmse}()},
+\code{\link{rmse_relative}()},
 \code{\link{rpd}()},
 \code{\link{rpiq}()},
 \code{\link{rsq}()},

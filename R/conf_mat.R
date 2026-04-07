@@ -44,8 +44,8 @@
 #' data("hpc_cv")
 #'
 #' # The confusion matrix from a single assessment set (i.e. fold)
-#' cm <- hpc_cv %>%
-#'   filter(Resample == "Fold01") %>%
+#' cm <- hpc_cv |>
+#'   filter(Resample == "Fold01") |>
 #'   conf_mat(obs, pred)
 #' cm
 #'
@@ -54,20 +54,20 @@
 #' # First get the raw cell counts per fold using the `tidy` method
 #' library(tidyr)
 #'
-#' cells_per_resample <- hpc_cv %>%
-#'   group_by(Resample) %>%
-#'   conf_mat(obs, pred) %>%
-#'   mutate(tidied = lapply(conf_mat, tidy)) %>%
+#' cells_per_resample <- hpc_cv |>
+#'   group_by(Resample) |>
+#'   conf_mat(obs, pred) |>
+#'   mutate(tidied = lapply(conf_mat, tidy)) |>
 #'   unnest(tidied)
 #'
 #' # Get the totals per resample
-#' counts_per_resample <- hpc_cv %>%
-#'   group_by(Resample) %>%
-#'   summarize(total = n()) %>%
-#'   left_join(cells_per_resample, by = "Resample") %>%
+#' counts_per_resample <- hpc_cv |>
+#'   group_by(Resample) |>
+#'   summarize(total = n()) |>
+#'   left_join(cells_per_resample, by = "Resample") |>
 #'   # Compute the proportions
-#'   mutate(prop = value / total) %>%
-#'   group_by(name) %>%
+#'   mutate(prop = value / total) |>
+#'   group_by(name) |>
 #'   # Average
 #'   summarize(prop = mean(prop))
 #'
@@ -85,6 +85,10 @@
 #'
 #' autoplot(cm, type = "mosaic")
 #' autoplot(cm, type = "heatmap")
+#'
+#' # And can be modified further like normal ggplot2 objects
+#' autoplot(cm, type = "heatmap") +
+#'   geom_label(aes(label = Freq), fill = "white")
 #' @export
 conf_mat <- function(data, ...) {
   UseMethod("conf_mat")
@@ -92,12 +96,14 @@ conf_mat <- function(data, ...) {
 
 #' @export
 #' @rdname conf_mat
-conf_mat.data.frame <- function(data,
-                                truth,
-                                estimate,
-                                dnn = c("Prediction", "Truth"),
-                                case_weights = NULL,
-                                ...) {
+conf_mat.data.frame <- function(
+  data,
+  truth,
+  estimate,
+  dnn = c("Prediction", "Truth"),
+  case_weights = NULL,
+  ...
+) {
   if (dots_n(...) != 0L) {
     warn_conf_mat_dots_deprecated()
   }
@@ -146,12 +152,14 @@ conf_mat.data.frame <- function(data,
 }
 
 #' @export
-conf_mat.grouped_df <- function(data,
-                                truth,
-                                estimate,
-                                dnn = c("Prediction", "Truth"),
-                                case_weights = NULL,
-                                ...) {
+conf_mat.grouped_df <- function(
+  data,
+  truth,
+  estimate,
+  dnn = c("Prediction", "Truth"),
+  case_weights = NULL,
+  ...
+) {
   if (dots_n(...) != 0L) {
     warn_conf_mat_dots_deprecated()
   }
@@ -222,7 +230,7 @@ conf_mat_impl <- function(truth, estimate, case_weights, call = caller_env()) {
   estimator <- "not binary"
   check_class_metric(truth, estimate, case_weights, estimator, call = call)
 
-  if (length(levels(truth)) < 2) {
+  if (nlevels(truth) < 2) {
     cli::cli_abort(
       "{.arg truth} must have at least 2 factor levels.",
       call = call
@@ -269,7 +277,7 @@ conf_mat.matrix <- function(data, ...) {
 }
 
 warn_conf_mat_dots_deprecated <- function() {
-  lifecycle::deprecate_warn(
+  lifecycle::deprecate_stop(
     when = "1.0.0",
     what = I("The `...` argument of `conf_mat()`"),
     details = "This argument no longer has any effect, and is being ignored."
@@ -354,25 +362,27 @@ flatten <- function(xtab, call = caller_env()) {
 #' data("hpc_cv")
 #'
 #' # Compute statistics per resample then summarize
-#' all_metrics <- hpc_cv %>%
-#'   group_by(Resample) %>%
-#'   conf_mat(obs, pred) %>%
-#'   mutate(summary_tbl = lapply(conf_mat, summary)) %>%
+#' all_metrics <- hpc_cv |>
+#'   group_by(Resample) |>
+#'   conf_mat(obs, pred) |>
+#'   mutate(summary_tbl = lapply(conf_mat, summary)) |>
 #'   unnest(summary_tbl)
 #'
-#' all_metrics %>%
-#'   group_by(.metric) %>%
+#' all_metrics |>
+#'   group_by(.metric) |>
 #'   summarise(
 #'     mean = mean(.estimate, na.rm = TRUE),
 #'     sd = sd(.estimate, na.rm = TRUE)
 #'   )
 #' @export
-summary.conf_mat <- function(object,
-                             prevalence = NULL,
-                             beta = 1,
-                             estimator = NULL,
-                             event_level = yardstick_event_level(),
-                             ...) {
+summary.conf_mat <- function(
+  object,
+  prevalence = NULL,
+  beta = 1,
+  estimator = NULL,
+  event_level = yardstick_event_level(),
+  ...
+) {
   xtab <- object$table
 
   stats <- dplyr::bind_rows(
@@ -382,13 +392,27 @@ summary.conf_mat <- function(object,
     kap(xtab),
     sens(xtab, estimator = estimator, event_level = event_level),
     spec(xtab, estimator = estimator, event_level = event_level),
-    ppv(xtab, prevalence = prevalence, estimator = estimator, event_level = event_level),
-    npv(xtab, prevalence = prevalence, estimator = estimator, event_level = event_level),
+    ppv(
+      xtab,
+      prevalence = prevalence,
+      estimator = estimator,
+      event_level = event_level
+    ),
+    npv(
+      xtab,
+      prevalence = prevalence,
+      estimator = estimator,
+      event_level = event_level
+    ),
     # known multiclass extension
     mcc(xtab),
     j_index(xtab, estimator = estimator, event_level = event_level),
     bal_accuracy(xtab, estimator = estimator, event_level = event_level),
-    detection_prevalence(xtab, estimator = estimator, event_level = event_level),
+    detection_prevalence(
+      xtab,
+      estimator = estimator,
+      event_level = event_level
+    ),
     precision(xtab, estimator = estimator, event_level = event_level),
     recall(xtab, estimator = estimator, event_level = event_level),
     f_meas(xtab, beta = beta, estimator = estimator, event_level = event_level)
@@ -401,17 +425,12 @@ summary.conf_mat <- function(object,
 autoplot.conf_mat <- function(object, type = "mosaic", ...) {
   type <- arg_match(type, conf_mat_plot_types)
 
-  switch(type,
-    mosaic = cm_mosaic(object),
-    heatmap = cm_heat(object)
-  )
+  switch(type, mosaic = cm_mosaic(object), heatmap = cm_heat(object))
 }
 
 conf_mat_plot_types <- c("mosaic", "heatmap")
 
 cm_heat <- function(x) {
-  `%+%` <- ggplot2::`%+%`
-
   df <- as.data.frame.table(x$table)
   # Force specific column names for referencing in ggplot2 code
   names(df) <- c("Prediction", "Truth", "Freq")
@@ -426,26 +445,26 @@ cm_heat <- function(x) {
 
   axis_labels <- get_axis_labels(x)
 
-  df %>%
+  df |>
     ggplot2::ggplot(
       ggplot2::aes(
         x = Truth,
         y = Prediction,
         fill = Freq
       )
-    ) %+%
-    ggplot2::geom_tile() %+%
+    ) +
+    ggplot2::geom_tile() +
     ggplot2::scale_fill_gradient(
       low = "grey90",
       high = "grey40"
-    ) %+%
+    ) +
     ggplot2::theme(
       panel.background = ggplot2::element_blank(),
       legend.position = "none"
-    ) %+%
+    ) +
     ggplot2::geom_text(
       mapping = ggplot2::aes(label = Freq)
-    ) %+%
+    ) +
     ggplot2::labs(
       x = axis_labels$x,
       y = axis_labels$y
@@ -477,8 +496,6 @@ space_y_fun <- function(data, id, x_data) {
 }
 
 cm_mosaic <- function(x) {
-  `%+%` <- ggplot2::`%+%`
-
   cm_zero <- (as.numeric(x$table == 0) / 2) + x$table
 
   x_data <- space_fun(colSums(cm_zero), 200)
@@ -495,7 +512,7 @@ cm_mosaic <- function(x) {
   tick_labels <- colnames(cm_zero)
   axis_labels <- get_axis_labels(x)
 
-  ggplot2::ggplot(full_data) %+%
+  ggplot2::ggplot(full_data) +
     ggplot2::geom_rect(
       ggplot2::aes(
         xmin = xmin,
@@ -503,19 +520,19 @@ cm_mosaic <- function(x) {
         ymin = ymin,
         ymax = ymax
       )
-    ) %+%
+    ) +
     ggplot2::scale_x_continuous(
       breaks = (x_data$xmin + x_data$xmax) / 2,
       labels = tick_labels
-    ) %+%
+    ) +
     ggplot2::scale_y_continuous(
       breaks = (y1_data$ymin + y1_data$ymax) / 2,
       labels = tick_labels
-    ) %+%
+    ) +
     ggplot2::labs(
       y = axis_labels$y,
       x = axis_labels$x
-    ) %+%
+    ) +
     ggplot2::theme(panel.background = ggplot2::element_blank())
 }
 

@@ -3,13 +3,27 @@
 #' Compute the Brier score for a classification model.
 #'
 #' @family class probability metrics
+#' @seealso [All probability metrics][prob-metrics]
 #' @templateVar fn brier_class
 #' @template return
 #' @details
+#' Brier score is a metric that should be `r attr(brier_class, "direction")`d.
+#' The output ranges from `r metric_range_chr(brier_class, 1)` to
+#' `r metric_range_chr(brier_class, 2)`, with `r metric_optimal(brier_class)`
+#' indicating perfect predictions.
 #'
 #' The Brier score is analogous to the mean squared error in regression models.
 #' The difference between a binary indicator for a class and its corresponding
 #' class probability are squared and averaged.
+#'
+#' The formula used here is:
+#'
+#' \deqn{\text{Brier} = \frac{1}{2N} \sum_{i=1}^{N} \sum_{j=1}^{K} (y_{ij} - p_{ij})^2}
+#'
+#' where \eqn{N} is the number of observations, \eqn{K} is the number of classes,
+#' \eqn{y_{ij}} is 1 if observation \eqn{i} belongs to class \eqn{j} and 0
+#' otherwise, and \eqn{p_{ij}} is the predicted probability of observation
+#' \eqn{i} for class \eqn{j}.
 #'
 #' This function uses the convention in Kruppa _et al_ (2014) and divides the
 #' result by two.
@@ -21,6 +35,7 @@
 #' Because of this, no averaging types are supported.
 #'
 #' @inheritParams pr_auc
+#' @template event_first
 #'
 #' @author Max Kuhn
 #'
@@ -38,13 +53,13 @@
 #' data(hpc_cv)
 #'
 #' # You can use the col1:colN tidyselect syntax
-#' hpc_cv %>%
-#'   filter(Resample == "Fold01") %>%
+#' hpc_cv |>
+#'   filter(Resample == "Fold01") |>
 #'   brier_class(obs, VF:L)
 #'
 #' # Groups are respected
-#' hpc_cv %>%
-#'   group_by(Resample) %>%
+#' hpc_cv |>
+#'   group_by(Resample) |>
 #'   brier_class(obs, VF:L)
 #'
 #' @export
@@ -53,16 +68,20 @@ brier_class <- function(data, ...) {
 }
 brier_class <- new_prob_metric(
   brier_class,
-  direction = "minimize"
+  direction = "minimize",
+  range = c(0, 1)
 )
 
 #' @export
 #' @rdname brier_class
-brier_class.data.frame <- function(data,
-                                   truth,
-                                   ...,
-                                   na_rm = TRUE,
-                                   case_weights = NULL) {
+brier_class.data.frame <- function(
+  data,
+  truth,
+  ...,
+  na_rm = TRUE,
+  event_level = yardstick_event_level(),
+  case_weights = NULL
+) {
   case_weights_quo <- enquo(case_weights)
 
   prob_metric_summarizer(
@@ -72,17 +91,22 @@ brier_class.data.frame <- function(data,
     truth = !!enquo(truth),
     ...,
     na_rm = na_rm,
+    event_level = event_level,
     case_weights = !!case_weights_quo
   )
 }
 
 #' @rdname brier_class
 #' @export
-brier_class_vec <- function(truth,
-                            estimate,
-                            na_rm = TRUE,
-                            case_weights = NULL,
-                            ...) {
+brier_class_vec <- function(
+  truth,
+  estimate,
+  na_rm = TRUE,
+  event_level = yardstick_event_level(),
+  case_weights = NULL,
+  ...
+) {
+  check_bool(na_rm)
   abort_if_class_pred(truth)
 
   estimator <- finalize_estimator(truth, metric_class = "brier_class")
@@ -102,18 +126,35 @@ brier_class_vec <- function(truth,
   brier_class_estimator_impl(
     truth = truth,
     estimate = estimate,
+    estimator = estimator,
+    event_level = event_level,
     case_weights = case_weights
   )
 }
 
-brier_class_estimator_impl <- function(truth,
-                                       estimate,
-                                       case_weights) {
-  brier_factor(
-    truth = truth,
-    estimate = estimate,
-    case_weights = case_weights
-  )
+brier_class_estimator_impl <- function(
+  truth,
+  estimate,
+  estimator,
+  event_level,
+  case_weights
+) {
+  if (is_binary(estimator)) {
+    brier_class_binary(truth, estimate, event_level, case_weights)
+  } else {
+    brier_factor(truth, estimate, case_weights)
+  }
+}
+
+brier_class_binary <- function(truth, estimate, event_level, case_weights) {
+  if (!is_event_first(event_level)) {
+    lvls <- levels(truth)
+    truth <- stats::relevel(truth, lvls[[2]])
+  }
+
+  estimate <- matrix(c(estimate, 1 - estimate), ncol = 2)
+
+  brier_factor(truth, estimate, case_weights)
 }
 
 # If `truth` is already a vector or matrix of binary data
@@ -142,6 +183,11 @@ brier_ind <- function(truth, estimate, case_weights = NULL) {
   case_weights <- case_weights[not_missing]
 
   # Normalize weights (in case negative weights)
+  # subtracting max to avoid Inf in calculations
+  #  exp(x - max(x)) / sum(exp(x - max(x)))
+  #  = (exp(x) / exp(max(x))) / (sum(exp(x)) / exp(max(x)))
+  #  = exp(x) / sum(exp(x))
+  case_weights <- case_weights - max(case_weights)
   case_weights <- exp(case_weights) / sum(exp(case_weights))
 
   res <- sum(resids * case_weights) / (2 * sum(case_weights))

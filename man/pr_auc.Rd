@@ -82,6 +82,19 @@ For \code{pr_auc_vec()}, a single \code{numeric} value (or \code{NA}).
 \code{pr_auc()} is a metric that computes the area under the precision
 recall curve. See \code{\link[=pr_curve]{pr_curve()}} for the full curve.
 }
+\details{
+PR AUC is a metric that should be maximized. The output
+ranges from 0 to 1, with
+1 indicating perfect precision and recall at all
+thresholds.
+
+The area under the precision-recall curve is computed using the trapezoidal
+rule:
+
+\deqn{\text{PR AUC} = \sum_{i=1}^{n-1} (r_{i+1} - r_i) \cdot \frac{p_i + p_{i+1}}{2}}
+
+where \eqn{r} is recall and \eqn{p} is precision at each threshold.
+}
 \section{Multiclass}{
 
 
@@ -129,31 +142,31 @@ data(hpc_cv)
 
 # You can use the col1:colN tidyselect syntax
 library(dplyr)
-hpc_cv \%>\%
-  filter(Resample == "Fold01") \%>\%
+hpc_cv |>
+  filter(Resample == "Fold01") |>
   pr_auc(obs, VF:L)
 
 # Change the first level of `obs` from `"VF"` to `"M"` to alter the
 # event of interest. The class probability columns should be supplied
 # in the same order as the levels.
-hpc_cv \%>\%
-  filter(Resample == "Fold01") \%>\%
-  mutate(obs = relevel(obs, "M")) \%>\%
+hpc_cv |>
+  filter(Resample == "Fold01") |>
+  mutate(obs = relevel(obs, "M")) |>
   pr_auc(obs, M, VF:L)
 
 # Groups are respected
-hpc_cv \%>\%
-  group_by(Resample) \%>\%
+hpc_cv |>
+  group_by(Resample) |>
   pr_auc(obs, VF:L)
 
 # Weighted macro averaging
-hpc_cv \%>\%
-  group_by(Resample) \%>\%
+hpc_cv |>
+  group_by(Resample) |>
   pr_auc(obs, VF:L, estimator = "macro_weighted")
 
 # Vector version
 # Supply a matrix of class probabilities
-fold1 <- hpc_cv \%>\%
+fold1 <- hpc_cv |>
   filter(Resample == "Fold01")
 
 pr_auc_vec(
@@ -166,6 +179,8 @@ pr_auc_vec(
 
 }
 \seealso{
+\link[=prob-metrics]{All probability metrics}
+
 \code{\link[=pr_curve]{pr_curve()}} for computing the full precision recall curve.
 
 Other class probability metrics: 
@@ -174,6 +189,7 @@ Other class probability metrics:
 \code{\link{classification_cost}()},
 \code{\link{gain_capture}()},
 \code{\link{mn_log_loss}()},
+\code{\link{ranked_prob_score}()},
 \code{\link{roc_auc}()},
 \code{\link{roc_aunp}()},
 \code{\link{roc_aunu}()}

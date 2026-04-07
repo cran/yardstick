@@ -90,6 +90,26 @@ The positive predictive value (\code{\link[=ppv]{ppv()}}) is defined as the perc
 predicted positives that are actually positive while the
 negative predictive value (\code{\link[=npv]{npv()}}) is defined as the percent of negative
 positives that are actually negative.
+
+Suppose a 2x2 table with notation:
+
+\tabular{rcc}{ \tab Reference \tab \cr Predicted \tab Positive \tab Negative
+\cr Positive \tab A \tab B \cr Negative \tab C \tab D \cr }
+
+The formulas used here are:
+
+\deqn{\text{Sensitivity} = \frac{A}{A + C}}
+
+\deqn{\text{Specificity} = \frac{D}{B + D}}
+
+\deqn{\text{Prevalence} = \frac{A + C}{A + B + C + D}}
+
+\deqn{\text{NPV} = \frac{\text{Specificity} \cdot (1 - \text{Prevalence})}{((1 - \text{Sensitivity}) \cdot \text{Prevalence}) + (\text{Specificity} \cdot (1 - \text{Prevalence}))}}
+
+NPV is a metric that should be maximized. The output
+ranges from 0 to 1, with
+1 indicating all predicted negatives are true
+negatives.
 }
 \section{Relevant Level}{
 
@@ -113,25 +133,6 @@ than 2 levels is provided. Otherwise, a standard binary calculation is done.
 See \code{vignette("multiclass", "yardstick")} for more information.
 }
 
-\section{Implementation}{
-
-
-Suppose a 2x2 table with notation:
-
-\tabular{rcc}{ \tab Reference \tab \cr Predicted \tab Positive \tab Negative
-\cr Positive \tab A \tab B \cr Negative \tab C \tab D \cr }
-
-The formulas used here are:
-
-\deqn{Sensitivity = A/(A+C)}
-\deqn{Specificity = D/(B+D)}
-\deqn{Prevalence = (A+C)/(A+B+C+D)}
-\deqn{PPV = (Sensitivity * Prevalence) / ((Sensitivity * Prevalence) + ((1-Specificity) * (1-Prevalence)))}
-\deqn{NPV = (Specificity * (1-Prevalence)) / (((1-Sensitivity) * Prevalence) + ((Specificity) * (1-Prevalence)))}
-
-See the references for discussions of the statistics.
-}
-
 \examples{
 # Two class
 data("two_class_example")
@@ -141,18 +142,18 @@ npv(two_class_example, truth, predicted)
 library(dplyr)
 data(hpc_cv)
 
-hpc_cv \%>\%
-  filter(Resample == "Fold01") \%>\%
+hpc_cv |>
+  filter(Resample == "Fold01") |>
   npv(obs, pred)
 
 # Groups are respected
-hpc_cv \%>\%
-  group_by(Resample) \%>\%
+hpc_cv |>
+  group_by(Resample) |>
   npv(obs, pred)
 
 # Weighted macro averaging
-hpc_cv \%>\%
-  group_by(Resample) \%>\%
+hpc_cv |>
+  group_by(Resample) |>
   npv(obs, pred, estimator = "macro_weighted")
 
 # Vector version
@@ -167,6 +168,13 @@ npv_vec(
   two_class_example$predicted,
   event_level = "second"
 )
+# Using a different value of 'prevalence'... if you are adding the metric to a
+# metric set, you can create a new metric function with the updated argument
+# value:
+
+npv_alt_prev  <- metric_tweak("npv_alt_prev", npv, prevalence = 0.40)
+multi_metrics <- metric_set(npv, npv_alt_prev)
+multi_metrics(two_class_example, truth, estimate = predicted)
 }
 \references{
 Altman, D.G., Bland, J.M. (1994) ``Diagnostic tests 2:
@@ -174,21 +182,30 @@ predictive values,'' \emph{British Medical Journal}, vol 309,
 102.
 }
 \seealso{
+\link[=class-metrics]{All class metrics}
+
 Other class metrics: 
 \code{\link{accuracy}()},
 \code{\link{bal_accuracy}()},
 \code{\link{detection_prevalence}()},
 \code{\link{f_meas}()},
+\code{\link{fall_out}()},
 \code{\link{j_index}()},
 \code{\link{kap}()},
+\code{\link{markedness}()},
 \code{\link{mcc}()},
+\code{\link{miss_rate}()},
 \code{\link{ppv}()},
 \code{\link{precision}()},
 \code{\link{recall}()},
+\code{\link{roc_dist}()},
+\code{\link{sedi}()},
 \code{\link{sens}()},
 \code{\link{spec}()}
 
 Other sensitivity metrics: 
+\code{\link{fall_out}()},
+\code{\link{miss_rate}()},
 \code{\link{ppv}()},
 \code{\link{sens}()},
 \code{\link{spec}()}

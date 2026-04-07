@@ -12,7 +12,7 @@
 
 <meta name="author" content="Simon Couch" />
 
-<meta name="date" content="2025-01-22" />
+<meta name="date" content="2026-04-07" />
 
 <title>Grouping behavior in yardstick</title>
 
@@ -341,7 +341,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 
 <h1 class="title toc-ignore">Grouping behavior in yardstick</h1>
 <h4 class="author">Simon Couch</h4>
-<h4 class="date">2025-01-22</h4>
+<h4 class="date">2026-04-07</h4>
 
 
 
@@ -391,8 +391,8 @@ probabilities, which we don’t need.</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1</span>)</span>
 <span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a></span>
 <span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>hpc <span class="ot">&lt;-</span></span>
-<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>  <span class="fu">tibble</span>(hpc_cv) <span class="sc">%&gt;%</span></span>
-<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">batch =</span> <span class="fu">sample</span>(<span class="fu">c</span>(<span class="st">&quot;a&quot;</span>, <span class="st">&quot;b&quot;</span>), <span class="fu">nrow</span>(.), <span class="at">replace =</span> <span class="cn">TRUE</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>  <span class="fu">tibble</span>(hpc_cv) <span class="sc">|&gt;</span></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">batch =</span> <span class="fu">sample</span>(<span class="fu">c</span>(<span class="st">&quot;a&quot;</span>, <span class="st">&quot;b&quot;</span>), <span class="fu">nrow</span>(hpc_cv), <span class="at">replace =</span> <span class="cn">TRUE</span>)) <span class="sc">|&gt;</span></span>
 <span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span><span class="fu">c</span>(VF, F, M, L))</span>
 <span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a></span>
 <span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a>hpc</span>
@@ -412,8 +412,8 @@ probabilities, which we don’t need.</p>
 <span id="cb3-22"><a href="#cb3-22" tabindex="-1"></a><span class="co">#&gt; # ℹ 3,457 more rows</span></span></code></pre></div>
 <p>If we wanted to compute the accuracy of the first resampled model, we
 could write:</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>hpc <span class="sc">%&gt;%</span> </span>
-<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>  <span class="fu">filter</span>(Resample <span class="sc">==</span> <span class="st">&quot;Fold01&quot;</span>) <span class="sc">%&gt;%</span></span>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>hpc <span class="sc">|&gt;</span> </span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>  <span class="fu">filter</span>(Resample <span class="sc">==</span> <span class="st">&quot;Fold01&quot;</span>) <span class="sc">|&gt;</span></span>
 <span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>  <span class="fu">accuracy</span>(obs, pred)</span>
 <span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="co">#&gt; # A tibble: 1 × 3</span></span>
 <span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a><span class="co">#&gt;   .metric  .estimator .estimate</span></span>
@@ -425,8 +425,8 @@ set it is passed.</p>
 <p>If we instead group the data by fold, metric functions like
 <code>accuracy</code> will know to compute values for each group; in the
 output, each row will correspond to a Resample.</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>hpc <span class="sc">%&gt;%</span> </span>
-<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>  <span class="fu">group_by</span>(Resample) <span class="sc">%&gt;%</span></span>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>hpc <span class="sc">|&gt;</span> </span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>  <span class="fu">group_by</span>(Resample) <span class="sc">|&gt;</span></span>
 <span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>  <span class="fu">accuracy</span>(obs, pred)</span>
 <span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="co">#&gt; # A tibble: 10 × 4</span></span>
 <span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a><span class="co">#&gt;    Resample .metric  .estimator .estimate</span></span>
@@ -458,7 +458,7 @@ the level of the input data’s grouping.</p>
 <p>More concretely, let’s turn to an example where there is no
 pre-existing grouping in the data. Consider the portion of the HPC data
 pertaining to the first resample:</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>hpc <span class="sc">%&gt;%</span> </span>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>hpc <span class="sc">|&gt;</span> </span>
 <span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>  <span class="fu">filter</span>(Resample <span class="sc">==</span> <span class="st">&quot;Fold01&quot;</span>)</span>
 <span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a><span class="co">#&gt; # A tibble: 347 × 4</span></span>
 <span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a><span class="co">#&gt;    obs   pred  Resample batch</span></span>
@@ -480,9 +480,9 @@ degree to which model performance differs for these two groups, we could
 compute accuracy values for either group separately, and then take their
 difference. First, computing accuracies:</p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>acc_by_group <span class="ot">&lt;-</span> </span>
-<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>  hpc <span class="sc">%&gt;%</span> </span>
-<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>  <span class="fu">filter</span>(Resample <span class="sc">==</span> <span class="st">&quot;Fold01&quot;</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>  <span class="fu">group_by</span>(batch) <span class="sc">%&gt;%</span></span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>  hpc <span class="sc">|&gt;</span> </span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>  <span class="fu">filter</span>(Resample <span class="sc">==</span> <span class="st">&quot;Fold01&quot;</span>) <span class="sc">|&gt;</span></span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>  <span class="fu">group_by</span>(batch) <span class="sc">|&gt;</span></span>
 <span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a>  <span class="fu">accuracy</span>(obs, pred)</span>
 <span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a></span>
 <span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a>acc_by_group</span>
@@ -535,8 +535,8 @@ metric function like any other:</p>
 <!-- TODO: once a print method is added, we can print this out and the meaning of "this is just a yardstick metric" will be clearer -->
 <p>We can use the <code>accuracy_diff_by_batch()</code> metric in the
 same way that we would use <code>accuracy()</code>. On its own:</p>
-<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a>hpc <span class="sc">%&gt;%</span> </span>
-<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a>  <span class="fu">filter</span>(Resample <span class="sc">==</span> <span class="st">&quot;Fold01&quot;</span>) <span class="sc">%&gt;%</span></span>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a>hpc <span class="sc">|&gt;</span> </span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a>  <span class="fu">filter</span>(Resample <span class="sc">==</span> <span class="st">&quot;Fold01&quot;</span>) <span class="sc">|&gt;</span></span>
 <span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a>  <span class="fu">accuracy_diff_by_batch</span>(obs, pred)</span>
 <span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a><span class="co">#&gt; # A tibble: 1 × 4</span></span>
 <span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a><span class="co">#&gt;   .metric       .by   .estimator .estimate</span></span>
@@ -546,8 +546,8 @@ same way that we would use <code>accuracy()</code>. On its own:</p>
 sets:</p>
 <div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a>acc_ms <span class="ot">&lt;-</span> <span class="fu">metric_set</span>(accuracy, accuracy_diff_by_batch)</span>
 <span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a></span>
-<span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a>hpc <span class="sc">%&gt;%</span> </span>
-<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a>  <span class="fu">filter</span>(Resample <span class="sc">==</span> <span class="st">&quot;Fold01&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a>hpc <span class="sc">|&gt;</span> </span>
+<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a>  <span class="fu">filter</span>(Resample <span class="sc">==</span> <span class="st">&quot;Fold01&quot;</span>) <span class="sc">|&gt;</span></span>
 <span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a>  <span class="fu">acc_ms</span>(<span class="at">truth =</span> obs, <span class="at">estimate =</span> pred)</span>
 <span id="cb14-6"><a href="#cb14-6" tabindex="-1"></a><span class="co">#&gt; # A tibble: 2 × 4</span></span>
 <span id="cb14-7"><a href="#cb14-7" tabindex="-1"></a><span class="co">#&gt;   .metric       .estimator .estimate .by  </span></span>
@@ -559,8 +559,8 @@ grouping variables other than the column passed as the first argument to
 <code>accuracy_diff()</code>—in this case,
 <code>group</code>—<code>accuracy_diff_by_batch()</code> will behave
 like any other yardstick metric. For example:</p>
-<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a>hpc <span class="sc">%&gt;%</span> </span>
-<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a>  <span class="fu">group_by</span>(Resample) <span class="sc">%&gt;%</span></span>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a>hpc <span class="sc">|&gt;</span> </span>
+<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a>  <span class="fu">group_by</span>(Resample) <span class="sc">|&gt;</span></span>
 <span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a>  <span class="fu">accuracy_diff_by_batch</span>(obs, pred)</span>
 <span id="cb15-4"><a href="#cb15-4" tabindex="-1"></a><span class="co">#&gt; # A tibble: 10 × 5</span></span>
 <span id="cb15-5"><a href="#cb15-5" tabindex="-1"></a><span class="co">#&gt;    Resample .metric       .by   .estimator .estimate</span></span>

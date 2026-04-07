@@ -92,6 +92,21 @@ The \code{gain_capture()} metric is identical to the \emph{accuracy ratio (AR)},
 is also sometimes called the \emph{gini coefficient}. These two are generally
 calculated on a cumulative accuracy profile curve, but this is the same as
 a gain curve. See the Engelmann reference for more information.
+
+Gain capture is a metric that should be maximized.
+The output ranges from 0 to
+1, with 1
+indicating perfect discrimination.
+
+The formula used here is:
+
+\deqn{\text{Gain Capture} = \frac{A_{model} - A_{baseline}}{A_{perfect} - A_{baseline}}}
+
+where \eqn{A_{model}} is the area under the model's gain curve,
+\eqn{A_{baseline}} is the area under the baseline (random) gain curve,
+and \eqn{A_{perfect}} is the area under a perfect gain curve. This is
+equivalent to twice the ROC AUC minus one, also known as the Gini
+coefficient.
 }
 \section{Relevant Level}{
 
@@ -140,31 +155,31 @@ data(hpc_cv)
 
 # You can use the col1:colN tidyselect syntax
 library(dplyr)
-hpc_cv \%>\%
-  filter(Resample == "Fold01") \%>\%
+hpc_cv |>
+  filter(Resample == "Fold01") |>
   gain_capture(obs, VF:L)
 
 # Change the first level of `obs` from `"VF"` to `"M"` to alter the
 # event of interest. The class probability columns should be supplied
 # in the same order as the levels.
-hpc_cv \%>\%
-  filter(Resample == "Fold01") \%>\%
-  mutate(obs = relevel(obs, "M")) \%>\%
+hpc_cv |>
+  filter(Resample == "Fold01") |>
+  mutate(obs = relevel(obs, "M")) |>
   gain_capture(obs, M, VF:L)
 
 # Groups are respected
-hpc_cv \%>\%
-  group_by(Resample) \%>\%
+hpc_cv |>
+  group_by(Resample) |>
   gain_capture(obs, VF:L)
 
 # Weighted macro averaging
-hpc_cv \%>\%
-  group_by(Resample) \%>\%
+hpc_cv |>
+  group_by(Resample) |>
   gain_capture(obs, VF:L, estimator = "macro_weighted")
 
 # Vector version
 # Supply a matrix of class probabilities
-fold1 <- hpc_cv \%>\%
+fold1 <- hpc_cv |>
   filter(Resample == "Fold01")
 
 gain_capture_vec(
@@ -175,7 +190,7 @@ gain_capture_vec(
    )
 )
 
-\dontshow{if (rlang::is_installed(c("ggplot2"))) (if (getRversion() >= "3.4") withAutoprint else force)(\{ # examplesIf}
+\dontshow{if (rlang::is_installed(c("ggplot2"))) withAutoprint(\{ # examplesIf}
 # ---------------------------------------------------------------------------
 # Visualize gain_capture()
 
@@ -192,6 +207,8 @@ Discussion Paper Series 2: Banking and Financial Studies 2003,01,
 Deutsche Bundesbank.
 }
 \seealso{
+\link[=prob-metrics]{All probability metrics}
+
 \code{\link[=gain_curve]{gain_curve()}} to compute the full gain curve.
 
 Other class probability metrics: 
@@ -200,6 +217,7 @@ Other class probability metrics:
 \code{\link{classification_cost}()},
 \code{\link{mn_log_loss}()},
 \code{\link{pr_auc}()},
+\code{\link{ranked_prob_score}()},
 \code{\link{roc_auc}()},
 \code{\link{roc_aunp}()},
 \code{\link{roc_aunu}()}

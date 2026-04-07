@@ -1,6 +1,88 @@
+# yardstick 1.4.0
+
+## Breaking Changes
+
+* The global option `yardstick.event_first` (deprecated in 0.0.7) now throws an error. Use the `event_level` argument of individual metric functions instead. (#632)
+
+* `conf_mat()` now throws an error if anything is passed to `...` (deprecated in 1.0.0). This argument has had no effect since case weight support was added. (#632)
+
+* `roc_auc()`, `roc_aunp()`, `roc_aunu()`, and `roc_curve()` now throw an error if a non-empty list is passed to `options` (deprecated in 1.0.0). Use the pROC package directly if you need these features. (#632)
+
+## Deprecations
+
+* `dots_to_estimate()`, `metric_summarizer()`, and `metric_vec_template()` (soft-deprecated in 1.2.0) now warn for all users. See the yardstick 1.2.0 release notes for recommended replacements. (#632)
+
+## New Metrics
+
+* `gini_coef()` computes the normalized Gini coefficient for regression, which measures ranking ability based on the Lorenz curve. (#147)
+
+* `mse()` computes the mean squared error. (#560)
+
+* `rmse_relative()` computes the relative root mean squared error, normalizing RMSE by the range of the true values. (#527)
+
+* `fall_out()` and `miss_rate()` compute the false positive rate and false negative rate respectively. (#336)
+
+* `markedness()` computes the markedness metric (PPV + NPV - 1), the predictive power analog of `j_index()`. (#27)
+
+* `roc_dist()` computes the Euclidean distance from the (sensitivity, specificity) point to the ideal point (1, 1) in ROC space. (#148)
+
+* `sedi()` computes the Symmetric Extremal Dependence Index, a prevalence-independent skill metric for binary classification that remains reliable at extreme class imbalance. (#630)
+
+* `ranked_prob_score()` computes the ranked probability score for ordinal classification data. (#524)
+
+* `weighted_interval_score()` is a new quantile metric. (#569)
+
+## Improvements
+
+* Added checks to all metrics for the `na_rm` argument. (#349)
+
+* Added improved argument checking for metrics with additional arguments. (#519)
+
+* Added documentation pages for each metric type (e.g., `?class-metrics`, `?numeric-metrics`) listing all available metrics with their direction and range. (#547, #540)
+
+* All class metrics and probability metrics now include mathematical formulas in their documentation. (#605)
+
+* All metrics now document their valid range of output values. (#572)
+
+* Documentation pages for metrics with alternate argument values now emphasize using `metric_tweak()` when building metric sets. (#626)
+
+* Survival metrics performance has been improved. (#576)
+
+* `brier_class()` has gained the `event_level` argument. (#515)
+
+* `get_metrics()` has been added to return a `metric_set()` containing all metrics of a specified type. (#534)
+
+* `metric_set()` now provides a more informative error message when `estimate` is not explicitly named for class/prob or survival metric sets. (#504)
+
+* `roc_curve()` has gained a `thresholds` argument for specifying custom thresholds at which the curve is evaluated. (#488)
+
+## Bug Fixes
+
+* `brier_class()` no longer returns `NaN` with extreme value case weights. (#614)
+
+* `classification_cost()` documentation now correctly refers to the `cost` column of the costs data frame. (#343)
+
+* `mpe()` documentation now includes the formula and clarifies the interpretation of positive and negative values. (#345)
+
+* `poisson_log_loss()` now handles 0-valued estimates without returning `Inf` or `NaN`. (#513)
+
+* Fixed a bug where ranked probability metrics didn't work in combination with other classification metrics in `metric_set()`. (#539)
+
+* Fixed documentation to show equations correctly. (#541)
+
+## Developer
+
+* Added infrastructure for quantile metrics. (#569)
+
+* Added infrastructure for survival metrics on the linear predictor. (#551)
+
+* `new_metric()` and related functions gain an optional `range` argument to store the valid output range of a metric. (#572)
+
+* Removed crayon as a suggested package. (#574)
+
 # yardstick 1.3.2
 
-All messages, warnings and errors has been translated to use {cli} package (#517, #522).
+* All messages, warnings and errors has been translated to use {cli} package (#517, #522).
 
 # yardstick 1.3.1
 

@@ -73,13 +73,13 @@ is implemented.
 The function requires that the factors have exactly the same levels.
 }
 \examples{
-\dontshow{if (rlang::is_installed(c("tidyr", "ggplot2"))) (if (getRversion() >= "3.4") withAutoprint else force)(\{ # examplesIf}
+\dontshow{if (rlang::is_installed(c("tidyr", "ggplot2"))) withAutoprint(\{ # examplesIf}
 library(dplyr)
 data("hpc_cv")
 
 # The confusion matrix from a single assessment set (i.e. fold)
-cm <- hpc_cv \%>\%
-  filter(Resample == "Fold01") \%>\%
+cm <- hpc_cv |>
+  filter(Resample == "Fold01") |>
   conf_mat(obs, pred)
 cm
 
@@ -88,20 +88,20 @@ cm
 # First get the raw cell counts per fold using the `tidy` method
 library(tidyr)
 
-cells_per_resample <- hpc_cv \%>\%
-  group_by(Resample) \%>\%
-  conf_mat(obs, pred) \%>\%
-  mutate(tidied = lapply(conf_mat, tidy)) \%>\%
+cells_per_resample <- hpc_cv |>
+  group_by(Resample) |>
+  conf_mat(obs, pred) |>
+  mutate(tidied = lapply(conf_mat, tidy)) |>
   unnest(tidied)
 
 # Get the totals per resample
-counts_per_resample <- hpc_cv \%>\%
-  group_by(Resample) \%>\%
-  summarize(total = n()) \%>\%
-  left_join(cells_per_resample, by = "Resample") \%>\%
+counts_per_resample <- hpc_cv |>
+  group_by(Resample) |>
+  summarize(total = n()) |>
+  left_join(cells_per_resample, by = "Resample") |>
   # Compute the proportions
-  mutate(prop = value / total) \%>\%
-  group_by(name) \%>\%
+  mutate(prop = value / total) |>
+  group_by(name) |>
   # Average
   summarize(prop = mean(prop))
 
@@ -119,6 +119,10 @@ library(ggplot2)
 
 autoplot(cm, type = "mosaic")
 autoplot(cm, type = "heatmap")
+
+# And can be modified further like normal ggplot2 objects
+autoplot(cm, type = "heatmap") +
+  geom_label(aes(label = Freq), fill = "white")
 \dontshow{\}) # examplesIf}
 }
 \seealso{

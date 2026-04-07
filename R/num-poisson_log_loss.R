@@ -4,6 +4,7 @@
 #'
 #' @family numeric metrics
 #' @family accuracy metrics
+#' @seealso [All numeric metrics][numeric-metrics]
 #' @templateVar fn poisson_log_loss
 #' @template return
 #'
@@ -13,6 +14,17 @@
 #'   This should be an unquoted column name although this argument is passed by
 #'   expression and supports [quasiquotation][rlang::quasiquotation] (you can
 #'   unquote column names). For `_vec()` functions, an `integer` vector.
+#'
+#' @details
+#' Poisson log loss is a metric that should be
+#' `r attr(poisson_log_loss, "direction")`d. The output ranges from
+#' `r metric_range_chr(poisson_log_loss, 1)` to
+#' `r metric_range_chr(poisson_log_loss, 2)`, with
+#' `r metric_optimal(poisson_log_loss)` indicating perfect predictions.
+#'
+#' The formula for Poisson log loss is:
+#'
+#' \deqn{L = \frac{1}{n} \sum_{i=1}^{n} \left( \log(\text{truth}_i!) + \text{estimate}_i - \text{truth}_i \cdot \log(\text{estimate}_i) \right)}
 #'
 #' @author Max Kuhn
 #'
@@ -25,17 +37,20 @@ poisson_log_loss <- function(data, ...) {
 }
 poisson_log_loss <- new_numeric_metric(
   poisson_log_loss,
-  direction = "minimize"
+  direction = "minimize",
+  range = c(0, Inf)
 )
 
 #' @rdname poisson_log_loss
 #' @export
-poisson_log_loss.data.frame <- function(data,
-                                        truth,
-                                        estimate,
-                                        na_rm = TRUE,
-                                        case_weights = NULL,
-                                        ...) {
+poisson_log_loss.data.frame <- function(
+  data,
+  truth,
+  estimate,
+  na_rm = TRUE,
+  case_weights = NULL,
+  ...
+) {
   numeric_metric_summarizer(
     name = "poisson_log_loss",
     fn = poisson_log_loss_vec,
@@ -49,11 +64,14 @@ poisson_log_loss.data.frame <- function(data,
 
 #' @export
 #' @rdname poisson_log_loss
-poisson_log_loss_vec <- function(truth,
-                                 estimate,
-                                 na_rm = TRUE,
-                                 case_weights = NULL,
-                                 ...) {
+poisson_log_loss_vec <- function(
+  truth,
+  estimate,
+  na_rm = TRUE,
+  case_weights = NULL,
+  ...
+) {
+  check_bool(na_rm)
   check_numeric_metric(truth, estimate, case_weights)
 
   if (na_rm) {
@@ -69,14 +87,13 @@ poisson_log_loss_vec <- function(truth,
   poisson_log_loss_impl(truth, estimate, case_weights)
 }
 
-poisson_log_loss_impl <- function(truth,
-                                  estimate,
-                                  case_weights) {
+poisson_log_loss_impl <- function(truth, estimate, case_weights) {
   if (!is.integer(truth)) {
     truth <- as.integer(truth)
   }
-
-  loss <- -stats::dpois(truth, estimate, log = TRUE)
+  eps <- 1e-15
+  estimate <- pmax(estimate, eps)
+  loss <- log(gamma(truth + 1)) + estimate - log(estimate) * truth
 
   yardstick_mean(loss, case_weights = case_weights)
 }

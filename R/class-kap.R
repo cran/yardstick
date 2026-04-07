@@ -5,6 +5,7 @@
 #' when one or more classes have large frequency distributions.
 #'
 #' @family class metrics
+#' @seealso [All class metrics][class-metrics]
 #' @templateVar fn kap
 #' @template return
 #'
@@ -24,6 +25,28 @@
 #'
 #'   In the binary case, all 3 weightings produce the same value, since it is
 #'   only ever possible to be 1 unit away from the true value.
+#'
+#' @details
+#' Suppose a 2x2 table with notation:
+#'
+#' \tabular{rcc}{ \tab Reference \tab \cr Predicted \tab Positive \tab Negative
+#' \cr Positive \tab A \tab B \cr Negative \tab C \tab D \cr }
+#'
+#' The formulas used here are:
+#'
+#' \deqn{p_o = \frac{A + D}{A + B + C + D}}
+#'
+#' \deqn{p_e = \frac{(A + B)(A + C) + (C + D)(B + D)}{(A + B + C + D)^2}}
+#'
+#' \deqn{\text{Kappa} = \frac{p_o - p_e}{1 - p_e}}
+#'
+#' where \eqn{p_o} is the observed agreement and \eqn{p_e} is the
+#' expected agreement by chance.
+#'
+#' Kappa is a metric that should be `r attr(kap, "direction")`d. The output
+#' ranges from `r metric_range_chr(kap, 1)` to `r metric_range_chr(kap, 2)`, with
+#' `r metric_optimal(kap)` indicating perfect agreement. Negative values
+#' indicate agreement worse than chance.
 #'
 #' @author Max Kuhn
 #' @author Jon Harmon
@@ -47,31 +70,44 @@
 #'
 #' # Multiclass
 #' # kap() has a natural multiclass extension
-#' hpc_cv %>%
-#'   filter(Resample == "Fold01") %>%
+#' hpc_cv |>
+#'   filter(Resample == "Fold01") |>
 #'   kap(obs, pred)
 #'
 #' # Groups are respected
-#' hpc_cv %>%
-#'   group_by(Resample) %>%
+#' hpc_cv |>
+#'   group_by(Resample) |>
 #'   kap(obs, pred)
+#'
+#' # Using a different value of 'weighting'... if you are adding the metric to a
+#' # metric set, you can create a new metric function with the updated argument
+#' # value:
+#'
+#' kap_lin  <- metric_tweak("kap_lin",  kap, weighting = "linear")
+#' kap_quad <- metric_tweak("kap_quad", kap, weighting = "quadratic")
+#' multi_metrics <- metric_set(kap, kap_lin, kap_quad)
+#' multi_metrics(hpc_cv, obs, estimate = pred)
+
 kap <- function(data, ...) {
   UseMethod("kap")
 }
 kap <- new_class_metric(
   kap,
-  direction = "maximize"
+  direction = "maximize",
+  range = c(-1, 1)
 )
 
 #' @export
 #' @rdname kap
-kap.data.frame <- function(data,
-                           truth,
-                           estimate,
-                           weighting = "none",
-                           na_rm = TRUE,
-                           case_weights = NULL,
-                           ...) {
+kap.data.frame <- function(
+  data,
+  truth,
+  estimate,
+  weighting = "none",
+  na_rm = TRUE,
+  case_weights = NULL,
+  ...
+) {
   class_metric_summarizer(
     name = "kap",
     fn = kap_vec,
@@ -85,9 +121,7 @@ kap.data.frame <- function(data,
 }
 
 #' @export
-kap.table <- function(data,
-                      weighting = "none",
-                      ...) {
+kap.table <- function(data, weighting = "none", ...) {
   check_table(data)
   metric_tibbler(
     .metric = "kap",
@@ -97,21 +131,22 @@ kap.table <- function(data,
 }
 
 #' @export
-kap.matrix <- function(data,
-                       weighting = "none",
-                       ...) {
+kap.matrix <- function(data, weighting = "none", ...) {
   data <- as.table(data)
   kap.table(data, weighting = weighting)
 }
 
 #' @export
 #' @rdname kap
-kap_vec <- function(truth,
-                    estimate,
-                    weighting = "none",
-                    na_rm = TRUE,
-                    case_weights = NULL,
-                    ...) {
+kap_vec <- function(
+  truth,
+  estimate,
+  weighting = "none",
+  na_rm = TRUE,
+  case_weights = NULL,
+  ...
+) {
+  check_bool(na_rm)
   abort_if_class_pred(truth)
   estimate <- as_factor_from_class_pred(estimate)
 
@@ -174,7 +209,6 @@ make_weighting_matrix <- function(weighting, n_levels, call = caller_env()) {
 }
 
 # ------------------------------------------------------------------------------
-
 
 validate_weighting <- function(x, call = caller_env()) {
   check_string(x, arg = "weighting", call = call)

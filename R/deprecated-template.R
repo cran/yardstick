@@ -1,3 +1,5 @@
+# nocov start
+
 #' Developer function for summarizing new metrics
 #'
 #' @description
@@ -56,18 +58,20 @@
 #'
 #' @keywords internal
 #' @export
-metric_summarizer <- function(metric_nm,
-                              metric_fn,
-                              data,
-                              truth,
-                              estimate,
-                              estimator = NULL,
-                              na_rm = TRUE,
-                              event_level = NULL,
-                              case_weights = NULL,
-                              ...,
-                              metric_fn_options = list()) {
-  lifecycle::deprecate_soft(
+metric_summarizer <- function(
+  metric_nm,
+  metric_fn,
+  data,
+  truth,
+  estimate,
+  estimator = NULL,
+  na_rm = TRUE,
+  event_level = NULL,
+  case_weights = NULL,
+  ...,
+  metric_fn_options = list()
+) {
+  lifecycle::deprecate_warn(
     when = "1.2.0",
     what = "metric_summarizer()",
     with = I(
@@ -116,13 +120,16 @@ metric_summarizer <- function(metric_nm,
 
 validate_not_missing <- function(x, nm) {
   if (quo_is_missing(x)) {
-    abort(paste0(
-      "`", nm, "` ",
-      "is missing and must be supplied."
-    ))
+    abort(
+      paste0(
+        "`",
+        nm,
+        "` ",
+        "is missing and must be supplied."
+      )
+    )
   }
 }
-
 
 handle_chr_names <- function(x, nms) {
   x_expr <- get_expr(x)
@@ -198,15 +205,17 @@ spliceable_case_weights <- function(case_weights) {
 #'
 #' @keywords internal
 #' @export
-metric_vec_template <- function(metric_impl,
-                                truth,
-                                estimate,
-                                na_rm = TRUE,
-                                cls = "numeric",
-                                estimator = NULL,
-                                case_weights = NULL,
-                                ...) {
-  lifecycle::deprecate_soft(
+metric_vec_template <- function(
+  metric_impl,
+  truth,
+  estimate,
+  na_rm = TRUE,
+  cls = "numeric",
+  estimator = NULL,
+  case_weights = NULL,
+  ...
+) {
+  lifecycle::deprecate_warn(
     when = "1.2.0",
     what = "metric_vec_template()",
     with = I(
@@ -240,8 +249,8 @@ metric_vec_template <- function(metric_impl,
   } else {
     any_na <-
       anyNA(truth) ||
-        anyNA(estimate) ||
-        (has_case_weights && anyNA(case_weights))
+      anyNA(estimate) ||
+      (has_case_weights && anyNA(case_weights))
 
     # return NA if any NA
     if (any_na) {
@@ -250,7 +259,12 @@ metric_vec_template <- function(metric_impl,
   }
 
   if (has_case_weights) {
-    metric_impl(truth = truth, estimate = estimate, case_weights = case_weights, ...)
+    metric_impl(
+      truth = truth,
+      estimate = estimate,
+      case_weights = case_weights,
+      ...
+    )
   } else {
     # Assume signature doesn't have `case_weights =`
     metric_impl(truth = truth, estimate = estimate, ...)
@@ -264,16 +278,21 @@ validate_truth_estimate_types <- function(truth, estimate, estimator) {
 #' @export
 validate_truth_estimate_types.default <- function(truth, estimate, estimator) {
   cls <- class(truth)[[1]]
-  abort(paste0(
-    "`truth` class `", cls, "` is unknown. ",
-    "`truth` must be a numeric or a factor."
-  ))
+  abort(
+    paste0(
+      "`truth` class `",
+      cls,
+      "` is unknown. ",
+      "`truth` must be a numeric or a factor."
+    )
+  )
 }
 
 # factor / ?
 #' @export
 validate_truth_estimate_types.factor <- function(truth, estimate, estimator) {
-  switch(estimator,
+  switch(
+    estimator,
     "binary" = binary_checks(truth, estimate),
     # otherwise multiclass checks
     multiclass_checks(truth, estimate)
@@ -285,21 +304,29 @@ validate_truth_estimate_types.factor <- function(truth, estimate, estimator) {
 validate_truth_estimate_types.numeric <- function(truth, estimate, estimator) {
   if (!is.numeric(estimate)) {
     cls <- class(estimate)[[1]]
-    abort(paste0(
-      "`estimate` should be a numeric, not a `", cls, "`."
-    ))
+    abort(
+      paste0(
+        "`estimate` should be a numeric, not a `",
+        cls,
+        "`."
+      )
+    )
   }
 
   if (is.matrix(estimate)) {
-    abort(paste0(
-      "`estimate` should be a numeric vector, not a numeric matrix."
-    ))
+    abort(
+      paste0(
+        "`estimate` should be a numeric vector, not a numeric matrix."
+      )
+    )
   }
 
   if (is.matrix(truth)) {
-    abort(paste0(
-      "`truth` should be a numeric vector, not a numeric matrix."
-    ))
+    abort(
+      paste0(
+        "`truth` should be a numeric vector, not a numeric matrix."
+      )
+    )
   }
 }
 
@@ -314,10 +341,14 @@ binary_checks <- function(truth, estimate) {
 #' @export
 binary_checks.default <- function(truth, estimate) {
   cls <- class(estimate)[[1]]
-  abort(paste0(
-    "A binary metric was chosen but",
-    "`estimate` class `", cls, "` is unknown."
-  ))
+  abort(
+    paste0(
+      "A binary metric was chosen but",
+      "`estimate` class `",
+      cls,
+      "` is unknown."
+    )
+  )
 }
 
 # factor / factor
@@ -332,18 +363,26 @@ binary_checks.factor <- function(truth, estimate) {
     abort(
       paste0(
         "`truth` and `estimate` levels must be equivalent.\n",
-        "`truth`: ",    lvls_t, "\n",
-        "`estimate`: ", lvls_e, "\n"
+        "`truth`: ",
+        lvls_t,
+        "\n",
+        "`estimate`: ",
+        lvls_e,
+        "\n"
       )
     )
   }
 
   lvls <- levels(truth)
   if (length(lvls) != 2) {
-    abort(paste0(
-      "`estimator` is binary, only two class `truth` factors are allowed. ",
-      "A factor with ", length(lvls), " levels was provided."
-    ))
+    abort(
+      paste0(
+        "`estimator` is binary, only two class `truth` factors are allowed. ",
+        "A factor with ",
+        length(lvls),
+        " levels was provided."
+      )
+    )
   }
 }
 
@@ -356,9 +395,11 @@ binary_checks.numeric <- function(truth, estimate) {
 # factor / matrix
 #' @export
 binary_checks.matrix <- function(truth, estimate) {
-  abort(paste0(
-    "You are using a `binary` metric but have passed multiple columns to `...`"
-  ))
+  abort(
+    paste0(
+      "You are using a `binary` metric but have passed multiple columns to `...`"
+    )
+  )
 }
 
 # truth = factor
@@ -386,8 +427,12 @@ multiclass_checks.factor <- function(truth, estimate) {
     abort(
       paste0(
         "`truth` and `estimate` levels must be equivalent.\n",
-        "`truth`: ",    lvls_t, "\n",
-        "`estimate`: ", lvls_e, "\n"
+        "`truth`: ",
+        lvls_t,
+        "\n",
+        "`estimate`: ",
+        lvls_e,
+        "\n"
       )
     )
   }
@@ -406,14 +451,20 @@ multiclass_checks.numeric <- function(truth, estimate) {
 # factor / matrix (any probs functions)
 #' @export
 multiclass_checks.matrix <- function(truth, estimate) {
-  n_lvls <- length(levels(truth))
+  n_lvls <- nlevels(truth)
   n_cols <- ncol(estimate)
 
   if (n_lvls != n_cols) {
-    abort(paste0(
-      "The number of levels in `truth` (", n_lvls, ") ",
-      "must match the number of columns supplied in `...` (", n_cols, ")."
-    ))
+    abort(
+      paste0(
+        "The number of levels in `truth` (",
+        n_lvls,
+        ") ",
+        "must match the number of columns supplied in `...` (",
+        n_cols,
+        ")."
+      )
+    )
   }
 }
 
@@ -427,10 +478,16 @@ validate_truth_estimate_lengths <- function(truth, estimate) {
   }
 
   if (n_truth != n_estimate) {
-    abort(paste0(
-      "Length of `truth` (", n_truth, ") ",
-      "and `estimate` (", n_estimate, ") must match."
-    ))
+    abort(
+      paste0(
+        "Length of `truth` (",
+        n_truth,
+        ") ",
+        "and `estimate` (",
+        n_estimate,
+        ") must match."
+      )
+    )
   }
 }
 
@@ -440,17 +497,28 @@ validate_class <- function(x, nm, cls) {
 
   if (!is_cls(x)) {
     cls_real <- class(x)[[1]]
-    abort(paste0(
-      "`", nm, "` ",
-      "should be a ", cls, " ",
-      "but a ", cls_real, " was supplied."
-    ))
+    abort(
+      paste0(
+        "`",
+        nm,
+        "` ",
+        "should be a ",
+        cls,
+        " ",
+        "but a ",
+        cls_real,
+        " was supplied."
+      )
+    )
   }
 }
 
-validate_truth_estimate_checks <- function(truth, estimate,
-                                           cls = "numeric",
-                                           estimator) {
+validate_truth_estimate_checks <- function(
+  truth,
+  estimate,
+  cls = "numeric",
+  estimator
+) {
   if (length(cls) == 1) {
     cls <- c(cls, cls)
   }
@@ -460,3 +528,5 @@ validate_truth_estimate_checks <- function(truth, estimate,
   validate_truth_estimate_types(truth, estimate, estimator)
   validate_truth_estimate_lengths(truth, estimate)
 }
+
+# nocov end

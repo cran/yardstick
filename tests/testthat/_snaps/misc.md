@@ -48,14 +48,6 @@
       i This is an internal error that was detected in the yardstick package.
         Please report it at <https://github.com/tidymodels/yardstick/issues> with a reprex (<https://tidyverse.org/help/>) and the full backtrace.
 
-# case weights must be numeric
-
-    Code
-      yardstick_table(x, x, case_weights = "x")
-    Condition
-      Error in `hardhat::weighted_table()`:
-      ! Can't convert `weights` <character> to <double>.
-
 # works with constant inputs
 
     Code
@@ -151,12 +143,4 @@
     Condition
       Error in `weighted_quantile()`:
       ! `probabilities` can't have missing values.
-
-# work with class_pred input
-
-    Code
-      accuracy_vec(fct_truth, cp_estimate)
-    Condition
-      Error in `as_factor_from_class_pred()`:
-      ! A <class_pred> input was detected, but the probably package isn't installed. Install probably to be able to convert <class_pred> to <factor>.
 

@@ -19,13 +19,27 @@
 #'
 #' @family class metrics
 #' @family relevance metrics
+#' @seealso [All class metrics][class-metrics]
 #' @templateVar fn precision
 #' @template event_first
 #' @template multiclass
 #' @template return
-#' @template table-relevance
-#'
 #' @inheritParams sens
+#'
+#' @details
+#' Suppose a 2x2 table with notation:
+#'
+#' \tabular{rcc}{ \tab Reference \tab \cr Predicted \tab Relevant \tab
+#' Irrelevant \cr Relevant \tab A \tab B \cr Irrelevant \tab C \tab D \cr }
+#'
+#' The formula used here is:
+#'
+#' \deqn{\text{Precision} = \frac{A}{A + B}}
+#'
+#' Precision is a metric that should be `r attr(precision, "direction")`d. The
+#' output ranges from `r metric_range_chr(precision, 1)` to
+#' `r metric_range_chr(precision, 2)`, with `r metric_optimal(precision)` indicating
+#' that all predicted positives were actual positives.
 #'
 #' @references
 #'
@@ -47,19 +61,22 @@ precision <- function(data, ...) {
 }
 precision <- new_class_metric(
   precision,
-  direction = "maximize"
+  direction = "maximize",
+  range = c(0, 1)
 )
 
 #' @rdname precision
 #' @export
-precision.data.frame <- function(data,
-                                 truth,
-                                 estimate,
-                                 estimator = NULL,
-                                 na_rm = TRUE,
-                                 case_weights = NULL,
-                                 event_level = yardstick_event_level(),
-                                 ...) {
+precision.data.frame <- function(
+  data,
+  truth,
+  estimate,
+  estimator = NULL,
+  na_rm = TRUE,
+  case_weights = NULL,
+  event_level = yardstick_event_level(),
+  ...
+) {
   class_metric_summarizer(
     name = "precision",
     fn = precision_vec,
@@ -74,10 +91,12 @@ precision.data.frame <- function(data,
 }
 
 #' @export
-precision.table <- function(data,
-                            estimator = NULL,
-                            event_level = yardstick_event_level(),
-                            ...) {
+precision.table <- function(
+  data,
+  estimator = NULL,
+  event_level = yardstick_event_level(),
+  ...
+) {
   check_table(data)
   estimator <- finalize_estimator(data, estimator)
 
@@ -89,23 +108,28 @@ precision.table <- function(data,
 }
 
 #' @export
-precision.matrix <- function(data,
-                             estimator = NULL,
-                             event_level = yardstick_event_level(),
-                             ...) {
+precision.matrix <- function(
+  data,
+  estimator = NULL,
+  event_level = yardstick_event_level(),
+  ...
+) {
   data <- as.table(data)
   precision.table(data, estimator, event_level)
 }
 
 #' @export
 #' @rdname precision
-precision_vec <- function(truth,
-                          estimate,
-                          estimator = NULL,
-                          na_rm = TRUE,
-                          case_weights = NULL,
-                          event_level = yardstick_event_level(),
-                          ...) {
+precision_vec <- function(
+  truth,
+  estimate,
+  estimator = NULL,
+  na_rm = TRUE,
+  case_weights = NULL,
+  event_level = yardstick_event_level(),
+  ...
+) {
+  check_bool(na_rm)
   abort_if_class_pred(truth)
   estimate <- as_factor_from_class_pred(estimate)
 
@@ -221,7 +245,13 @@ warn_precision_undefined_multiclass <- function(events, counts) {
   )
 }
 
-warn_precision_undefined <- function(message, events, counts, ..., class = character()) {
+warn_precision_undefined <- function(
+  message,
+  events,
+  counts,
+  ...,
+  class = character()
+) {
   cli::cli_warn(
     message = message,
     class = c(class, "yardstick_warning_precision_undefined"),

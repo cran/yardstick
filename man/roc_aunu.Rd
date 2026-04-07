@@ -68,6 +68,19 @@ For \code{roc_aunu_vec()}, a single \code{numeric} value (or \code{NA}).
 curve of each class against the rest, using the uniform class distribution.
 This is equivalent to \code{roc_auc(estimator = "macro")}.
 }
+\details{
+ROC AUNU is a metric that should be maximized. The
+output ranges from 0 to
+1, with 1 indicating
+perfect discrimination.
+
+The formula used here is:
+
+\deqn{\text{ROC AUNU} = \frac{1}{K} \sum_{k=1}^{K} \text{AUC}_k}
+
+where \eqn{K} is the number of classes and \eqn{\text{AUC}_k} is the
+binary ROC AUC for class \eqn{k} versus the rest.
+}
 \section{Relevant Level}{
 
 
@@ -98,26 +111,26 @@ data(hpc_cv)
 
 # You can use the col1:colN tidyselect syntax
 library(dplyr)
-hpc_cv \%>\%
-  filter(Resample == "Fold01") \%>\%
+hpc_cv |>
+  filter(Resample == "Fold01") |>
   roc_aunu(obs, VF:L)
 
 # Change the first level of `obs` from `"VF"` to `"M"` to alter the
 # event of interest. The class probability columns should be supplied
 # in the same order as the levels.
-hpc_cv \%>\%
-  filter(Resample == "Fold01") \%>\%
-  mutate(obs = relevel(obs, "M")) \%>\%
+hpc_cv |>
+  filter(Resample == "Fold01") |>
+  mutate(obs = relevel(obs, "M")) |>
   roc_aunu(obs, M, VF:L)
 
 # Groups are respected
-hpc_cv \%>\%
-  group_by(Resample) \%>\%
+hpc_cv |>
+  group_by(Resample) |>
   roc_aunu(obs, VF:L)
 
 # Vector version
 # Supply a matrix of class probabilities
-fold1 <- hpc_cv \%>\%
+fold1 <- hpc_cv |>
   filter(Resample == "Fold01")
 
 roc_aunu_vec(
@@ -134,6 +147,8 @@ comparison of performance measures for classification". \emph{Pattern Recognitio
 Letters}. 30 (1), pp 27-38.
 }
 \seealso{
+\link[=prob-metrics]{All probability metrics}
+
 \code{\link[=roc_aunp]{roc_aunp()}} for computing the area under the ROC curve of each class against
 the rest, using the a priori class distribution.
 
@@ -144,6 +159,7 @@ Other class probability metrics:
 \code{\link{gain_capture}()},
 \code{\link{mn_log_loss}()},
 \code{\link{pr_auc}()},
+\code{\link{ranked_prob_score}()},
 \code{\link{roc_auc}()},
 \code{\link{roc_aunp}()}
 }

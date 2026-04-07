@@ -21,10 +21,20 @@
 #'
 #' @family numeric metrics
 #' @family consistency metrics
+#' @seealso [All numeric metrics][numeric-metrics]
 #' @templateVar fn rsq
 #' @template return
 #'
 #' @inheritParams rmse
+#'
+#' @details
+#' R squared is a metric that should be `r attr(rsq, "direction")`d. The output
+#' ranges from `r metric_range_chr(rsq, 1)` to `r metric_range_chr(rsq, 2)`, with
+#' `r metric_optimal(rsq)` indicating perfect predictions.
+#'
+#' The formula for R squared is:
+#'
+#' \deqn{\text{rsq} = \frac{\text{cov}(\text{truth}, \text{estimate})^2}{\text{var}(\text{truth}) \cdot \text{var}(\text{estimate})}}
 #'
 #' @author Max Kuhn
 #'
@@ -54,17 +64,20 @@ rsq <- function(data, ...) {
 }
 rsq <- new_numeric_metric(
   rsq,
-  direction = "maximize"
+  direction = "maximize",
+  range = c(-Inf, 1)
 )
 
 #' @rdname rsq
 #' @export
-rsq.data.frame <- function(data,
-                           truth,
-                           estimate,
-                           na_rm = TRUE,
-                           case_weights = NULL,
-                           ...) {
+rsq.data.frame <- function(
+  data,
+  truth,
+  estimate,
+  na_rm = TRUE,
+  case_weights = NULL,
+  ...
+) {
   numeric_metric_summarizer(
     name = "rsq",
     fn = rsq_vec,
@@ -78,11 +91,8 @@ rsq.data.frame <- function(data,
 
 #' @export
 #' @rdname rsq
-rsq_vec <- function(truth,
-                    estimate,
-                    na_rm = TRUE,
-                    case_weights = NULL,
-                    ...) {
+rsq_vec <- function(truth, estimate, na_rm = TRUE, case_weights = NULL, ...) {
+  check_bool(na_rm)
   check_numeric_metric(truth, estimate, case_weights)
 
   if (na_rm) {

@@ -6,6 +6,7 @@
 #'
 #' @family numeric metrics
 #' @family accuracy metrics
+#' @seealso [All numeric metrics][numeric-metrics]
 #' @templateVar fn huber_loss
 #' @template return
 #'
@@ -13,6 +14,18 @@
 #'
 #' @param delta A single `numeric` value. Defines the boundary where the loss function
 #' transitions from quadratic to linear. Defaults to 1.
+#'
+#' @details
+#' Huber loss is a metric that should be `r attr(huber_loss, "direction")`d. The
+#' output ranges from `r metric_range_chr(huber_loss, 1)` to
+#' `r metric_range_chr(huber_loss, 2)`, with `r metric_optimal(huber_loss)`
+#' indicating perfect predictions.
+#'
+#' The formula for Huber loss is:
+#'
+#' \deqn{L_\delta = \begin{cases} \frac{1}{2} a^2 & \text{if } |a| \le \delta \\ \delta (|a| - \frac{1}{2} \delta) & \text{otherwise} \end{cases}}
+#'
+#' where \eqn{a = \text{truth}_i - \text{estimate}_i}.
 #'
 #' @author James Blair
 #'
@@ -22,6 +35,14 @@
 #' _Annals of Statistics_, 53 (1), 73-101.
 #'
 #' @template examples-numeric
+#' @examples
+#' # Using a different value of 'delta'... if you are adding the metric to a
+#' # metric set, you can create a new metric function with the updated argument
+#' # value:
+#'
+#' huber_loss_2 <- metric_tweak("huber_loss_2", huber_loss, delta = 2)
+#' multi_metrics <- metric_set(huber_loss, huber_loss_2)
+#' multi_metrics(solubility_test, solubility, prediction)
 #'
 #' @export
 huber_loss <- function(data, ...) {
@@ -29,18 +50,21 @@ huber_loss <- function(data, ...) {
 }
 huber_loss <- new_numeric_metric(
   huber_loss,
-  direction = "minimize"
+  direction = "minimize",
+  range = c(0, Inf)
 )
 
 #' @rdname huber_loss
 #' @export
-huber_loss.data.frame <- function(data,
-                                  truth,
-                                  estimate,
-                                  delta = 1,
-                                  na_rm = TRUE,
-                                  case_weights = NULL,
-                                  ...) {
+huber_loss.data.frame <- function(
+  data,
+  truth,
+  estimate,
+  delta = 1,
+  na_rm = TRUE,
+  case_weights = NULL,
+  ...
+) {
   numeric_metric_summarizer(
     name = "huber_loss",
     fn = huber_loss_vec,
@@ -56,12 +80,16 @@ huber_loss.data.frame <- function(data,
 
 #' @export
 #' @rdname huber_loss
-huber_loss_vec <- function(truth,
-                           estimate,
-                           delta = 1,
-                           na_rm = TRUE,
-                           case_weights = NULL,
-                           ...) {
+huber_loss_vec <- function(
+  truth,
+  estimate,
+  delta = 1,
+  na_rm = TRUE,
+  case_weights = NULL,
+  ...
+) {
+  check_bool(na_rm)
+  check_number_decimal(delta, min = 0)
   check_numeric_metric(truth, estimate, case_weights)
 
   if (na_rm) {
@@ -77,11 +105,13 @@ huber_loss_vec <- function(truth,
   huber_loss_impl(truth, estimate, delta, case_weights)
 }
 
-huber_loss_impl <- function(truth,
-                            estimate,
-                            delta,
-                            case_weights,
-                            call = caller_env()) {
+huber_loss_impl <- function(
+  truth,
+  estimate,
+  delta,
+  case_weights,
+  call = caller_env()
+) {
   # Weighted Huber Loss implementation confirmed against matlab:
   # https://www.mathworks.com/help/deeplearning/ref/dlarray.huber.html
 

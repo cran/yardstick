@@ -90,6 +90,20 @@ a positive value, say, \code{"Yes"}, the accuracy metric would interpret them
 as having the same value. If the true output is \code{"Yes"}, log loss penalizes
 \code{.6} because it is "less sure" of its result compared to the probability
 of \code{.9}.
+
+Log loss is a metric that should be minimized. The
+output ranges from 0 to
+Inf, with 0
+indicating perfect predictions.
+
+The formula used here is:
+
+\deqn{\text{Log Loss} = -\frac{1}{N} \sum_{i=1}^{N} \sum_{j=1}^{K} y_{ij} \cdot \log(p_{ij})}
+
+where \eqn{N} is the number of observations, \eqn{K} is the number of classes,
+\eqn{y_{ij}} is 1 if observation \eqn{i} belongs to class \eqn{j} and 0
+otherwise, and \eqn{p_{ij}} is the predicted probability of observation
+\eqn{i} for class \eqn{j}.
 }
 \section{Multiclass}{
 
@@ -108,19 +122,19 @@ library(dplyr)
 data(hpc_cv)
 
 # You can use the col1:colN tidyselect syntax
-hpc_cv \%>\%
-  filter(Resample == "Fold01") \%>\%
+hpc_cv |>
+  filter(Resample == "Fold01") |>
   mn_log_loss(obs, VF:L)
 
 # Groups are respected
-hpc_cv \%>\%
-  group_by(Resample) \%>\%
+hpc_cv |>
+  group_by(Resample) |>
   mn_log_loss(obs, VF:L)
 
 
 # Vector version
 # Supply a matrix of class probabilities
-fold1 <- hpc_cv \%>\%
+fold1 <- hpc_cv |>
   filter(Resample == "Fold01")
 
 mn_log_loss_vec(
@@ -138,12 +152,15 @@ mn_log_loss(two_class_example, truth, !!prob_cols[1])
 
 }
 \seealso{
+\link[=prob-metrics]{All probability metrics}
+
 Other class probability metrics: 
 \code{\link{average_precision}()},
 \code{\link{brier_class}()},
 \code{\link{classification_cost}()},
 \code{\link{gain_capture}()},
 \code{\link{pr_auc}()},
+\code{\link{ranked_prob_score}()},
 \code{\link{roc_auc}()},
 \code{\link{roc_aunp}()},
 \code{\link{roc_aunu}()}

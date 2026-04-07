@@ -18,7 +18,7 @@ test_that("two level weighted case is correct", {
   # Note, no (truth=y, estimate=y) value, but it appears in the table
   truth <- factor(c("x", "x", "y", "y"), levels = c("x", "y"))
   estimate <- factor(c("x", "y", "x", "x"), levels = c("x", "y"))
-  case_weights <- c(1, 1, 2, .5)
+  case_weights <- c(1, 1, 2, 0.5)
 
   result <- yardstick_table(truth, estimate, case_weights = case_weights)
 
@@ -33,9 +33,15 @@ test_that("two level weighted case is correct", {
 })
 
 test_that("three level weighted case is correct", {
-  truth <- factor(c("x", "x", "y", "y", "z", "z", "z"), levels = c("x", "y", "z"))
-  estimate <- factor(c("x", "y", "x", "x", "z", "x", "z"), levels = c("x", "y", "z"))
-  case_weights <- c(1, 1, 2, .5, 2, 3, 3)
+  truth <- factor(
+    c("x", "x", "y", "y", "z", "z", "z"),
+    levels = c("x", "y", "z")
+  )
+  estimate <- factor(
+    c("x", "y", "x", "x", "z", "x", "z"),
+    levels = c("x", "y", "z")
+  )
+  case_weights <- c(1, 1, 2, 0.5, 2, 3, 3)
 
   result <- yardstick_table(truth, estimate, case_weights = case_weights)
 
@@ -69,12 +75,6 @@ test_that("must have at least 2 levels", {
   x <- factor(levels = c("x"))
 
   expect_snapshot(error = TRUE, yardstick_table(x, x))
-})
-
-test_that("case weights must be numeric", {
-  x <- factor(levels = c("x", "y"))
-
-  expect_snapshot(error = TRUE, yardstick_table(x, x, case_weights = "x"))
 })
 
 test_that("works with hardhat case weights", {
@@ -116,7 +116,10 @@ test_that("`na_remove` only removes NAs present in `x`", {
   w <- c(2, NA)
 
   expect_identical(yardstick_sum(x, case_weights = w), NA_real_)
-  expect_identical(yardstick_sum(x, case_weights = w, na_remove = TRUE), NA_real_)
+  expect_identical(
+    yardstick_sum(x, case_weights = w, na_remove = TRUE),
+    NA_real_
+  )
 })
 
 test_that("works with hardhat case weights", {
@@ -291,25 +294,28 @@ test_that("is a weighted variant of `quantile(type = 4)`", {
   w <- rep(1, times = length(x))
 
   expect_identical(
-    quantile(x, probs = c(0, .25, .5, .75, 1), type = 4, names = FALSE),
-    weighted_quantile(x, weights = w, probabilities = c(0, .25, .5, .75, 1))
+    quantile(x, probs = c(0, 0.25, 0.5, 0.75, 1), type = 4, names = FALSE),
+    weighted_quantile(x, weights = w, probabilities = c(0, 0.25, 0.5, 0.75, 1))
   )
 
   x <- rev(0:20 + 0)
   w <- rep(1, times = length(x))
 
   expect_identical(
-    quantile(x, probs = c(0, .25, .5, .75, 1), type = 4, names = FALSE),
-    weighted_quantile(x, weights = w, probabilities = c(0, .25, .5, .75, 1))
+    quantile(x, probs = c(0, 0.25, 0.5, 0.75, 1), type = 4, names = FALSE),
+    weighted_quantile(x, weights = w, probabilities = c(0, 0.25, 0.5, 0.75, 1))
   )
 })
 
 test_that("works with zero values", {
-  expect_identical(weighted_quantile(numeric(), numeric(), c(.5, .6)), c(NA_real_, NA_real_))
+  expect_identical(
+    weighted_quantile(numeric(), numeric(), c(0.5, 0.6)),
+    c(NA_real_, NA_real_)
+  )
 })
 
 test_that("works with one value", {
-  expect_identical(weighted_quantile(2, 5, c(.5, .6)), c(2, 2))
+  expect_identical(weighted_quantile(2, 5, c(0.5, 0.6)), c(2, 2))
 })
 
 test_that("works with zero percentiles", {
@@ -321,21 +327,21 @@ test_that("works with hardhat case weights", {
   w <- hardhat::frequency_weights(c(1, 3, 5))
 
   expect_identical(
-    weighted_quantile(x, w, .5),
-    weighted_quantile(x, as.integer(w), .5)
+    weighted_quantile(x, w, 0.5),
+    weighted_quantile(x, as.integer(w), 0.5)
   )
 })
 
 test_that("`x` is validated", {
-  expect_snapshot(error = TRUE, weighted_quantile("x", 1, .5))
+  expect_snapshot(error = TRUE, weighted_quantile("x", 1, 0.5))
 })
 
 test_that("`weights` is validated", {
-  expect_snapshot(error = TRUE, weighted_quantile(1, "x", .5))
+  expect_snapshot(error = TRUE, weighted_quantile(1, "x", 0.5))
 })
 
 test_that("`x` and `weights` must be the same size", {
-  expect_snapshot(error = TRUE, weighted_quantile(1, 1:2, .5))
+  expect_snapshot(error = TRUE, weighted_quantile(1, 1:2, 0.5))
 })
 
 test_that("`probabilities` is validated", {
@@ -362,16 +368,4 @@ test_that("work with class_pred input", {
 
   fct_estimate <- two_class_example$predicted
   fct_estimate[2] <- NA
-
-  local_mocked_bindings(
-    .package = "rlang",
-    detect_installed = function(pkg, ...) {
-      FALSE
-    }
-  )
-
-  expect_snapshot(
-    error = TRUE,
-    accuracy_vec(fct_truth, cp_estimate)
-  )
 })

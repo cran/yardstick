@@ -89,12 +89,19 @@ It computes a weighted average of the precision values returned from
 threshold. See \code{\link[=pr_curve]{pr_curve()}} for the full curve.
 }
 \details{
+Average precision is a metric that should be
+maximized. The output ranges from
+0 to
+1, with
+1 indicating perfect precision and recall
+at all thresholds.
+
 The computation for average precision is a weighted average of the precision
 values. Assuming you have \code{n} rows returned from \code{\link[=pr_curve]{pr_curve()}}, it is a sum
 from \code{2} to \code{n}, multiplying the precision value \code{p_i} by the increase in
 recall over the previous threshold, \code{r_i - r_(i-1)}.
 
-\deqn{AP = \sum (r_{i} - r_{i-1}) * p_i}
+\deqn{AP = \sum (r_{i} - r_{i-1}) \cdot p_i}
 
 By summing from \code{2} to \code{n}, the precision value \code{p_1} is never used. While
 \code{\link[=pr_curve]{pr_curve()}} returns a value for \code{p_1}, it is technically undefined as
@@ -153,31 +160,31 @@ data(hpc_cv)
 
 # You can use the col1:colN tidyselect syntax
 library(dplyr)
-hpc_cv \%>\%
-  filter(Resample == "Fold01") \%>\%
+hpc_cv |>
+  filter(Resample == "Fold01") |>
   average_precision(obs, VF:L)
 
 # Change the first level of `obs` from `"VF"` to `"M"` to alter the
 # event of interest. The class probability columns should be supplied
 # in the same order as the levels.
-hpc_cv \%>\%
-  filter(Resample == "Fold01") \%>\%
-  mutate(obs = relevel(obs, "M")) \%>\%
+hpc_cv |>
+  filter(Resample == "Fold01") |>
+  mutate(obs = relevel(obs, "M")) |>
   average_precision(obs, M, VF:L)
 
 # Groups are respected
-hpc_cv \%>\%
-  group_by(Resample) \%>\%
+hpc_cv |>
+  group_by(Resample) |>
   average_precision(obs, VF:L)
 
 # Weighted macro averaging
-hpc_cv \%>\%
-  group_by(Resample) \%>\%
+hpc_cv |>
+  group_by(Resample) |>
   average_precision(obs, VF:L, estimator = "macro_weighted")
 
 # Vector version
 # Supply a matrix of class probabilities
-fold1 <- hpc_cv \%>\%
+fold1 <- hpc_cv |>
   filter(Resample == "Fold01")
 
 average_precision_vec(
@@ -190,6 +197,8 @@ average_precision_vec(
 
 }
 \seealso{
+\link[=prob-metrics]{All probability metrics}
+
 \code{\link[=pr_curve]{pr_curve()}} for computing the full precision recall curve.
 
 \code{\link[=pr_auc]{pr_auc()}} for computing the area under the precision recall curve using
@@ -201,6 +210,7 @@ Other class probability metrics:
 \code{\link{gain_capture}()},
 \code{\link{mn_log_loss}()},
 \code{\link{pr_auc}()},
+\code{\link{ranked_prob_score}()},
 \code{\link{roc_auc}()},
 \code{\link{roc_aunp}()},
 \code{\link{roc_aunu}()}

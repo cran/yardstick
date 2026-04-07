@@ -5,7 +5,8 @@
 #' Highly related functions are [sens()], [ppv()], and [npv()].
 #'
 #' The specificity measures the proportion of negatives that are correctly
-#' identified as negatives.
+#' identified as negatives. For negative observations, the proportion of model
+#' predictions that correctly predicted negative.
 #'
 #' When the denominator of the calculation is `0`, specificity is undefined.
 #' This happens when both `# true_negative = 0` and `# false_positive = 0`
@@ -16,14 +17,27 @@
 #'
 #' @family class metrics
 #' @family sensitivity metrics
+#' @seealso [All class metrics][class-metrics]
 #' @templateVar fn spec
 #' @template event_first
 #' @template multiclass
 #' @template return
-#' @template table-positive
-#'
 #' @inheritParams sens
 #'
+#' @details
+#' Suppose a 2x2 table with notation:
+#'
+#' \tabular{rcc}{ \tab Reference \tab \cr Predicted \tab Positive \tab Negative
+#' \cr Positive \tab A \tab B \cr Negative \tab C \tab D \cr }
+#'
+#' The formula used here is:
+#'
+#' \deqn{\text{Specificity} = \frac{D}{B + D}}
+#'
+#' Specificity is a metric that should be `r attr(spec, "direction")`d. The
+#' output ranges from `r metric_range_chr(spec, 1)` to `r metric_range_chr(spec, 2)`,
+#' with `r metric_optimal(spec)` indicating that all actual negatives were
+#' predicted as negative.
 #'
 #' @author Max Kuhn
 #'
@@ -41,19 +55,22 @@ spec <- function(data, ...) {
 }
 spec <- new_class_metric(
   spec,
-  direction = "maximize"
+  direction = "maximize",
+  range = c(0, 1)
 )
 
 #' @export
 #' @rdname spec
-spec.data.frame <- function(data,
-                            truth,
-                            estimate,
-                            estimator = NULL,
-                            na_rm = TRUE,
-                            case_weights = NULL,
-                            event_level = yardstick_event_level(),
-                            ...) {
+spec.data.frame <- function(
+  data,
+  truth,
+  estimate,
+  estimator = NULL,
+  na_rm = TRUE,
+  case_weights = NULL,
+  event_level = yardstick_event_level(),
+  ...
+) {
   class_metric_summarizer(
     name = "spec",
     fn = spec_vec,
@@ -68,10 +85,12 @@ spec.data.frame <- function(data,
 }
 
 #' @export
-spec.table <- function(data,
-                       estimator = NULL,
-                       event_level = yardstick_event_level(),
-                       ...) {
+spec.table <- function(
+  data,
+  estimator = NULL,
+  event_level = yardstick_event_level(),
+  ...
+) {
   check_table(data)
   estimator <- finalize_estimator(data, estimator)
 
@@ -83,23 +102,28 @@ spec.table <- function(data,
 }
 
 #' @export
-spec.matrix <- function(data,
-                        estimator = NULL,
-                        event_level = yardstick_event_level(),
-                        ...) {
+spec.matrix <- function(
+  data,
+  estimator = NULL,
+  event_level = yardstick_event_level(),
+  ...
+) {
   data <- as.table(data)
   spec.table(data, estimator, event_level)
 }
 
 #' @export
 #' @rdname spec
-spec_vec <- function(truth,
-                     estimate,
-                     estimator = NULL,
-                     na_rm = TRUE,
-                     case_weights = NULL,
-                     event_level = yardstick_event_level(),
-                     ...) {
+spec_vec <- function(
+  truth,
+  estimate,
+  estimator = NULL,
+  na_rm = TRUE,
+  case_weights = NULL,
+  event_level = yardstick_event_level(),
+  ...
+) {
+  check_bool(na_rm)
   abort_if_class_pred(truth)
   estimate <- as_factor_from_class_pred(estimate)
 
@@ -130,19 +154,22 @@ specificity <- function(data, ...) {
 }
 specificity <- new_class_metric(
   specificity,
-  direction = "maximize"
+  direction = "maximize",
+  range = c(0, 1)
 )
 
 #' @rdname spec
 #' @export
-specificity.data.frame <- function(data,
-                                   truth,
-                                   estimate,
-                                   estimator = NULL,
-                                   na_rm = TRUE,
-                                   case_weights = NULL,
-                                   event_level = yardstick_event_level(),
-                                   ...) {
+specificity.data.frame <- function(
+  data,
+  truth,
+  estimate,
+  estimator = NULL,
+  na_rm = TRUE,
+  case_weights = NULL,
+  event_level = yardstick_event_level(),
+  ...
+) {
   class_metric_summarizer(
     name = "specificity",
     fn = spec_vec,
@@ -157,10 +184,12 @@ specificity.data.frame <- function(data,
 }
 
 #' @export
-specificity.table <- function(data,
-                              estimator = NULL,
-                              event_level = yardstick_event_level(),
-                              ...) {
+specificity.table <- function(
+  data,
+  estimator = NULL,
+  event_level = yardstick_event_level(),
+  ...
+) {
   check_table(data)
   estimator <- finalize_estimator(data, estimator)
 
@@ -172,10 +201,12 @@ specificity.table <- function(data,
 }
 
 #' @export
-specificity.matrix <- function(data,
-                               estimator = NULL,
-                               event_level = yardstick_event_level(),
-                               ...) {
+specificity.matrix <- function(
+  data,
+  estimator = NULL,
+  event_level = yardstick_event_level(),
+  ...
+) {
   data <- as.table(data)
   specificity.table(data, estimator, event_level)
 }
@@ -245,7 +276,6 @@ spec_multiclass <- function(data, estimator) {
   numer / denom
 }
 
-
 warn_spec_undefined_binary <- function(event, count) {
   message <- c(
     "While computing binary {.fn spec}, no true negatives were detected
@@ -290,7 +320,13 @@ warn_spec_undefined_multiclass <- function(events, counts) {
   )
 }
 
-warn_spec_undefined <- function(message, events, counts, ..., class = character()) {
+warn_spec_undefined <- function(
+  message,
+  events,
+  counts,
+  ...,
+  class = character()
+) {
   cli::cli_warn(
     message = message,
     class = c(class, "yardstick_warning_spec_undefined"),

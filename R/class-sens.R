@@ -6,7 +6,8 @@
 #'
 #' The sensitivity (`sens()`) is defined as the proportion of positive
 #' results out of the number of samples which were actually
-#' positive.
+#' positive. For positive observations, the proportion of model predictions
+#' that correctly predicted positive.
 #'
 #' When the denominator of the calculation is `0`, sensitivity is undefined.
 #' This happens when both `# true_positive = 0` and `# false_negative = 0`
@@ -17,12 +18,11 @@
 #'
 #' @family class metrics
 #' @family sensitivity metrics
+#' @seealso [All class metrics][class-metrics]
 #' @templateVar fn sens
 #' @template event_first
 #' @template multiclass
 #' @template return
-#' @template table-positive
-#'
 #' @param data Either a `data.frame` containing the columns specified by the
 #'   `truth` and `estimate` arguments, or a `table`/`matrix` where the true
 #'   class results should be in the columns of the table.
@@ -59,6 +59,20 @@
 #'
 #' @param ... Not currently used.
 #'
+#' @details
+#' Suppose a 2x2 table with notation:
+#'
+#' \tabular{rcc}{ \tab Reference \tab \cr Predicted \tab Positive \tab Negative
+#' \cr Positive \tab A \tab B \cr Negative \tab C \tab D \cr }
+#'
+#' The formula used here is:
+#'
+#' \deqn{\text{Sensitivity} = \frac{A}{A + C}}
+#'
+#' Sensitivity is a metric that should be `r attr(sens, "direction")`d. The
+#' output ranges from `r metric_range_chr(sens, 1)` to `r metric_range_chr(sens, 2)`,
+#' with `r metric_optimal(sens)` indicating that all actual positives were
+#' predicted as positive.
 #'
 #' @author Max Kuhn
 #'
@@ -76,19 +90,22 @@ sens <- function(data, ...) {
 }
 sens <- new_class_metric(
   sens,
-  direction = "maximize"
+  direction = "maximize",
+  range = c(0, 1)
 )
 
 #' @export
 #' @rdname sens
-sens.data.frame <- function(data,
-                            truth,
-                            estimate,
-                            estimator = NULL,
-                            na_rm = TRUE,
-                            case_weights = NULL,
-                            event_level = yardstick_event_level(),
-                            ...) {
+sens.data.frame <- function(
+  data,
+  truth,
+  estimate,
+  estimator = NULL,
+  na_rm = TRUE,
+  case_weights = NULL,
+  event_level = yardstick_event_level(),
+  ...
+) {
   class_metric_summarizer(
     name = "sens",
     fn = sens_vec,
@@ -103,10 +120,12 @@ sens.data.frame <- function(data,
 }
 
 #' @export
-sens.table <- function(data,
-                       estimator = NULL,
-                       event_level = yardstick_event_level(),
-                       ...) {
+sens.table <- function(
+  data,
+  estimator = NULL,
+  event_level = yardstick_event_level(),
+  ...
+) {
   check_table(data)
   estimator <- finalize_estimator(data, estimator)
 
@@ -118,23 +137,28 @@ sens.table <- function(data,
 }
 
 #' @export
-sens.matrix <- function(data,
-                        estimator = NULL,
-                        event_level = yardstick_event_level(),
-                        ...) {
+sens.matrix <- function(
+  data,
+  estimator = NULL,
+  event_level = yardstick_event_level(),
+  ...
+) {
   data <- as.table(data)
   sens.table(data, estimator, event_level)
 }
 
 #' @export
 #' @rdname sens
-sens_vec <- function(truth,
-                     estimate,
-                     estimator = NULL,
-                     na_rm = TRUE,
-                     case_weights = NULL,
-                     event_level = yardstick_event_level(),
-                     ...) {
+sens_vec <- function(
+  truth,
+  estimate,
+  estimator = NULL,
+  na_rm = TRUE,
+  case_weights = NULL,
+  event_level = yardstick_event_level(),
+  ...
+) {
+  check_bool(na_rm)
   abort_if_class_pred(truth)
   estimate <- as_factor_from_class_pred(estimate)
 
@@ -165,19 +189,22 @@ sensitivity <- function(data, ...) {
 }
 sensitivity <- new_class_metric(
   sensitivity,
-  direction = "maximize"
+  direction = "maximize",
+  range = c(0, 1)
 )
 
 #' @rdname sens
 #' @export
-sensitivity.data.frame <- function(data,
-                                   truth,
-                                   estimate,
-                                   estimator = NULL,
-                                   na_rm = TRUE,
-                                   case_weights = NULL,
-                                   event_level = yardstick_event_level(),
-                                   ...) {
+sensitivity.data.frame <- function(
+  data,
+  truth,
+  estimate,
+  estimator = NULL,
+  na_rm = TRUE,
+  case_weights = NULL,
+  event_level = yardstick_event_level(),
+  ...
+) {
   class_metric_summarizer(
     name = "sensitivity",
     fn = sens_vec,
@@ -192,10 +219,12 @@ sensitivity.data.frame <- function(data,
 }
 
 #' @export
-sensitivity.table <- function(data,
-                              estimator = NULL,
-                              event_level = yardstick_event_level(),
-                              ...) {
+sensitivity.table <- function(
+  data,
+  estimator = NULL,
+  event_level = yardstick_event_level(),
+  ...
+) {
   check_table(data)
   estimator <- finalize_estimator(data, estimator)
 
@@ -207,10 +236,12 @@ sensitivity.table <- function(data,
 }
 
 #' @export
-sensitivity.matrix <- function(data,
-                               estimator = NULL,
-                               event_level = yardstick_event_level(),
-                               ...) {
+sensitivity.matrix <- function(
+  data,
+  estimator = NULL,
+  event_level = yardstick_event_level(),
+  ...
+) {
   data <- as.table(data)
   sensitivity.table(data, estimator, event_level)
 }
@@ -274,7 +305,6 @@ sens_multiclass <- function(data, estimator) {
   numer / denom
 }
 
-
 warn_sens_undefined_binary <- function(event, count) {
   message <- c(
     "While computing binary {.fn sens}, no true events were detected
@@ -319,7 +349,13 @@ warn_sens_undefined_multiclass <- function(events, counts) {
   )
 }
 
-warn_sens_undefined <- function(message, events, counts, ..., class = character()) {
+warn_sens_undefined <- function(
+  message,
+  events,
+  counts,
+  ...,
+  class = character()
+) {
   cli::cli_warn(
     message = message,
     class = c(class, "yardstick_warning_sens_undefined"),

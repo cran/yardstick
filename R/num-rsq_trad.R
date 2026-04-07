@@ -14,10 +14,22 @@
 #'
 #' @family numeric metrics
 #' @family consistency metrics
+#' @seealso [All numeric metrics][numeric-metrics]
 #' @templateVar fn rsq_trad
 #' @template return
 #'
 #' @inheritParams rmse
+#'
+#' @details
+#' Traditional R squared is a metric that should be
+#' `r attr(rsq_trad, "direction")`d. The output ranges from
+#' `r metric_range_chr(rsq_trad, 1)` to `r metric_range_chr(rsq_trad, 2)`, with
+#' `r metric_optimal(rsq_trad)` indicating perfect predictions. Negative values
+#' can occur when the model is non-informative.
+#'
+#' The formula for traditional R squared is:
+#'
+#' \deqn{\text{rsq\_trad} = 1 - \frac{SS_{res}}{SS_{tot}} = 1 - \frac{\sum_{i=1}^{n}(\text{truth}_i - \text{estimate}_i)^2}{\sum_{i=1}^{n}(\text{truth}_i - \bar{\text{truth}})^2}}
 #'
 #' @author Max Kuhn
 #'
@@ -42,17 +54,20 @@ rsq_trad <- function(data, ...) {
 }
 rsq_trad <- new_numeric_metric(
   rsq_trad,
-  direction = "maximize"
+  direction = "maximize",
+  range = c(0, 1)
 )
 
 #' @rdname rsq_trad
 #' @export
-rsq_trad.data.frame <- function(data,
-                                truth,
-                                estimate,
-                                na_rm = TRUE,
-                                case_weights = NULL,
-                                ...) {
+rsq_trad.data.frame <- function(
+  data,
+  truth,
+  estimate,
+  na_rm = TRUE,
+  case_weights = NULL,
+  ...
+) {
   numeric_metric_summarizer(
     name = "rsq_trad",
     fn = rsq_trad_vec,
@@ -66,11 +81,14 @@ rsq_trad.data.frame <- function(data,
 
 #' @export
 #' @rdname rsq_trad
-rsq_trad_vec <- function(truth,
-                         estimate,
-                         na_rm = TRUE,
-                         case_weights = NULL,
-                         ...) {
+rsq_trad_vec <- function(
+  truth,
+  estimate,
+  na_rm = TRUE,
+  case_weights = NULL,
+  ...
+) {
+  check_bool(na_rm)
   check_numeric_metric(truth, estimate, case_weights)
 
   if (na_rm) {
@@ -93,7 +111,10 @@ rsq_trad_impl <- function(truth, estimate, case_weights) {
   # https://github.com/scikit-learn/scikit-learn/blob/582fa30a31ffd1d2afc6325ec3506418e35b88c2/sklearn/metrics/_regression.py#L805
   truth_mean <- yardstick_mean(truth, case_weights = case_weights)
 
-  SS_residuals <- yardstick_sum((truth - estimate)^2, case_weights = case_weights)
+  SS_residuals <- yardstick_sum(
+    (truth - estimate)^2,
+    case_weights = case_weights
+  )
   SS_total <- yardstick_sum((truth - truth_mean)^2, case_weights = case_weights)
 
   1 - (SS_residuals / SS_total)

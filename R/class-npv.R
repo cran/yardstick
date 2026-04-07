@@ -11,13 +11,33 @@
 #'
 #' @family class metrics
 #' @family sensitivity metrics
+#' @seealso [All class metrics][class-metrics]
 #' @templateVar fn npv
 #' @template event_first
 #' @template multiclass
 #' @template return
-#' @template table-positive
-#'
 #' @inheritParams ppv
+#'
+#' @details
+#' Suppose a 2x2 table with notation:
+#'
+#' \tabular{rcc}{ \tab Reference \tab \cr Predicted \tab Positive \tab Negative
+#' \cr Positive \tab A \tab B \cr Negative \tab C \tab D \cr }
+#'
+#' The formulas used here are:
+#'
+#' \deqn{\text{Sensitivity} = \frac{A}{A + C}}
+#'
+#' \deqn{\text{Specificity} = \frac{D}{B + D}}
+#'
+#' \deqn{\text{Prevalence} = \frac{A + C}{A + B + C + D}}
+#'
+#' \deqn{\text{NPV} = \frac{\text{Specificity} \cdot (1 - \text{Prevalence})}{((1 - \text{Sensitivity}) \cdot \text{Prevalence}) + (\text{Specificity} \cdot (1 - \text{Prevalence}))}}
+#'
+#' NPV is a metric that should be `r attr(npv, "direction")`d. The output
+#' ranges from `r metric_range_chr(npv, 1)` to `r metric_range_chr(npv, 2)`, with
+#' `r metric_optimal(npv)` indicating all predicted negatives are true
+#' negatives.
 #'
 #' @author Max Kuhn
 #'
@@ -28,27 +48,37 @@
 #' 102.
 #'
 #' @template examples-class
+#' @examples
+#' # Using a different value of 'prevalence'... if you are adding the metric to a
+#' # metric set, you can create a new metric function with the updated argument
+#' # value:
 #'
+#' npv_alt_prev  <- metric_tweak("npv_alt_prev", npv, prevalence = 0.40)
+#' multi_metrics <- metric_set(npv, npv_alt_prev)
+#' multi_metrics(two_class_example, truth, estimate = predicted)
 #' @export
 npv <- function(data, ...) {
   UseMethod("npv")
 }
 npv <- new_class_metric(
   npv,
-  direction = "maximize"
+  direction = "maximize",
+  range = c(0, 1)
 )
 
 #' @rdname npv
 #' @export
-npv.data.frame <- function(data,
-                           truth,
-                           estimate,
-                           prevalence = NULL,
-                           estimator = NULL,
-                           na_rm = TRUE,
-                           case_weights = NULL,
-                           event_level = yardstick_event_level(),
-                           ...) {
+npv.data.frame <- function(
+  data,
+  truth,
+  estimate,
+  prevalence = NULL,
+  estimator = NULL,
+  na_rm = TRUE,
+  case_weights = NULL,
+  event_level = yardstick_event_level(),
+  ...
+) {
   class_metric_summarizer(
     name = "npv",
     fn = npv_vec,
@@ -64,41 +94,54 @@ npv.data.frame <- function(data,
 }
 
 #' @export
-npv.table <- function(data,
-                      prevalence = NULL,
-                      estimator = NULL,
-                      event_level = yardstick_event_level(),
-                      ...) {
+npv.table <- function(
+  data,
+  prevalence = NULL,
+  estimator = NULL,
+  event_level = yardstick_event_level(),
+  ...
+) {
   check_table(data)
   estimator <- finalize_estimator(data, estimator)
 
   metric_tibbler(
     .metric = "npv",
     .estimator = estimator,
-    .estimate = npv_table_impl(data, estimator, event_level, prevalence = prevalence)
+    .estimate = npv_table_impl(
+      data,
+      estimator,
+      event_level,
+      prevalence = prevalence
+    )
   )
 }
 
 #' @export
-npv.matrix <- function(data,
-                       prevalence = NULL,
-                       estimator = NULL,
-                       event_level = yardstick_event_level(),
-                       ...) {
+npv.matrix <- function(
+  data,
+  prevalence = NULL,
+  estimator = NULL,
+  event_level = yardstick_event_level(),
+  ...
+) {
   data <- as.table(data)
   npv.table(data, prevalence, estimator, event_level)
 }
 
 #' @export
 #' @rdname npv
-npv_vec <- function(truth,
-                    estimate,
-                    prevalence = NULL,
-                    estimator = NULL,
-                    na_rm = TRUE,
-                    case_weights = NULL,
-                    event_level = yardstick_event_level(),
-                    ...) {
+npv_vec <- function(
+  truth,
+  estimate,
+  prevalence = NULL,
+  estimator = NULL,
+  na_rm = TRUE,
+  case_weights = NULL,
+  event_level = yardstick_event_level(),
+  ...
+) {
+  check_bool(na_rm)
+  check_number_decimal(prevalence, min = 0, max = 1, allow_null = TRUE)
   abort_if_class_pred(truth)
   estimate <- as_factor_from_class_pred(estimate)
 
@@ -120,10 +163,7 @@ npv_vec <- function(truth,
   npv_table_impl(data, estimator, event_level, prevalence = prevalence)
 }
 
-npv_table_impl <- function(data,
-                           estimator,
-                           event_level,
-                           prevalence = NULL) {
+npv_table_impl <- function(data, estimator, event_level, prevalence = NULL) {
   if (is_binary(estimator)) {
     npv_binary(data, event_level, prevalence)
   } else {
@@ -142,7 +182,8 @@ npv_binary <- function(data, event_level, prevalence = NULL) {
 
   sens <- sens_binary(data, event_level)
   spec <- spec_binary(data, event_level)
-  (spec * (1 - prevalence)) / (((1 - sens) * prevalence) + ((spec) * (1 - prevalence)))
+  (spec * (1 - prevalence)) /
+    (((1 - sens) * prevalence) + ((spec) * (1 - prevalence)))
 }
 
 npv_multiclass <- function(data, estimator, prevalence = NULL) {

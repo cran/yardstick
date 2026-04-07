@@ -22,10 +22,23 @@
 #'
 #' @family numeric metrics
 #' @family accuracy metrics
+#' @seealso [All numeric metrics][numeric-metrics]
 #' @templateVar fn iic
 #' @template return
 #'
 #' @inheritParams rmse
+#'
+#' @details
+#' IIC is a metric that should be `r attr(iic, "direction")`d. The output
+#' ranges from `r metric_range_chr(iic, 1)` to `r metric_range_chr(iic, 2)`, with
+#' `r metric_optimal(iic)` indicating perfect agreement.
+#'
+#' The formula for IIC is:
+#'
+#' \deqn{\text{IIC} = \text{corr}(\text{truth}, \text{estimate}) \cdot \frac{\min(\text{MAE}^-, \text{MAE}^+)}{\max(\text{MAE}^-, \text{MAE}^+)}}
+#'
+#' where \eqn{\text{MAE}^-} and \eqn{\text{MAE}^+} are the mean absolute errors
+#' for negative and non-negative residuals, respectively.
 #'
 #' @references Toropova, A. and Toropov, A. (2017). "The index of ideality
 #'   of correlation. A criterion of predictability of QSAR models for skin
@@ -41,17 +54,20 @@ iic <- function(data, ...) {
 }
 iic <- new_numeric_metric(
   iic,
-  direction = "maximize"
+  direction = "maximize",
+  range = c(-1, 1)
 )
 
 #' @rdname iic
 #' @export
-iic.data.frame <- function(data,
-                           truth,
-                           estimate,
-                           na_rm = TRUE,
-                           case_weights = NULL,
-                           ...) {
+iic.data.frame <- function(
+  data,
+  truth,
+  estimate,
+  na_rm = TRUE,
+  case_weights = NULL,
+  ...
+) {
   numeric_metric_summarizer(
     name = "iic",
     fn = iic_vec,
@@ -65,11 +81,8 @@ iic.data.frame <- function(data,
 
 #' @export
 #' @rdname iic
-iic_vec <- function(truth,
-                    estimate,
-                    na_rm = TRUE,
-                    case_weights = NULL,
-                    ...) {
+iic_vec <- function(truth, estimate, na_rm = TRUE, case_weights = NULL, ...) {
+  check_bool(na_rm)
   check_numeric_metric(truth, estimate, case_weights)
 
   if (na_rm) {

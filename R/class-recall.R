@@ -19,13 +19,27 @@
 #'
 #' @family class metrics
 #' @family relevance metrics
+#' @seealso [All class metrics][class-metrics]
 #' @templateVar fn recall
 #' @template event_first
 #' @template multiclass
 #' @template return
-#' @template table-relevance
-#'
 #' @inheritParams sens
+#'
+#' @details
+#' Suppose a 2x2 table with notation:
+#'
+#' \tabular{rcc}{ \tab Reference \tab \cr Predicted \tab Relevant \tab
+#' Irrelevant \cr Relevant \tab A \tab B \cr Irrelevant \tab C \tab D \cr }
+#'
+#' The formula used here is:
+#'
+#' \deqn{\text{Recall} = \frac{A}{A + C}}
+#'
+#' Recall is a metric that should be `r attr(recall, "direction")`d. The
+#' output ranges from `r metric_range_chr(recall, 1)` to
+#' `r metric_range_chr(recall, 2)`, with `r metric_optimal(recall)` indicating that
+#' all actual positives were predicted as positive.
 #'
 #' @references
 #'
@@ -47,19 +61,22 @@ recall <- function(data, ...) {
 }
 recall <- new_class_metric(
   recall,
-  direction = "maximize"
+  direction = "maximize",
+  range = c(0, 1)
 )
 
 #' @rdname recall
 #' @export
-recall.data.frame <- function(data,
-                              truth,
-                              estimate,
-                              estimator = NULL,
-                              na_rm = TRUE,
-                              case_weights = NULL,
-                              event_level = yardstick_event_level(),
-                              ...) {
+recall.data.frame <- function(
+  data,
+  truth,
+  estimate,
+  estimator = NULL,
+  na_rm = TRUE,
+  case_weights = NULL,
+  event_level = yardstick_event_level(),
+  ...
+) {
   class_metric_summarizer(
     name = "recall",
     fn = recall_vec,
@@ -74,10 +91,12 @@ recall.data.frame <- function(data,
 }
 
 #' @export
-recall.table <- function(data,
-                         estimator = NULL,
-                         event_level = yardstick_event_level(),
-                         ...) {
+recall.table <- function(
+  data,
+  estimator = NULL,
+  event_level = yardstick_event_level(),
+  ...
+) {
   check_table(data)
   estimator <- finalize_estimator(data, estimator)
 
@@ -89,23 +108,28 @@ recall.table <- function(data,
 }
 
 #' @export
-recall.matrix <- function(data,
-                          estimator = NULL,
-                          event_level = yardstick_event_level(),
-                          ...) {
+recall.matrix <- function(
+  data,
+  estimator = NULL,
+  event_level = yardstick_event_level(),
+  ...
+) {
   data <- as.table(data)
   recall.table(data, estimator, event_level)
 }
 
 #' @export
 #' @rdname recall
-recall_vec <- function(truth,
-                       estimate,
-                       estimator = NULL,
-                       na_rm = TRUE,
-                       case_weights = NULL,
-                       event_level = yardstick_event_level(),
-                       ...) {
+recall_vec <- function(
+  truth,
+  estimate,
+  estimator = NULL,
+  na_rm = TRUE,
+  case_weights = NULL,
+  event_level = yardstick_event_level(),
+  ...
+) {
+  check_bool(na_rm)
   abort_if_class_pred(truth)
   estimate <- as_factor_from_class_pred(estimate)
 
@@ -177,7 +201,6 @@ recall_multiclass <- function(data, estimator) {
   numer / denom
 }
 
-
 warn_recall_undefined_binary <- function(event, count) {
   message <- c(
     "While computing binary {.fn recall}, no true events were detected
@@ -222,7 +245,13 @@ warn_recall_undefined_multiclass <- function(events, counts) {
   )
 }
 
-warn_recall_undefined <- function(message, events, counts, ..., class = character()) {
+warn_recall_undefined <- function(
+  message,
+  events,
+  counts,
+  ...,
+  class = character()
+) {
   cli::cli_warn(
     message = message,
     class = c(class, "yardstick_warning_recall_undefined"),

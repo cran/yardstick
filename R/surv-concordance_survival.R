@@ -3,9 +3,15 @@
 #' Compute the Concordance index for right-censored data
 #'
 #' @family static survival metrics
+#' @seealso [All static survival metrics][static-survival-metrics]
 #' @templateVar fn concordance_survival
 #' @template return
 #' @details
+#' Concordance is a metric that should be
+#' `r attr(concordance_survival, "direction")`d. The output ranges from
+#' `r metric_range_chr(concordance_survival, 1)` to
+#' `r metric_range_chr(concordance_survival, 2)`, with
+#' `r metric_optimal(concordance_survival)` indicating perfect concordance.
 #'
 #' The concordance index is defined as the proportion of all comparable pairs in
 #' which the predictions and outcomes are concordant.
@@ -32,7 +38,7 @@
 #' [quasiquotation][rlang::quasiquotation] (you can unquote column names). For
 #' `_vec()` functions, a numeric vector.
 #'
-#' @param ... Currently not used.
+#' @param ... Not currently used.
 #'
 #' @author Emil Hvitfeldt
 #'
@@ -56,17 +62,20 @@ concordance_survival <- function(data, ...) {
 
 concordance_survival <- new_static_survival_metric(
   concordance_survival,
-  direction = "maximize"
+  direction = "maximize",
+  range = c(0, 1)
 )
 
 #' @rdname concordance_survival
 #' @export
-concordance_survival.data.frame <- function(data,
-                                            truth,
-                                            estimate,
-                                            na_rm = TRUE,
-                                            case_weights = NULL,
-                                            ...) {
+concordance_survival.data.frame <- function(
+  data,
+  truth,
+  estimate,
+  na_rm = TRUE,
+  case_weights = NULL,
+  ...
+) {
   static_survival_metric_summarizer(
     name = "concordance_survival",
     fn = concordance_survival_vec,
@@ -80,11 +89,14 @@ concordance_survival.data.frame <- function(data,
 
 #' @export
 #' @rdname concordance_survival
-concordance_survival_vec <- function(truth,
-                                     estimate,
-                                     na_rm = TRUE,
-                                     case_weights = NULL,
-                                     ...) {
+concordance_survival_vec <- function(
+  truth,
+  estimate,
+  na_rm = TRUE,
+  case_weights = NULL,
+  ...
+) {
+  check_bool(na_rm)
   check_static_survival_metric(truth, estimate, case_weights)
 
   if (na_rm) {

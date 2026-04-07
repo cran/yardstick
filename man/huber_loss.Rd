@@ -69,6 +69,18 @@ Calculate the Huber loss, a loss function used in robust regression. This
 loss function is less sensitive to outliers than \code{\link[=rmse]{rmse()}}. This function is
 quadratic for small residual values and linear for large residual values.
 }
+\details{
+Huber loss is a metric that should be minimized. The
+output ranges from 0 to
+Inf, with 0
+indicating perfect predictions.
+
+The formula for Huber loss is:
+
+\deqn{L_\delta = \begin{cases} \frac{1}{2} a^2 & \text{if } |a| \le \delta \\ \delta (|a| - \frac{1}{2} \delta) & \text{otherwise} \end{cases}}
+
+where \eqn{a = \text{truth}_i - \text{estimate}_i}.
+}
 \examples{
 # Supply truth and predictions as bare column names
 huber_loss(solubility_test, solubility, prediction)
@@ -90,23 +102,34 @@ solubility_resampled <- bind_rows(
 )
 
 # Compute the metric by group
-metric_results <- solubility_resampled \%>\%
-  group_by(resample) \%>\%
+metric_results <- solubility_resampled |>
+  group_by(resample) |>
   huber_loss(solubility, prediction)
 
 metric_results
 
 # Resampled mean estimate
-metric_results \%>\%
+metric_results |>
   summarise(avg_estimate = mean(.estimate))
+# Using a different value of 'delta'... if you are adding the metric to a
+# metric set, you can create a new metric function with the updated argument
+# value:
+
+huber_loss_2 <- metric_tweak("huber_loss_2", huber_loss, delta = 2)
+multi_metrics <- metric_set(huber_loss, huber_loss_2)
+multi_metrics(solubility_test, solubility, prediction)
+
 }
 \references{
 Huber, P. (1964). Robust Estimation of a Location Parameter.
 \emph{Annals of Statistics}, 53 (1), 73-101.
 }
 \seealso{
+\link[=numeric-metrics]{All numeric metrics}
+
 Other numeric metrics: 
 \code{\link{ccc}()},
+\code{\link{gini_coef}()},
 \code{\link{huber_loss_pseudo}()},
 \code{\link{iic}()},
 \code{\link{mae}()},
@@ -114,8 +137,10 @@ Other numeric metrics:
 \code{\link{mase}()},
 \code{\link{mpe}()},
 \code{\link{msd}()},
+\code{\link{mse}()},
 \code{\link{poisson_log_loss}()},
 \code{\link{rmse}()},
+\code{\link{rmse_relative}()},
 \code{\link{rpd}()},
 \code{\link{rpiq}()},
 \code{\link{rsq}()},
@@ -131,8 +156,10 @@ Other accuracy metrics:
 \code{\link{mase}()},
 \code{\link{mpe}()},
 \code{\link{msd}()},
+\code{\link{mse}()},
 \code{\link{poisson_log_loss}()},
 \code{\link{rmse}()},
+\code{\link{rmse_relative}()},
 \code{\link{smape}()}
 }
 \author{

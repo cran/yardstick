@@ -4,9 +4,15 @@
 #' overall calculation of model performance for all values of `.eval_time`.
 #'
 #' @family dynamic survival metrics
+#' @seealso [All integrated survival metrics][integrated-survival-metrics]
 #' @templateVar fn brier_survival_integrated
 #' @template return-dynamic-survival
 #' @details
+#' Integrated Brier survival score is a metric that should be
+#' `r attr(brier_survival_integrated, "direction")`d. The output ranges from
+#' `r metric_range_chr(brier_survival_integrated, 1)` to
+#' `r metric_range_chr(brier_survival_integrated, 2)`, with
+#' `r metric_optimal(brier_survival_integrated)` indicating perfect predictions.
 #'
 #' The integrated time-dependent brier score is calculated in an "area under the
 #' curve" fashion. The brier score is calculated for each value of `.eval_time`.
@@ -46,7 +52,7 @@
 #' @examplesIf rlang::is_installed(c("tidyr"))
 #' library(dplyr)
 #'
-#' lung_surv %>%
+#' lung_surv |>
 #'   brier_survival_integrated(
 #'     truth = surv_obj,
 #'     .pred
@@ -58,16 +64,19 @@ brier_survival_integrated <- function(data, ...) {
 
 brier_survival_integrated <- new_integrated_survival_metric(
   brier_survival_integrated,
-  direction = "minimize"
+  direction = "minimize",
+  range = c(0, 1)
 )
 
 #' @rdname brier_survival_integrated
 #' @export
-brier_survival_integrated.data.frame <- function(data,
-                                                 truth,
-                                                 ...,
-                                                 na_rm = TRUE,
-                                                 case_weights = NULL) {
+brier_survival_integrated.data.frame <- function(
+  data,
+  truth,
+  ...,
+  na_rm = TRUE,
+  case_weights = NULL
+) {
   dynamic_survival_metric_summarizer(
     name = "brier_survival_integrated",
     fn = brier_survival_integrated_vec,
@@ -81,13 +90,18 @@ brier_survival_integrated.data.frame <- function(data,
 
 #' @export
 #' @rdname brier_survival_integrated
-brier_survival_integrated_vec <- function(truth,
-                                          estimate,
-                                          na_rm = TRUE,
-                                          case_weights = NULL,
-                                          ...) {
+brier_survival_integrated_vec <- function(
+  truth,
+  estimate,
+  na_rm = TRUE,
+  case_weights = NULL,
+  ...
+) {
+  check_bool(na_rm)
   check_dynamic_survival_metric(
-    truth, estimate, case_weights
+    truth,
+    estimate,
+    case_weights
   )
 
   num_eval_times <- get_unique_eval_times(estimate)
@@ -100,7 +114,9 @@ brier_survival_integrated_vec <- function(truth,
 
   if (na_rm) {
     result <- yardstick_remove_missing(
-      truth, seq_along(estimate), case_weights
+      truth,
+      seq_along(estimate),
+      case_weights
     )
 
     truth <- result$truth
@@ -108,7 +124,9 @@ brier_survival_integrated_vec <- function(truth,
     case_weights <- result$case_weights
   } else {
     any_missing <- yardstick_any_missing(
-      truth, estimate, case_weights
+      truth,
+      estimate,
+      case_weights
     )
     if (any_missing) {
       return(NA_real_)
@@ -123,9 +141,7 @@ get_unique_eval_times <- function(x) {
   length(x[[1]]$.eval_time)
 }
 
-brier_survival_integrated_impl <- function(truth,
-                                           estimate,
-                                           case_weights) {
+brier_survival_integrated_impl <- function(truth, estimate, case_weights) {
   res <- brier_survival_vec(
     truth = truth,
     estimate = estimate,

@@ -90,6 +90,24 @@ and \code{\link[=precision]{precision()}}.
 }
 \details{
 The measure "F" is a combination of precision and recall (see below).
+
+Suppose a 2x2 table with notation:
+
+\tabular{rcc}{ \tab Reference \tab \cr Predicted \tab Relevant \tab
+Irrelevant \cr Relevant \tab A \tab B \cr Irrelevant \tab C \tab D \cr }
+
+The formulas used here are:
+
+\deqn{\text{Recall} = \frac{A}{A + C}}
+
+\deqn{\text{Precision} = \frac{A}{A + B}}
+
+\deqn{F_{meas} = \frac{(1 + \beta^2) \cdot \text{Precision} \cdot \text{Recall}}{(\beta^2 \cdot \text{Precision}) + \text{Recall}}}
+
+F measure is a metric that should be maximized. The
+output ranges from 0 to
+1, with 1 indicating
+perfect precision and recall.
 }
 \section{Relevant Level}{
 
@@ -113,23 +131,6 @@ than 2 levels is provided. Otherwise, a standard binary calculation is done.
 See \code{vignette("multiclass", "yardstick")} for more information.
 }
 
-\section{Implementation}{
-
-
-Suppose a 2x2 table with notation:
-
-\tabular{rcc}{ \tab Reference \tab \cr Predicted \tab Relevant \tab
-Irrelevant \cr Relevant \tab A \tab B \cr Irrelevant \tab C \tab D \cr }
-
-The formulas used here are:
-
-\deqn{recall = A/(A+C)}
-\deqn{precision = A/(A+B)}
-\deqn{F_{meas} = (1+\beta^2) * precision * recall/((\beta^2 * precision)+recall)}
-
-See the references for discussions of the statistics.
-}
-
 \examples{
 # Two class
 data("two_class_example")
@@ -139,18 +140,18 @@ f_meas(two_class_example, truth, predicted)
 library(dplyr)
 data(hpc_cv)
 
-hpc_cv \%>\%
-  filter(Resample == "Fold01") \%>\%
+hpc_cv |>
+  filter(Resample == "Fold01") |>
   f_meas(obs, pred)
 
 # Groups are respected
-hpc_cv \%>\%
-  group_by(Resample) \%>\%
+hpc_cv |>
+  group_by(Resample) |>
   f_meas(obs, pred)
 
 # Weighted macro averaging
-hpc_cv \%>\%
-  group_by(Resample) \%>\%
+hpc_cv |>
+  group_by(Resample) |>
   f_meas(obs, pred, estimator = "macro_weighted")
 
 # Vector version
@@ -165,6 +166,15 @@ f_meas_vec(
   two_class_example$predicted,
   event_level = "second"
 )
+
+# Using a different value of 'beta'... if you are adding the metric to a
+# metric set, you can create a new metric function with the updated argument
+# value:
+
+f2_meas <- metric_tweak("f2_meas", f_meas, beta = 2)
+multi_metrics <- metric_set(f_meas, f2_meas)
+multi_metrics(two_class_example, truth, estimate = predicted)
+
 }
 \references{
 Buckland, M., & Gey, F. (1994). The relationship
@@ -176,17 +186,24 @@ Factor to ROC, Informedness, Markedness and Correlation.
 Technical Report SIE-07-001, Flinders University
 }
 \seealso{
+\link[=class-metrics]{All class metrics}
+
 Other class metrics: 
 \code{\link{accuracy}()},
 \code{\link{bal_accuracy}()},
 \code{\link{detection_prevalence}()},
+\code{\link{fall_out}()},
 \code{\link{j_index}()},
 \code{\link{kap}()},
+\code{\link{markedness}()},
 \code{\link{mcc}()},
+\code{\link{miss_rate}()},
 \code{\link{npv}()},
 \code{\link{ppv}()},
 \code{\link{precision}()},
 \code{\link{recall}()},
+\code{\link{roc_dist}()},
+\code{\link{sedi}()},
 \code{\link{sens}()},
 \code{\link{spec}()}
 

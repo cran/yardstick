@@ -62,6 +62,30 @@ test_that("check_prob_metric() validates inputs", {
   )
 })
 
+test_that("check_ordered_prob_metric() validates case_weights", {
+  expect_snapshot(
+    error = TRUE,
+    check_ordered_prob_metric(
+      ordered(c("a", "b", "a")),
+      matrix(1:6, nrow = 2),
+      1:4,
+      estimator = "binary"
+    )
+  )
+})
+
+test_that("check_ordered_prob_metric() validates inputs", {
+  expect_snapshot(
+    error = TRUE,
+    check_ordered_prob_metric(
+      ordered(c("a", "b", "a")),
+      matrix(1:6, nrow = 2),
+      1:3,
+      estimator = "binary"
+    )
+  )
+})
+
 test_that("check_static_survival_metric() validates case_weights", {
   lung_surv <- data_lung_surv()
 
@@ -84,6 +108,22 @@ test_that("check_static_survival_metric() validates inputs", {
       truth = lung_surv$surv_obj,
       estimate = as.character(lung_surv$inst),
       case_weights = 1:150
+    )
+  )
+})
+
+test_that("check_quantile_metric() validates inputs", {
+  example <- dplyr::tibble(
+    preds = hardhat::quantile_pred(rbind(1:4, 8:11), c(0.2, 0.4, 0.6, 0.8)),
+    truth = c(3.3, 7.1)
+  )
+
+  expect_snapshot(
+    error = TRUE,
+    check_quantile_metric(
+      truth = as.character(example$truth),
+      estimate = example$preds,
+      case_weights = 1:2
     )
   )
 })

@@ -14,12 +14,29 @@
 #' a gain curve. See the Engelmann reference for more information.
 #'
 #' @family class probability metrics
+#' @seealso [All probability metrics][prob-metrics]
 #' @templateVar fn gain_capture
 #' @template event_first
 #' @template return
 #' @template multiclass-prob
 #'
 #' @inheritParams pr_auc
+#'
+#' @details
+#' Gain capture is a metric that should be `r attr(gain_capture, "direction")`d.
+#' The output ranges from `r metric_range_chr(gain_capture, 1)` to
+#' `r metric_range_chr(gain_capture, 2)`, with `r metric_optimal(gain_capture)`
+#' indicating perfect discrimination.
+#'
+#' The formula used here is:
+#'
+#' \deqn{\text{Gain Capture} = \frac{A_{model} - A_{baseline}}{A_{perfect} - A_{baseline}}}
+#'
+#' where \eqn{A_{model}} is the area under the model's gain curve,
+#' \eqn{A_{baseline}} is the area under the baseline (random) gain curve,
+#' and \eqn{A_{perfect}} is the area under a perfect gain curve. This is
+#' equivalent to twice the ROC AUC minus one, also known as the Gini
+#' coefficient.
 #'
 #' @author Max Kuhn
 #'
@@ -51,18 +68,21 @@ gain_capture <- function(data, ...) {
 }
 gain_capture <- new_prob_metric(
   gain_capture,
-  direction = "maximize"
+  direction = "maximize",
+  range = c(0, 1)
 )
 
 #' @rdname gain_capture
 #' @export
-gain_capture.data.frame <- function(data,
-                                    truth,
-                                    ...,
-                                    estimator = NULL,
-                                    na_rm = TRUE,
-                                    event_level = yardstick_event_level(),
-                                    case_weights = NULL) {
+gain_capture.data.frame <- function(
+  data,
+  truth,
+  ...,
+  estimator = NULL,
+  na_rm = TRUE,
+  event_level = yardstick_event_level(),
+  case_weights = NULL
+) {
   prob_metric_summarizer(
     name = "gain_capture",
     fn = gain_capture_vec,
@@ -78,13 +98,16 @@ gain_capture.data.frame <- function(data,
 
 #' @export
 #' @rdname gain_capture
-gain_capture_vec <- function(truth,
-                             estimate,
-                             estimator = NULL,
-                             na_rm = TRUE,
-                             event_level = yardstick_event_level(),
-                             case_weights = NULL,
-                             ...) {
+gain_capture_vec <- function(
+  truth,
+  estimate,
+  estimator = NULL,
+  na_rm = TRUE,
+  event_level = yardstick_event_level(),
+  case_weights = NULL,
+  ...
+) {
+  check_bool(na_rm)
   abort_if_class_pred(truth)
 
   estimator <- finalize_estimator(truth, estimator, "gain_capture")
@@ -110,11 +133,13 @@ gain_capture_vec <- function(truth,
   )
 }
 
-gain_capture_estimator_impl <- function(truth,
-                                        estimate,
-                                        estimator,
-                                        event_level,
-                                        case_weights) {
+gain_capture_estimator_impl <- function(
+  truth,
+  estimate,
+  estimator,
+  event_level,
+  case_weights
+) {
   if (is_binary(estimator)) {
     gain_capture_binary(truth, estimate, event_level, case_weights)
   } else {
@@ -125,10 +150,7 @@ gain_capture_estimator_impl <- function(truth,
   }
 }
 
-gain_capture_binary <- function(truth,
-                                estimate,
-                                event_level,
-                                case_weights) {
+gain_capture_binary <- function(truth, estimate, event_level, case_weights) {
   # `na_rm` should already be done
   gain_list <- gain_curve_vec(
     truth,

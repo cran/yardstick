@@ -15,6 +15,7 @@
 #' of `.9`.
 #'
 #' @family class probability metrics
+#' @seealso [All probability metrics][prob-metrics]
 #' @templateVar fn mn_log_loss
 #' @template return
 #'
@@ -28,6 +29,21 @@
 #' @param sum A `logical`. Should the sum of the likelihood contributions be
 #' returned (instead of the mean value)?
 #'
+#' @details
+#' Log loss is a metric that should be `r attr(mn_log_loss, "direction")`d. The
+#' output ranges from `r metric_range_chr(mn_log_loss, 1)` to
+#' `r metric_range_chr(mn_log_loss, 2)`, with `r metric_optimal(mn_log_loss)`
+#' indicating perfect predictions.
+#'
+#' The formula used here is:
+#'
+#' \deqn{\text{Log Loss} = -\frac{1}{N} \sum_{i=1}^{N} \sum_{j=1}^{K} y_{ij} \cdot \log(p_{ij})}
+#'
+#' where \eqn{N} is the number of observations, \eqn{K} is the number of classes,
+#' \eqn{y_{ij}} is 1 if observation \eqn{i} belongs to class \eqn{j} and 0
+#' otherwise, and \eqn{p_{ij}} is the predicted probability of observation
+#' \eqn{i} for class \eqn{j}.
+#'
 #' @author Max Kuhn
 #'
 #' @examples
@@ -40,19 +56,19 @@
 #' data(hpc_cv)
 #'
 #' # You can use the col1:colN tidyselect syntax
-#' hpc_cv %>%
-#'   filter(Resample == "Fold01") %>%
+#' hpc_cv |>
+#'   filter(Resample == "Fold01") |>
 #'   mn_log_loss(obs, VF:L)
 #'
 #' # Groups are respected
-#' hpc_cv %>%
-#'   group_by(Resample) %>%
+#' hpc_cv |>
+#'   group_by(Resample) |>
 #'   mn_log_loss(obs, VF:L)
 #'
 #'
 #' # Vector version
 #' # Supply a matrix of class probabilities
-#' fold1 <- hpc_cv %>%
+#' fold1 <- hpc_cv |>
 #'   filter(Resample == "Fold01")
 #'
 #' mn_log_loss_vec(
@@ -74,18 +90,21 @@ mn_log_loss <- function(data, ...) {
 }
 mn_log_loss <- new_prob_metric(
   mn_log_loss,
-  direction = "minimize"
+  direction = "minimize",
+  range = c(0, Inf)
 )
 
 #' @export
 #' @rdname mn_log_loss
-mn_log_loss.data.frame <- function(data,
-                                   truth,
-                                   ...,
-                                   na_rm = TRUE,
-                                   sum = FALSE,
-                                   event_level = yardstick_event_level(),
-                                   case_weights = NULL) {
+mn_log_loss.data.frame <- function(
+  data,
+  truth,
+  ...,
+  na_rm = TRUE,
+  sum = FALSE,
+  event_level = yardstick_event_level(),
+  case_weights = NULL
+) {
   prob_metric_summarizer(
     name = "mn_log_loss",
     fn = mn_log_loss_vec,
@@ -102,13 +121,17 @@ mn_log_loss.data.frame <- function(data,
 
 #' @rdname mn_log_loss
 #' @export
-mn_log_loss_vec <- function(truth,
-                            estimate,
-                            na_rm = TRUE,
-                            sum = FALSE,
-                            event_level = yardstick_event_level(),
-                            case_weights = NULL,
-                            ...) {
+mn_log_loss_vec <- function(
+  truth,
+  estimate,
+  na_rm = TRUE,
+  sum = FALSE,
+  event_level = yardstick_event_level(),
+  case_weights = NULL,
+  ...
+) {
+  check_bool(na_rm)
+  check_bool(sum)
   abort_if_class_pred(truth)
 
   estimator <- finalize_estimator(truth, metric_class = "mn_log_loss")
@@ -135,12 +158,14 @@ mn_log_loss_vec <- function(truth,
   )
 }
 
-mn_log_loss_estimator_impl <- function(truth,
-                                       estimate,
-                                       estimator,
-                                       event_level,
-                                       sum,
-                                       case_weights) {
+mn_log_loss_estimator_impl <- function(
+  truth,
+  estimate,
+  estimator,
+  event_level,
+  sum,
+  case_weights
+) {
   if (is_binary(estimator)) {
     mn_log_loss_binary(
       truth = truth,
@@ -159,11 +184,13 @@ mn_log_loss_estimator_impl <- function(truth,
   }
 }
 
-mn_log_loss_binary <- function(truth,
-                               estimate,
-                               event_level,
-                               sum,
-                               case_weights) {
+mn_log_loss_binary <- function(
+  truth,
+  estimate,
+  event_level,
+  sum,
+  case_weights
+) {
   if (!is_event_first(event_level)) {
     lvls <- levels(truth)
     truth <- stats::relevel(truth, lvls[[2]])
@@ -185,10 +212,7 @@ mn_log_loss_binary <- function(truth,
 # and it should be more precise)
 # https://github.com/wch/r-source/blob/582d94805aeee0c91f9bd9bdd63e421dd60e441f/src/library/stats/R/family.R#L83
 
-mn_log_loss_multiclass <- function(truth,
-                                   estimate,
-                                   sum,
-                                   case_weights) {
+mn_log_loss_multiclass <- function(truth, estimate, sum, case_weights) {
   # Binarize factor
   y <- stats::model.matrix(~ truth - 1)
 
