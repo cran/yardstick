@@ -1,7 +1,7 @@
 Type: Package
 Package: yardstick
 Title: Tidy Characterizations of Model Performance
-Version: 1.4.0
+Version: 1.5.0
 Authors@R: c(
     person("Max", "Kuhn", , "max@posit.co", role = "aut"),
     person("Davis", "Vaughan", , "davis@posit.co", role = "aut"),
@@ -21,25 +21,24 @@ Depends: R (>= 4.1)
 Imports: cli, dplyr (>= 1.1.0), generics (>= 0.1.2), hardhat (>=
         1.4.3), lifecycle (>= 1.0.3), rlang (>= 1.1.4), tibble,
         tidyselect (>= 1.2.0), utils, vctrs (>= 0.5.0), withr
-Suggests: covr, ggplot2, knitr, probably (>= 1.0.0), rmarkdown,
+Suggests: covr, ggplot2, knitr, probably (>= 1.0.0), quarto, rmarkdown,
         survival (>= 3.5-0), testthat (>= 3.0.0), tidyr
-VignetteBuilder: knitr
+VignetteBuilder: quarto
 Config/Needs/website: tidyverse/tidytemplate
 Config/testthat/edition: 3
 Config/usethis/last-upkeep: 2025-04-24
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.3.3
 Collate: 'aaa-get_metrics.R' 'aaa-metric_set.R' 'aaa-metrics.R'
         'import-standalone-types-check.R' 'aaa-new.R' 'aaa.R'
         'check-metric.R' 'class-accuracy.R' 'class-bal_accuracy.R'
-        'class-detection_prevalence.R' 'class-f_meas.R'
-        'class-fall_out.R' 'class-j_index.R' 'class-kap.R'
-        'class-markedness.R' 'class-mcc.R' 'class-miss_rate.R'
-        'class-npv.R' 'class-ppv.R' 'class-precision.R'
-        'class-recall.R' 'class-roc_dist.R' 'class-sedi.R'
-        'class-sens.R' 'class-spec.R' 'conf_mat.R' 'data.R'
-        'deprecated-prob_helpers.R' 'deprecated-template.R'
+        'class-detection_prevalence.R' 'class-detection_rate.R'
+        'class-f_meas.R' 'class-fall_out.R' 'class-j_index.R'
+        'class-kap.R' 'class-markedness.R' 'class-mcc.R'
+        'class-miss_rate.R' 'class-npv.R' 'class-ppv.R'
+        'class-precision.R' 'class-recall.R' 'class-roc_dist.R'
+        'class-sedi.R' 'class-sens.R' 'class-spec.R' 'conf_mat.R'
+        'data.R' 'deprecated-prob_helpers.R' 'deprecated-template.R'
         'estimator-helpers.R' 'event-level.R' 'fair-aaa.R'
         'fair-demographic_parity.R' 'fair-equal_opportunity.R'
         'fair-equalized_odds.R' 'import-standalone-obj-type.R'
@@ -62,8 +61,9 @@ Collate: 'aaa-get_metrics.R' 'aaa-metric_set.R' 'aaa-metrics.R'
         'surv-concordance_survival.R' 'surv-roc_auc_survival.R'
         'surv-roc_curve_survival.R' 'surv-royston.R' 'template.R'
         'validation.R' 'yardstick-package.R'
+Config/roxygen2/version: 8.1.0
 NeedsCompilation: yes
-Packaged: 2026-04-07 16:10:55 UTC; emilhvitfeldt
+Packaged: 2026-11-17 14:37:27 UTC; emilhvitfeldt
 Author: Max Kuhn [aut],
   Davis Vaughan [aut],
   Emil Hvitfeldt [aut, cre] (ORCID:
@@ -71,4 +71,4 @@ Author: Max Kuhn [aut],
   Posit Software, PBC [cph, fnd] (ROR: <https://ror.org/03wc8by49>)
 Maintainer: Emil Hvitfeldt <emil.hvitfeldt@posit.co>
 Repository: CRAN
-Date/Publication: 2026-04-07 17:10:02 UTC
+Date/Publication: 2026-11-18 10:40:02 UTC
